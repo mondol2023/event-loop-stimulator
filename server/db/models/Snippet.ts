@@ -1,4 +1,5 @@
 import "server-only";
+import "../mongooseConfig";
 import { type InferSchemaType, type Model, model, models, Schema } from "mongoose";
 import { nanoid } from "nanoid";
 

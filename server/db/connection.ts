@@ -1,12 +1,7 @@
 import "server-only";
+import "./mongooseConfig"; // global query hardening; must run before any schema is built
 import mongoose from "mongoose";
 import { getEnv } from "@/server/env";
-
-// Global query hardening (PROMPT.md §7.7): `sanitizeFilter` wraps any `$`
-// operator found in a user-supplied filter value in `$eq`, and `strictQuery`
-// throws on filter paths that are not in the schema.
-mongoose.set("sanitizeFilter", true);
-mongoose.set("strictQuery", "throw");
 
 type Cache = { promise: Promise<typeof mongoose> | undefined };
 

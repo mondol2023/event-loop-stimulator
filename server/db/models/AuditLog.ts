@@ -1,4 +1,5 @@
 import "server-only";
+import "../mongooseConfig";
 import { type InferSchemaType, type Model, model, models, Schema } from "mongoose";
 
 /** Audit entries expire after 90 days (PROMPT.md §7.7). */
