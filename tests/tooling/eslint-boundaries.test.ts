@@ -1,5 +1,5 @@
 import { ESLint } from "eslint";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 // Lints in-memory source as if it lived at `filePath`, so the directory
 // dependency rule (PROMPT.md §6.2) is proven by tooling, not by convention.
@@ -9,6 +9,12 @@ async function ruleIds(code: string, filePath: string): Promise<string[]> {
   const [result] = await eslint.lintText(code, { filePath });
   return (result?.messages ?? []).map((m) => m.ruleId ?? "fatal");
 }
+
+// The first lint loads the whole Next/TypeScript config, which can exceed the
+// default 5s test timeout when other suites are starting Mongo in parallel.
+beforeAll(async () => {
+  await ruleIds("export {};", "lib/warmup.ts");
+}, 60_000);
 
 const IMPORT = "no-restricted-imports";
 const SYNTAX = "no-restricted-syntax";

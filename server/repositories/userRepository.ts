@@ -1,5 +1,6 @@
 import "server-only";
 import type { ClientSession } from "mongoose";
+import { sessionOption } from "./session";
 import { parseUserId, type UserId } from "@/core/shared/ids";
 import { User } from "@/server/db/models/User";
 import type { RoleName, UserRecord, UserStatus } from "./types";
@@ -50,7 +51,7 @@ async function bumpSession(
   const doc = await User.findOneAndUpdate(
     { _id: id },
     { $set: fields, $inc: { sessionVersion: 1 } },
-    { returnDocument: "after", session },
+    { returnDocument: "after", ...sessionOption(session) },
   ).lean<UserLean>();
   return orNull(doc);
 }
@@ -64,7 +65,7 @@ export const userRepository = {
     session?: ClientSession,
   ): Promise<CreateUserResult> {
     try {
-      const [doc] = await User.create([input], { session });
+      const [doc] = await User.create([input], sessionOption(session));
       if (doc === undefined) throw new Error("User.create returned no document");
       return { ok: true, user: toUserRecord(doc.toObject() as unknown as UserLean) };
     } catch (error) {
@@ -88,7 +89,7 @@ export const userRepository = {
 
   async recordLogin(id: UserId, at: Date, session?: ClientSession): Promise<void> {
     if (parseUserId(id) === null) return;
-    await User.updateOne({ _id: id }, { $set: { lastLoginAt: at } }, { session });
+    await User.updateOne({ _id: id }, { $set: { lastLoginAt: at } }, sessionOption(session));
   },
 
   setStatus(id: UserId, status: UserStatus, session?: ClientSession): Promise<UserRecord | null> {

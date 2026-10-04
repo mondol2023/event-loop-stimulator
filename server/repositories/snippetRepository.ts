@@ -1,5 +1,6 @@
 import "server-only";
 import type { ClientSession } from "mongoose";
+import { sessionOption } from "./session";
 import { isSlug, parseSnippetId, parseUserId, type SnippetId, type UserId } from "@/core/shared/ids";
 import { Snippet } from "@/server/db/models/Snippet";
 import type { SnippetRecord, SnippetVisibility } from "./types";
@@ -50,7 +51,7 @@ export const snippetRepository = {
     if (input.forkedFrom !== undefined && parseSnippetId(input.forkedFrom) === null) {
       throw new TypeError("Snippet forkedFrom must be a valid snippet id");
     }
-    const [doc] = await Snippet.create([input], { session });
+    const [doc] = await Snippet.create([input], sessionOption(session));
     if (doc === undefined) throw new Error("Snippet.create returned no document");
     return toSnippetRecord(doc.toObject() as unknown as SnippetLean);
   },

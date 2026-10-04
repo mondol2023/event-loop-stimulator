@@ -1,5 +1,6 @@
 import "server-only";
 import type { ClientSession } from "mongoose";
+import { sessionOption } from "./session";
 import { parseUserId, type UserId } from "@/core/shared/ids";
 import { AuditLog } from "@/server/db/models/AuditLog";
 import type { AuditRecord, AuditSeverity } from "./types";
@@ -40,7 +41,7 @@ export const auditRepository = {
     }
     await AuditLog.insertMany(
       entries.map((entry) => ({ ...entry })),
-      { session },
+      sessionOption(session),
     );
   },
 

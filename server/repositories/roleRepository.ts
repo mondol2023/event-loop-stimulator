@@ -1,5 +1,6 @@
 import "server-only";
 import type { ClientSession } from "mongoose";
+import { sessionOption } from "./session";
 import { Role } from "@/server/db/models/Role";
 import type { RoleName, RoleRecord } from "./types";
 
@@ -14,7 +15,7 @@ export const roleRepository = {
           upsert: true,
         },
       })),
-      { session },
+      sessionOption(session),
     );
   },
 

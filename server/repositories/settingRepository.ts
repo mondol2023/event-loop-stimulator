@@ -1,5 +1,6 @@
 import "server-only";
 import type { ClientSession } from "mongoose";
+import { sessionOption } from "./session";
 import { Setting } from "@/server/db/models/Setting";
 
 export const settingRepository = {
@@ -13,7 +14,7 @@ export const settingRepository = {
 
   async set(key: string, value: unknown, session?: ClientSession): Promise<void> {
     if (typeof key !== "string") throw new TypeError("Setting key must be a string");
-    await Setting.updateOne({ key }, { $set: { value } }, { upsert: true, session });
+    await Setting.updateOne({ key }, { $set: { value } }, { upsert: true, ...sessionOption(session) });
   },
 
   /**
@@ -26,7 +27,7 @@ export const settingRepository = {
     await Setting.updateOne(
       { key },
       { $inc: { touches: 1 }, $setOnInsert: { value: null } },
-      { upsert: true, session },
+      { upsert: true, ...sessionOption(session) },
     );
   },
 };
