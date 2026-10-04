@@ -4,14 +4,17 @@ import { Redis } from "ioredis";
 /**
  * A Redis client tuned to fail fast. With ioredis defaults, commands queue while
  * disconnected and retry ~20 times, so a Redis outage would hang every
- * rate-limited request for many seconds. Here commands reject immediately when
- * offline (no offline queue), retry once, and time out in 2 s. `lazyConnect`
- * means constructing it (and importing this module) never touches the network.
+ * rate-limited request for many seconds. Here a command retries once
+ * (maxRetriesPerRequest) and times out in 2 s (commandTimeout). The offline
+ * queue must stay ON: `lazyConnect` means the first command is issued before the
+ * stream is writable, and with the queue off ioredis would reject it outright.
+ * `lazyConnect` also means constructing this (or importing the module) never
+ * touches the network.
  */
 export function createRedisClient(url: string): Redis {
   const client = new Redis(url, {
     lazyConnect: true,
-    enableOfflineQueue: false,
+    enableOfflineQueue: true,
     maxRetriesPerRequest: 1,
     connectTimeout: 2000,
     commandTimeout: 2000,
