@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import type { UserId } from "@/core/shared/ids";
+import { parseUserId, type UserId } from "@/core/shared/ids";
 import { auditRepository } from "@/server/repositories/auditRepository";
 import { getRequestContext } from "@/server/security/requestContext";
 
@@ -43,29 +43,57 @@ export function hashCode(source: string): string {
   return createHash("sha256").update(source).digest("hex");
 }
 
-function sanitizeDetails(details: unknown): AuditDetails | undefined {
-  if (typeof details !== "object" || details === null) return undefined;
+const MAX_DETAIL_VALUE = 256;
+const MAX_ID_FIELD = 128;
+const SEVERITIES: ReadonlySet<string> = new Set(["info", "warn", "critical"]);
+
+const clamp = (value: string, max: number): string => (value.length > max ? value.slice(0, max) : value);
+
+function requireString(value: unknown, field: string, max: number): string {
+  if (typeof value !== "string") throw new TypeError(`audit entry: ${field} must be a string`);
+  return clamp(value, max);
+}
+
+function sanitizeDetails(details: unknown): AuditDetails {
+  if (typeof details !== "object" || details === null || Array.isArray(details)) {
+    throw new TypeError("audit entry: details must be an object");
+  }
   const out: AuditDetails = {};
   for (const [key, value] of Object.entries(details)) {
     if (SENSITIVE_KEY.test(key)) continue;
-    if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      out[key] = value;
-    }
+    if (typeof value === "string") out[key] = clamp(value, MAX_DETAIL_VALUE);
+    else if (value === null || typeof value === "number" || typeof value === "boolean") out[key] = value;
   }
   return out;
 }
 
-/** Copies only the known fields, so nothing extra can ride along into the sink. */
+/**
+ * Validates and copies only the known fields, so nothing extra can ride along
+ * into the sink. Throws on an invalid entry: `log` then counts it as dropped,
+ * so one bad entry can never make the repository reject a whole batch.
+ */
 function snapshot(entry: AuditEntry): AuditEntry {
-  const details = sanitizeDetails(entry.details);
+  const event = requireString(entry.event, "event", MAX_ID_FIELD) as AuditEvent;
+  if (typeof entry.severity !== "string" || !SEVERITIES.has(entry.severity)) {
+    throw new TypeError("audit entry: severity is invalid");
+  }
+  const ipHash = requireString(entry.ipHash, "ipHash", MAX_ID_FIELD);
+  const requestId = requireString(entry.requestId, "requestId", MAX_ID_FIELD);
+  let actorId: UserId | undefined;
+  if (entry.actorId !== undefined) {
+    actorId = parseUserId(entry.actorId) ?? undefined;
+    if (actorId === undefined) throw new TypeError("audit entry: actorId is not a valid user id");
+  }
+  const details = entry.details === undefined ? undefined : sanitizeDetails(entry.details);
+  const codeHash = entry.codeHash === undefined ? undefined : requireString(entry.codeHash, "codeHash", MAX_ID_FIELD);
   return {
-    event: entry.event,
+    event,
     severity: entry.severity,
-    ipHash: entry.ipHash,
-    requestId: entry.requestId,
-    ...(entry.actorId === undefined ? {} : { actorId: entry.actorId }),
+    ipHash,
+    requestId,
+    ...(actorId === undefined ? {} : { actorId }),
     ...(details === undefined ? {} : { details }),
-    ...(entry.codeHash === undefined ? {} : { codeHash: entry.codeHash }),
+    ...(codeHash === undefined ? {} : { codeHash }),
   };
 }
 

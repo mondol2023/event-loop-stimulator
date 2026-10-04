@@ -12,6 +12,8 @@ vi.mock("@/server/repositories/auditRepository", () => ({
 import { AuditLogger, hashCode, withAudit, type AuditEntry } from "./AuditLogger";
 import type { UserId } from "@/core/shared/ids";
 
+const VALID_ID = "0123456789abcdef01234567" as UserId;
+
 const entry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
   event: "auth.login",
   severity: "info",
@@ -84,7 +86,7 @@ describe("AuditLogger", () => {
     expect(logger.dropped).toBe(2);
     expect(error).toHaveBeenCalledTimes(1);
     const printed = JSON.stringify(error.mock.calls);
-    expect(printed).toContain("2");
+    expect(printed).toContain("dropped 2 entries");
     expect(printed).not.toContain("secret-detail");
     expect(printed).not.toContain("req-1");
     expect(printed).not.toContain("iphash");
@@ -144,6 +146,67 @@ describe("AuditLogger", () => {
     const bad: unknown[] = [undefined, null, 5, "x", { details: 5 }, { details: { a: { b: 1 } } }, throwing];
     for (const b of bad) expect(() => logger.log(b as AuditEntry)).not.toThrow();
     await expect(logger.flush()).resolves.toBeUndefined();
+  });
+
+  it("drops invalid entries (counted, never queued) without poisoning neighbouring valid ones", async () => {
+    const { sink, batches } = makeSink();
+    const logger = new AuditLogger({ sink });
+    const bads: unknown[] = [
+      undefined,
+      { ...entry(), event: undefined },
+      { ...entry(), event: 5 },
+      { ...entry(), severity: "fatal" },
+      { ...entry(), severity: undefined },
+      { ...entry(), ipHash: 1 },
+      { ...entry(), requestId: undefined },
+      { ...entry(), actorId: "u1" },
+      { ...entry(), actorId: 7 },
+      { ...entry(), details: 5 },
+      { ...entry(), codeHash: 5 },
+    ];
+    logger.log(entry({ requestId: "good-1" }));
+    for (const b of bads) expect(() => logger.log(b as AuditEntry)).not.toThrow();
+    logger.log(entry({ requestId: "good-2", actorId: VALID_ID }));
+    expect(logger.dropped).toBe(bads.length);
+    await logger.flush();
+    expect(batches.flat().map((e) => e.requestId)).toEqual(["good-1", "good-2"]);
+  });
+
+  it("truncates over-long strings instead of dropping the entry", async () => {
+    const { sink, batches } = makeSink();
+    const logger = new AuditLogger({ sink });
+    const long = "x".repeat(10_000);
+    logger.log(entry({ requestId: long, ipHash: long, codeHash: long, details: { reason: long, n: 1 } }));
+    await logger.flush();
+    const got = batches[0]?.[0];
+    expect(logger.dropped).toBe(0);
+    expect(got?.requestId).toHaveLength(128);
+    expect(got?.ipHash).toHaveLength(128);
+    expect(got?.codeHash).toHaveLength(128);
+    expect(got?.details?.["reason"]).toHaveLength(256);
+    expect(got?.details?.["n"]).toBe(1);
+  });
+
+  it("a failing sink drops only that batch; later entries are delivered in order", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const delivered: string[] = [];
+    let calls = 0;
+    const logger = new AuditLogger({
+      sink: async (entries) => {
+        calls += 1;
+        if (calls === 1) throw new Error("down");
+        delivered.push(...entries.map((e) => e.requestId));
+      },
+    });
+    logger.log(entry({ requestId: "lost-1" }));
+    logger.log(entry({ requestId: "lost-2" }));
+    await logger.flush();
+    expect(logger.dropped).toBe(2);
+    logger.log(entry({ requestId: "kept-1" }));
+    logger.log(entry({ requestId: "kept-2" }));
+    await logger.flush();
+    expect(delivered).toEqual(["kept-1", "kept-2"]);
+    expect(logger.dropped).toBe(2);
   });
 
   it("flushes on a timer after flushDelayMs, and the timer is unref'd", async () => {
@@ -217,19 +280,19 @@ describe("withAudit", () => {
 
   it("logs once on success with the result-derived actor and request context", async () => {
     const { logger, batches } = loggerWith();
-    const wrapped = withAudit(async (email: string) => ({ id: "u1" as UserId, email }), {
+    const wrapped = withAudit(async (email: string) => ({ id: VALID_ID, email }), {
       logger,
       event: "auth.register",
       actor: ({ result }) => result?.id,
       details: ({ args, result }) => ({ email: args[0], ok: result !== undefined }),
     });
-    await expect(wrapped("a@b.c")).resolves.toEqual({ id: "u1", email: "a@b.c" });
+    await expect(wrapped("a@b.c")).resolves.toEqual({ id: VALID_ID, email: "a@b.c" });
     await logger.flush();
     expect(batches.flat()).toEqual([
       {
         event: "auth.register",
         severity: "info",
-        actorId: "u1",
+        actorId: VALID_ID,
         ipHash: "ih",
         requestId: "rid",
         details: { email: "a@b.c", ok: true },
