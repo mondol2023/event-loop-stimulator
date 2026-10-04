@@ -6,7 +6,7 @@ import { auditLogger } from "@/server/audit/AuditLogger";
 import { can, PERMISSIONS, type Permission } from "@/server/auth/permissions";
 import { getSession } from "@/server/auth/session";
 import { roleRepository } from "@/server/repositories/roleRepository";
-import type { RoleName } from "@/server/repositories/types";
+import type { RoleName, UserRecord } from "@/server/repositories/types";
 import { userRepository } from "@/server/repositories/userRepository";
 import { getRequestContext } from "@/server/security/requestContext";
 
@@ -47,6 +47,17 @@ async function permissionsFor(role: RoleName): Promise<readonly Permission[]> {
   return permissions;
 }
 
+/** Projects a stored user into the DTO (role permissions included). Never exposes the hash or sessionVersion. */
+export async function toCurrentUser(user: UserRecord): Promise<CurrentUser> {
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    role: user.role,
+    permissions: await permissionsFor(user.role),
+  };
+}
+
 /**
  * The signed-in user, or `null`. Null covers every failure the same way (no
  * cookie, tampered cookie, malformed claims, unknown or non-active user, stale
@@ -61,13 +72,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const user = await userRepository.findById(userId);
   if (user === null || user.status !== "active" || user.sessionVersion !== session.sessionVersion) return null;
 
-  return {
-    id: user.id,
-    email: user.email,
-    displayName: user.displayName,
-    role: user.role,
-    permissions: await permissionsFor(user.role),
-  };
+  return toCurrentUser(user);
 });
 
 /** Records a denied access attempt. Auditing never decides or delays the denial: failures are swallowed. */
