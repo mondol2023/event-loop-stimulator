@@ -87,7 +87,11 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
-/** Requires exactly `role` (no implicit hierarchy). 401 when anonymous; 403 plus an audit row otherwise. */
+/**
+ * Requires EXACTLY `role`: there is no hierarchy, so an admin does NOT satisfy
+ * `requireRole("user")`. Prefer `authorize(permission)` for capability checks.
+ * 401 when anonymous; 403 plus an `rbac.denied` audit row otherwise.
+ */
 export async function requireRole(role: RoleName): Promise<CurrentUser> {
   const user = await requireUser();
   if (user.role !== role) {

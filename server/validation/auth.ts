@@ -23,7 +23,10 @@ const displayName = z
   .trim()
   .min(1, "is required")
   .max(50, "must be at most 50 characters")
-  .regex(/^[^\p{Cc}]*$/u, "must not contain control characters");
+  // \p{Cc} control characters plus \p{Cf} format characters (bidi overrides and
+  // isolates, zero-width characters), which can spoof or hide text. Side effect:
+  // emoji ZWJ sequences (they contain U+200D) are rejected; single emoji are fine.
+  .regex(/^[^\p{Cc}\p{Cf}]*$/u, "must not contain control or invisible formatting characters");
 
 export const RegisterInput = z.object({ email, password: newPassword, displayName }).strict();
 export type RegisterInput = z.infer<typeof RegisterInput>;

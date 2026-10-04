@@ -40,6 +40,13 @@ describe("RegisterInput", () => {
   it("validates displayName: trimmed, 1..50, no control chars", () => {
     expect(RegisterInput.safeParse({ ...ok, displayName: "Al\u0000ice" }).success).toBe(false);
     expect(RegisterInput.safeParse({ ...ok, displayName: "Al\nice" }).success).toBe(false);
+    // Unicode format characters: bidi overrides/isolates and zero-width characters.
+    for (const ch of ["‮", "⁦", "⁩", "​", "‌", "‍"]) {
+      expect(RegisterInput.safeParse({ ...ok, displayName: `Al${ch}ice` }).success).toBe(false);
+    }
+    for (const name of ["Zoë Ångström", "山田太郎", "Алиса", "Sam \u{1F600}"]) {
+      expect(RegisterInput.safeParse({ ...ok, displayName: name }).success).toBe(true);
+    }
     expect(RegisterInput.safeParse({ ...ok, displayName: "   " }).success).toBe(false);
     expect(RegisterInput.safeParse({ ...ok, displayName: "a".repeat(51) }).success).toBe(false);
     const r = RegisterInput.safeParse({ ...ok, displayName: "  Ünï Çödé  " });

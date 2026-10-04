@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import argon2 from "argon2";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { hashPassword, verifyAgainstDummy, verifyPassword } from "./password";
 
 describe("password hashing", () => {
@@ -31,5 +32,31 @@ describe("password hashing", () => {
   it("verifyAgainstDummy resolves without throwing, repeatedly", async () => {
     await expect(verifyAgainstDummy("anything at all")).resolves.toBeUndefined();
     await expect(verifyAgainstDummy("")).resolves.toBeUndefined();
+  });
+});
+
+describe("verifyAgainstDummy resilience", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  it("does not cache a failed dummy hash: the next call retries and still does a real verify", async () => {
+    vi.resetModules();
+    const fresh = await import("./password");
+    const hashSpy = vi.spyOn(argon2, "hash").mockRejectedValueOnce(new Error("out of memory"));
+
+    await expect(fresh.verifyAgainstDummy("pw")).resolves.toBeUndefined();
+    expect(hashSpy).toHaveBeenCalledTimes(1);
+
+    const verifySpy = vi.spyOn(argon2, "verify");
+    await expect(fresh.verifyAgainstDummy("pw")).resolves.toBeUndefined();
+    expect(hashSpy).toHaveBeenCalledTimes(2);
+    expect(verifySpy).toHaveBeenCalledTimes(1);
+
+    // Built once successfully, then reused.
+    await fresh.verifyAgainstDummy("pw");
+    expect(hashSpy).toHaveBeenCalledTimes(2);
+    expect(verifySpy).toHaveBeenCalledTimes(2);
   });
 });

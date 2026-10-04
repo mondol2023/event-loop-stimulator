@@ -29,7 +29,17 @@ export async function verifyAgainstDummy(plain: string): Promise<void> {
     // Built lazily (not at import) so module load stays cheap; random so the
     // plaintext is not a constant an attacker could target.
     dummyHash ??= hashPassword(crypto.randomUUID());
-    await argon2.verify(await dummyHash, plain);
+    const pending = dummyHash;
+    let hash: string;
+    try {
+      hash = await pending;
+    } catch (error) {
+      // Do not cache a failure: a stuck rejected promise would turn every later
+      // unknown-email login into an instant return and defeat the equalizer.
+      if (dummyHash === pending) dummyHash = undefined;
+      throw error;
+    }
+    await argon2.verify(hash, plain);
   } catch {
     // Timing equalizer only: its outcome is irrelevant and must never surface.
   }
