@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "conformance": "vitest run --dir tests/conformance",
-    "conformance:record": "node scripts/conformance/record.mts"
+    "conformance:record": "node scripts/conformance/record.mts",
+    "seed": "tsx --conditions=react-server scripts/seed.mts"
   },
   "dependencies": {
     "@babel/parser": "^7.29.9",
@@ -56,6 +57,7 @@
     "jsdom": "^30.1.2",
     "mongodb-memory-server": "^11.3.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^5.0.3"
