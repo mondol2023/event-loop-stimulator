@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "@/core/shared/zod";
+import { taintSecret } from "@/server/security/taint";
 
 // Empty strings are common in copied .env files; treat them as "unset" rather
 // than as invalid values.
@@ -39,8 +40,19 @@ export function parseEnv(raw: Readonly<Record<string, string | undefined>>): Env
 
 let cached: Env | undefined;
 
-/** The validated process environment, parsed once (first call fails fast). */
+/**
+ * The validated process environment, parsed once (first call fails fast).
+ * Secret-bearing values are tainted so React refuses to serialize them to the
+ * client (a no-op unless React's experimental taint API is present).
+ */
 export function getEnv(): Env {
-  cached ??= parseEnv(process.env);
+  if (cached === undefined) {
+    const env = parseEnv(process.env);
+    // Connection strings may embed credentials, so they are treated as secrets too.
+    for (const value of [env.SESSION_SECRET, env.MONGODB_URI, env.REDIS_URL]) {
+      if (value !== undefined) taintSecret(value);
+    }
+    cached = env;
+  }
   return cached;
 }
