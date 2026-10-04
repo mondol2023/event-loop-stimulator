@@ -1,26 +1,193 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Silicon Loop design tokens (PROMPT.md §8.1). This is the Phase 0 starting
+ * point; DESIGN.md records the realized system after Phase 5.
+ *
+ * Dark is the default: <html> ships with class="dark". Light (for classroom
+ * projectors) is the :root base, so shadcn's `dark:` variants keep working.
+ * Every text/background pair below is ≥ 4.5:1 in both themes
+ * (tests/tooling/contrast.test.ts proves it).
+ *
+ * Saturated accents mean state only:
+ *   primary = run / current tick (green) · microtask = violet
+ *   macrotask = amber · webapi = cyan · destructive = error (red)
+ *   warning = fidelity warning, e.g. "Order not guaranteed in real Node" (yellow;
+ *   lemon rather than amber so it never reads as a macrotask)
+ * Color is never the only signal: each accent ships with a label or icon.
+ */
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-plex-sans);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-panel: var(--panel);
+  --color-panel-foreground: var(--panel-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Event-loop semantics */
+  --color-microtask: var(--microtask);
+  --color-macrotask: var(--macrotask);
+  --color-webapi: var(--webapi);
+  --color-current: var(--primary);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Type scale: fixed rem, ratio 1.125 (PROMPT.md §8.1) */
+  --text-xs: 0.790rem;
+  --text-sm: 0.889rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.266rem;
+  --text-2xl: 1.424rem;
+  --text-3xl: 1.602rem;
+  --text-4xl: 1.802rem;
+
+  /* Motion: most UI transitions 150–250 ms; exits faster than entrances. */
+  --duration-exit: 150ms;
+  --duration-enter: 220ms;
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Light: classroom / projector theme */
+:root {
+  --radius: 0.5rem;
+
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --panel: #f1f5f9;
+  --panel-foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --secondary: #e2e8f0;
+  --secondary-foreground: #0f172a;
+  --muted: #e2e8f0;
+  --muted-foreground: #475569;
+  --accent: #e2e8f0;
+  --accent-foreground: #0f172a;
+  --border: #cbd5e1;
+  --input: #94a3b8;
+  --ring: #15803d;
+
+  --primary: #15803d;
+  --primary-foreground: #ffffff;
+  --microtask: #6d28d9;
+  --macrotask: #b45309;
+  --webapi: #0e7490;
+  --destructive: #b91c1c;
+  --warning: #854d0e;
+
+  --chart-1: var(--primary);
+  --chart-2: var(--webapi);
+  --chart-3: var(--microtask);
+  --chart-4: var(--macrotask);
+  --chart-5: var(--destructive);
+
+  --sidebar: var(--panel);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* Dark (default): OLED slate IDE */
+.dark {
+  --background: #0b1120;
+  --foreground: #f1f5f9;
+  --panel: #0f172a;
+  --panel-foreground: #f1f5f9;
+  --card: #151e33;
+  --card-foreground: #f1f5f9;
+  --popover: #151e33;
+  --popover-foreground: #f1f5f9;
+  --secondary: #1e293b;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #f1f5f9;
+  --border: #263247;
+  --input: #475569;
+  --ring: #4ade80;
+
+  --primary: #22c55e;
+  --primary-foreground: #052e16;
+  --microtask: #a78bfa;
+  --macrotask: #fbbf24;
+  --webapi: #22d3ee;
+  --destructive: #f87171;
+  --warning: #fde047;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    @apply font-sans;
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  /* Register values, addresses and hex must line up column-wise. */
+  code,
+  kbd,
+  pre,
+  samp,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
 }
