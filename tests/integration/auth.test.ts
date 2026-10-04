@@ -232,12 +232,31 @@ describe("generic login failure", () => {
     expect(await getCurrentUser()).toBeNull();
   });
 
-  it("does not leave a signed-in session behind after a failed login", async () => {
+  it("leaves the existing session untouched after a failed login for the same account", async () => {
     const first = await signUp();
     const ctx = await getRequestContext();
     await login({ email: first.email, password: "definitely-wrong-pw" }, ctx);
     // The existing session is untouched by a failed attempt for the same account.
     expect((await getCurrentUser())?.id).toBe(first.id);
+  });
+});
+
+describe("login bookkeeping", () => {
+  it("still signs in and audits when recordLogin fails", async () => {
+    const user = await signUp();
+    req.cookies.clear();
+    req.setIp(freshIp());
+    const record = vi.spyOn(userRepository, "recordLogin").mockRejectedValue(new Error("write failed"));
+    try {
+      const result = await login({ email: user.email, password: PASSWORD }, await getRequestContext());
+      expect(result.ok).toBe(true);
+      expect((await getCurrentUser())?.id).toBe(user.id);
+      const rows = await auditRows("auth.login");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.actorId).toBe(user.id);
+    } finally {
+      record.mockRestore();
+    }
   });
 });
 

@@ -24,7 +24,8 @@ type Failure = Extract<AuthResult, { ok: false }>;
 // Unknown email, wrong password and a banned account all return exactly this
 // object, so neither the result nor its timing says which one it was. The
 // audit row (`details.reason`) is the only place the difference is recorded.
-const INVALID_CREDENTIALS: Failure = { ok: false, code: "invalid_credentials" };
+// Frozen: it is shared by every caller, so nobody may mutate it.
+const INVALID_CREDENTIALS: Failure = Object.freeze({ ok: false, code: "invalid_credentials" });
 
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 const sha256hex = (value: string): string => createHash("sha256").update(value).digest("hex");
@@ -148,7 +149,13 @@ export async function login(input: LoginInput, ctx: RequestContext): Promise<Aut
   }
 
   await issueSession(user);
-  await userRepository.recordLogin(user.id, new Date());
+  // Best-effort bookkeeping: `lastLoginAt` is informational, so a failed write must
+  // neither fail a login whose session is already issued nor skip the audit row.
+  try {
+    await userRepository.recordLogin(user.id, new Date());
+  } catch {
+    // Nothing from the error is logged: it may carry connection details.
+  }
   auditLogger.log({ event: "auth.login", severity: "info", actorId: user.id, ipHash: ctx.ipHash, requestId: ctx.requestId });
   return { ok: true, user: await toCurrentUser(user) };
 }
