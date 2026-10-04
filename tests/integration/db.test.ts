@@ -1,10 +1,8 @@
 import mongoose from "mongoose";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { connectDb } from "@/server/db/connection";
-import { Setting } from "@/server/db/models/Setting";
-import { AuditLog } from "@/server/db/models/AuditLog";
-import { User } from "@/server/db/models/User";
 import { inTransaction } from "@/server/db/transaction";
+import { userRepository } from "@/server/repositories/userRepository";
 import { startTestDb } from "./helpers/db";
 
 type TestDb = Awaited<ReturnType<typeof startTestDb>>;
@@ -24,6 +22,11 @@ beforeEach(async () => {
 
 const newUser = (email = "a@example.com") => ({ email, passwordHash: "hash", displayName: "A" });
 
+// Models are private to server/repositories/ and server/db/ (ESLint), so this
+// file reads collections through the connection handle. `mongoose.model(name)`
+// returns the already-registered model without importing it.
+const settings = () => mongoose.connection.collection("settings");
+
 describe("connectDb", () => {
   it("returns the same cached connection on repeat calls", async () => {
     const a = await connectDb(db.uri);
@@ -40,18 +43,21 @@ describe("global mongoose options", () => {
   });
 
   it("rejects queries on unknown paths", async () => {
-    await expect(User.find({ nope: 1 } as never).exec()).rejects.toThrow();
+    await expect(mongoose.model("User").find({ nope: 1 } as never).exec()).rejects.toThrow();
   });
 });
 
 describe("indexes", () => {
   it("makes User.email unique", async () => {
-    await User.create(newUser());
-    await expect(User.create(newUser())).rejects.toMatchObject({ code: 11000 });
+    await mongoose.connection.collection("users").createIndex({ email: 1 }, { unique: true }); // no-op when it exists
+    const indexes = await mongoose.connection.collection("users").indexes();
+    expect(indexes).toContainEqual(expect.objectContaining({ key: { email: 1 }, unique: true }));
+    expect(await userRepository.create(newUser())).toMatchObject({ ok: true });
+    expect(await userRepository.create(newUser())).toEqual({ ok: false, reason: "email_taken" });
   });
 
   it("gives AuditLog a 90-day TTL index on `at`", async () => {
-    const indexes = await AuditLog.collection.indexes();
+    const indexes = await mongoose.connection.collection("auditlogs").indexes();
     expect(indexes).toContainEqual(
       expect.objectContaining({ key: { at: 1 }, expireAfterSeconds: 7_776_000 }),
     );
@@ -61,18 +67,18 @@ describe("indexes", () => {
 describe("inTransaction", () => {
   it("commits on success", async () => {
     await inTransaction(async (session) => {
-      await Setting.create([{ key: "k", value: 1 }], { session });
+      await settings().insertOne({ key: "k", value: 1 }, { session });
     });
-    expect(await Setting.countDocuments()).toBe(1);
+    expect(await settings().countDocuments()).toBe(1);
   });
 
   it("rolls back when the callback throws", async () => {
     await expect(
       inTransaction(async (session) => {
-        await Setting.create([{ key: "k", value: 1 }], { session });
+        await settings().insertOne({ key: "k", value: 1 }, { session });
         throw new Error("boom");
       }),
     ).rejects.toThrow("boom");
-    expect(await Setting.countDocuments()).toBe(0);
+    expect(await settings().countDocuments()).toBe(0);
   });
 });

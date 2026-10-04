@@ -32,6 +32,14 @@ const NO_TESTS_OR_SCRIPTS = {
   regex: layer("(tests|scripts)"),
   message: "Nothing imports tests/ or scripts/ (the conformance harness stays out of the product).",
 };
+// Models are an implementation detail of the data layer: everything else reads
+// and writes through server/repositories/*, which return plain domain types and
+// own query hardening. Matches `@/server/db/models/*` and relative spellings
+// such as `../db/models/User`; a bare `./models/User` inside server/db/ is not a match.
+const NO_MODELS = {
+  regex: "^(@/server/|(\\.{1,2}/)+(server/)?)db/models(/|$)",
+  message: "Mongoose models are private to server/repositories/ and server/db/: use a repository.",
+};
 const ZOD_ENTRY = "core/shared/zod.ts";
 const ZOD_VIA_CORE = {
   regex: "^zod(/.*)?$",
@@ -78,14 +86,16 @@ const dynamicImportBans = ({ regex, message }) => [
 /**
  * Both import rules for one block: the shared bans plus `patterns`.
  * `allowChildProcess` is the conformance exception; `allowZod` is for the one
- * module that configures Zod.
+ * module that configures Zod; `allowModels` is for the data layer
+ * (server/repositories/**, server/db/**), the only code that imports models.
  */
-const restrict = ({ allowChildProcess = false, allowZod = false, patterns = [] } = {}) => {
+const restrict = ({ allowChildProcess = false, allowZod = false, allowModels = false, patterns = [] } = {}) => {
   const all = [
     VM,
     ...(allowChildProcess ? [] : [CHILD_PROCESS]),
     NO_APP,
     ...(allowZod ? [] : [ZOD_VIA_CORE]),
+    ...(allowModels ? [] : [NO_MODELS]),
     ...patterns,
   ];
   return {
@@ -114,6 +124,11 @@ const eslintConfig = defineConfig([
     rules: restrict({ patterns: CORE_PATTERNS }),
   },
   { files: [ZOD_ENTRY], rules: restrict({ allowZod: true, patterns: CORE_PATTERNS }) },
+  {
+    // The data layer is the only code that may import Mongoose models.
+    files: ["server/repositories/**/*.ts", "server/db/**/*.ts"],
+    rules: restrict({ allowModels: true, patterns: [NO_TESTS_OR_SCRIPTS] }),
+  },
   {
     // features/ reaches the server only through Server Actions in server/actions/.
     files: ["features/**/*.{ts,tsx}"],

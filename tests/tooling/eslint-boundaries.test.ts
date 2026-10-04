@@ -58,6 +58,39 @@ describe("dependency rule", () => {
   });
 });
 
+describe("models-import boundary (only server/repositories/** and server/db/** read models)", () => {
+  it.each([
+    ['import "@/server/db/models/User";', "server/auth/x.ts"],
+    ['import { User } from "@/server/db/models/User";', "server/actions/auth.ts"],
+    ['import { User } from "../db/models/User";', "server/auth/x.ts"],
+    ['import { User } from "../../server/db/models/User";', "app/page.tsx"],
+    ['import { Snippet } from "@/server/db/models/Snippet";', "features/snippets/x.ts"],
+    ['import { User } from "@/server/db/models/User";', "tests/integration/x.test.ts"],
+    ['export const m = await import("@/server/db/models/User");', "server/auth/x.ts"],
+    // The shared bans survive in the repositories block (flat config does not merge).
+    ['import vm from "node:vm";', "server/repositories/x.ts"],
+    ['import { z } from "zod";', "server/db/x.ts"],
+  ])("rejects %s in %s", async (code, filePath) => {
+    const ids = await ruleIds(code, filePath);
+    expect(ids.some((id) => id === IMPORT || id === SYNTAX)).toBe(true);
+  });
+
+  it.each([
+    ['import "@/server/db/models/User";', "server/repositories/x.ts"],
+    ['import { User } from "@/server/db/models/User";', "server/repositories/userRepository.ts"],
+    ['import "@/server/db/models/User";', "server/db/x.ts"],
+    ['import { User } from "./models/User";', "server/db/indexes.ts"],
+    ['import { User } from "../db/models/User";', "server/repositories/x.ts"],
+    ['export const m = await import("@/server/db/models/User");', "server/repositories/x.ts"],
+    ['import { userRepository } from "@/server/repositories/userRepository";', "server/auth/x.ts"],
+    ['import { connectDb } from "@/server/db/connection";', "server/auth/x.ts"],
+  ])("allows %s in %s", async (code, filePath) => {
+    const ids = await ruleIds(code, filePath);
+    expect(ids).not.toContain(IMPORT);
+    expect(ids).not.toContain(SYNTAX);
+  });
+});
+
 describe("code-execution bans (repo-wide)", () => {
   it.each([
     ['export const x = eval("1");', "app/page.tsx"],
