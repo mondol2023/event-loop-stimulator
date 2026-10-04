@@ -41,12 +41,25 @@ function isDuplicateKey(error: unknown): boolean {
 
 export type CreateUserResult = { ok: true; user: UserRecord } | { ok: false; reason: "email_taken" };
 
+// Update casting does not apply schema enums, so writes are checked here.
+const ROLES: readonly RoleName[] = ["user", "admin"];
+const STATUSES: readonly UserStatus[] = ["active", "banned"];
+
+function assertWritable(fields: Partial<Pick<UserRecord, "status" | "role" | "passwordHash">>): void {
+  if (fields.role !== undefined && !ROLES.includes(fields.role)) throw new TypeError("Unknown user role");
+  if (fields.status !== undefined && !STATUSES.includes(fields.status)) throw new TypeError("Unknown user status");
+  if (fields.passwordHash !== undefined && (typeof fields.passwordHash !== "string" || fields.passwordHash === "")) {
+    throw new TypeError("passwordHash must be a non-empty string");
+  }
+}
+
 /** Sets `fields` and `$inc`s sessionVersion, which invalidates the user's existing sessions. */
 async function bumpSession(
   id: UserId,
   fields: Partial<Pick<UserRecord, "status" | "role" | "passwordHash">>,
   session?: ClientSession,
 ): Promise<UserRecord | null> {
+  assertWritable(fields);
   if (parseUserId(id) === null) return null;
   const doc = await User.findOneAndUpdate(
     { _id: id },

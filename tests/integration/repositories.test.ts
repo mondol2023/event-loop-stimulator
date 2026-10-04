@@ -90,6 +90,20 @@ describe("userRepository", () => {
     expect((await userRepository.setPasswordHash(user.id, "h2"))?.passwordHash).toBe("h2");
   });
 
+  it.each([
+    ["setRole with an unknown role", (id: UserId) => userRepository.setRole(id, "superadmin" as never)],
+    ["setStatus with an unknown status", (id: UserId) => userRepository.setStatus(id, "x" as never)],
+    ["setRole with an operator object", (id: UserId) => userRepository.setRole(id, { $ne: "user" } as never)],
+    ["setPasswordHash with a number", (id: UserId) => userRepository.setPasswordHash(id, 123 as never)],
+    ["setPasswordHash with an empty string", (id: UserId) => userRepository.setPasswordHash(id, "")],
+  ])("%s is rejected and leaves the row and sessionVersion unchanged", async (_name, write) => {
+    const user = await makeUser();
+    await expect(write(user.id)).rejects.toThrow(TypeError);
+    const after = await userRepository.findById(user.id);
+    expect(after).toEqual(user);
+    expect(after?.sessionVersion).toBe(0);
+  });
+
   it("returns null when writing to an unknown user", async () => {
     expect(await userRepository.setRole("0".repeat(24) as UserId, "admin")).toBeNull();
   });

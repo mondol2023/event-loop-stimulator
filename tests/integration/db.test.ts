@@ -49,7 +49,7 @@ describe("global mongoose options", () => {
 
 describe("indexes", () => {
   it("makes User.email unique", async () => {
-    await mongoose.connection.collection("users").createIndex({ email: 1 }, { unique: true }); // no-op when it exists
+    // Asserts the index the MODEL declared (ensureIndexes built it; reset() keeps indexes).
     const indexes = await mongoose.connection.collection("users").indexes();
     expect(indexes).toContainEqual(expect.objectContaining({ key: { email: 1 }, unique: true }));
     expect(await userRepository.create(newUser())).toMatchObject({ ok: true });
