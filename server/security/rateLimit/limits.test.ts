@@ -38,6 +38,33 @@ describe("createLimitsProvider", () => {
     expect(await make(async () => null).provider.get()).toEqual(DEFAULT_LIMITS);
   });
 
+  it("rejects fractional, zero and absurd limits or windows (lockout guard)", async () => {
+    const bad = [
+      { auth: { limit: 0.5, windowSec: 60 } },
+      { auth: { limit: 0, windowSec: 60 } },
+      { auth: { limit: 5, windowSec: 0 } },
+      { auth: { limit: 5, windowSec: 1.5 } },
+      { auth: { limit: 1_000_000, windowSec: 60 } },
+      { auth: { limit: 5, windowSec: 10_000_000 } },
+    ];
+    for (const doc of bad) expect(await make(async () => doc).provider.get()).toEqual(DEFAULT_LIMITS);
+  });
+
+  it("never exposes a mutable shared object: results and DEFAULT_LIMITS are frozen", async () => {
+    const snapshot = structuredClone(DEFAULT_LIMITS);
+    type Mutable = Record<string, { limit: number }>;
+    for (const doc of [null, { auth: { limit: 7, windowSec: 60 } }]) {
+      const got = (await make(async () => doc).provider.get()) as unknown as Mutable;
+      expect(() => {
+        got["auth"]!.limit = 999;
+      }).toThrow(TypeError);
+      expect(() => {
+        got["compile.anon"] = { limit: 1 };
+      }).toThrow(TypeError);
+    }
+    expect(DEFAULT_LIMITS).toEqual(snapshot);
+  });
+
   it("falls back to defaults when load rejects, without throwing", async () => {
     const { provider } = make(async () => {
       throw new Error("mongo down");

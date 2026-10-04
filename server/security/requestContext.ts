@@ -13,7 +13,11 @@ export type RequestContext = { requestId: string; ipHash: string };
 export function clientIp(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
   if (forwarded) {
-    const last = forwarded.split(",").at(-1)?.trim();
+    const last = forwarded
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .at(-1);
     if (last) return last;
   }
   const real = h.get("x-real-ip")?.trim();

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/server/env", () => ({ getEnv: () => ({}) }));
+const getEnv = vi.hoisted(() => vi.fn(() => ({})));
+vi.mock("@/server/env", () => ({ getEnv }));
 vi.mock("@/server/repositories/settingRepository", () => ({
   settingRepository: { get: async () => null },
 }));
@@ -8,6 +9,14 @@ vi.mock("@/server/repositories/settingRepository", () => ({
 import { DEFAULT_LIMITS, createLimitsProvider } from "./limits";
 import { MemoryRateLimitStore } from "./memoryStore";
 import { createRateLimiter } from "./rateLimiter";
+
+describe("default rateLimiter", () => {
+  it("reads no env at import time", async () => {
+    getEnv.mockClear();
+    await import("./rateLimiter");
+    expect(getEnv).not.toHaveBeenCalled();
+  });
+});
 
 describe("createRateLimiter", () => {
   it("allows exactly 20 compile.anon calls then denies", async () => {

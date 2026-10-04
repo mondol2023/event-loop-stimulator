@@ -1,9 +1,9 @@
 import "server-only";
-import { Redis } from "ioredis";
 import { getEnv } from "@/server/env";
 import { settingRepository } from "@/server/repositories/settingRepository";
 import { createLimitsProvider, type LimitsProvider, type RateLimitScope } from "./limits";
 import { MemoryRateLimitStore } from "./memoryStore";
+import { getRedisClient } from "./redisClient";
 import { RedisRateLimitStore } from "./redisStore";
 import type { ConsumeResult, RateLimitStore } from "./store";
 
@@ -29,7 +29,7 @@ function build() {
   const redisUrl = getEnv().REDIS_URL;
   let store: RateLimitStore;
   if (redisUrl) {
-    store = new RedisRateLimitStore(new Redis(redisUrl));
+    store = new RedisRateLimitStore(getRedisClient(redisUrl));
   } else {
     if (process.env.NODE_ENV === "production" && !warned) {
       warned = true;

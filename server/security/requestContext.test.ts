@@ -11,6 +11,11 @@ describe("clientIp", () => {
     expect(clientIp(new Headers({ "x-forwarded-for": "1.1.1.1, 2.2.2.2" }))).toBe("2.2.2.2");
   });
 
+  it("takes the last non-empty trimmed entry", () => {
+    expect(clientIp(new Headers({ "x-forwarded-for": " 1.1.1.1 ,  2.2.2.2 " }))).toBe("2.2.2.2");
+    expect(clientIp(new Headers({ "x-forwarded-for": "1.1.1.1, " }))).toBe("1.1.1.1");
+  });
+
   it("falls back to x-real-ip, then to unknown", () => {
     expect(clientIp(new Headers({ "x-real-ip": "3.3.3.3" }))).toBe("3.3.3.3");
     expect(clientIp(new Headers())).toBe("unknown");

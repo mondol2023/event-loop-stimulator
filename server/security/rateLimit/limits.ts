@@ -2,19 +2,28 @@ import "server-only";
 import { z } from "@/core/shared/zod";
 
 export type RateLimitScope = "compile.anon" | "compile.user" | "auth" | "snippet.write";
-export type ScopeLimit = { limit: number; windowSec: number };
-export type Limits = Record<RateLimitScope, ScopeLimit>;
+export type ScopeLimit = { readonly limit: number; readonly windowSec: number };
+export type Limits = Readonly<Record<RateLimitScope, ScopeLimit>>;
 
-export const DEFAULT_LIMITS: Limits = {
-  "compile.anon": { limit: 20, windowSec: 60 },
-  "compile.user": { limit: 60, windowSec: 60 },
-  auth: { limit: 5, windowSec: 60 },
-  "snippet.write": { limit: 30, windowSec: 60 },
-};
+// Frozen all the way down: this object (and every merged result) is shared by
+// all callers, so nobody may mutate it.
+export const DEFAULT_LIMITS: Limits = Object.freeze({
+  "compile.anon": Object.freeze({ limit: 20, windowSec: 60 }),
+  "compile.user": Object.freeze({ limit: 60, windowSec: 60 }),
+  auth: Object.freeze({ limit: 5, windowSec: 60 }),
+  "snippet.write": Object.freeze({ limit: 30, windowSec: 60 }),
+});
 
 const SCOPES = Object.keys(DEFAULT_LIMITS) as RateLimitScope[];
 
-const ScopeLimitSchema = z.object({ limit: z.number().positive().finite(), windowSec: z.number().positive().finite() }).strict();
+// Integers only: a fractional limit (e.g. 0.5) gives capacity < 1, so a bucket
+// could never hold a whole token and the scope would be locked out forever.
+const ScopeLimitSchema = z
+  .object({
+    limit: z.number().int().positive().max(100_000),
+    windowSec: z.number().int().positive().max(86_400),
+  })
+  .strict();
 const OverrideSchema = z
   .object({
     "compile.anon": ScopeLimitSchema.optional(),
@@ -31,12 +40,12 @@ export type LimitsProvider = { get(): Promise<Limits>; invalidate(): void };
 function merge(doc: unknown): Limits {
   const parsed = OverrideSchema.safeParse(doc);
   if (!parsed.success) return DEFAULT_LIMITS;
-  const merged = { ...DEFAULT_LIMITS };
+  const merged: Record<RateLimitScope, ScopeLimit> = { ...DEFAULT_LIMITS };
   for (const scope of SCOPES) {
     const override = parsed.data[scope];
-    if (override) merged[scope] = override;
+    if (override) merged[scope] = Object.freeze({ limit: override.limit, windowSec: override.windowSec });
   }
-  return merged;
+  return Object.freeze(merged);
 }
 
 /**
