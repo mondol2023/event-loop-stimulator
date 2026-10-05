@@ -105,6 +105,16 @@ export const userRepository = {
     await User.updateOne({ _id: id }, { $set: { lastLoginAt: at } }, sessionOption(session));
   },
 
+  /**
+   * Rewrites nothing but `updatedAt`. Two transactions that both touch a row
+   * conflict and one retries, which is how the admin guard serializes writes
+   * that would otherwise only touch different documents (write skew).
+   */
+  async touch(id: UserId, session?: ClientSession): Promise<void> {
+    if (parseUserId(id) === null) return;
+    await User.updateOne({ _id: id }, { $set: { updatedAt: new Date() } }, { timestamps: false, ...sessionOption(session) });
+  },
+
   setStatus(id: UserId, status: UserStatus, session?: ClientSession): Promise<UserRecord | null> {
     return bumpSession(id, { status }, session);
   },
