@@ -14,6 +14,7 @@ A V8 engine and event-loop visualizer. The spec is `PROMPT.md`: run one phase pe
 | `npm test` | Vitest (unit, golden, property, recorded conformance). Node env; UI tests add `// @vitest-environment jsdom` |
 | `npm run conformance` | Conformance suite in `tests/conformance/` |
 | `npm run conformance:record` | Re-record `*.expected.json` on real Node; refuses unless the runtime equals `docs/TARGET.md` |
+| `npm run seed` | Upsert Role docs and indexes; promotes `ADMIN_BOOTSTRAP_EMAIL` only if that user already registered |
 | `npm run e2e` | Playwright (builds + starts on :3100) |
 | `npm run build` | Production build, then `scripts/check-build.mts` (no eval/child_process/vm in the output) |
 | `docker compose up -d` | Mongo replica set `rs0` (add `--profile redis` for Redis) |
@@ -39,7 +40,7 @@ A phase is done only when lint, typecheck, test and build all pass, with the out
 - `features/`: imports `core/`, `components/` and `lib/`. It reaches the server **only** via Server Actions in `server/actions/*`.
 - `app/`: routing only. It composes `features/` and `server/`.
 - `server/`: every file starts with `import "server-only"`.
-- Nothing imports `app/`, `tests/` or `scripts/`.
+- Nothing imports `app/` (except `tests/integration` importing `app/api/**` handlers), `tests/` or `scripts/`. Only `server/repositories/**` and `server/db/**` import Mongoose models.
 
 Proof: `tests/tooling/eslint-boundaries.test.ts`. Extend it whenever you change a rule.
 

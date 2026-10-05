@@ -95,3 +95,95 @@ It allows pure npm packages.
 **Consequence.** These scripts may only use erasable TypeScript syntax: no `enum`, `namespace` or parameter properties.
 
 **Phase 0 scope.** `conformance:record` verifies the pinned runtime and reports zero fixtures. `conformance` runs `tests/conformance/` (the target-pin tests for now). The recorder, runner and generator land in Phase 2.
+
+## ADR-010: Bundling spikes: nothing needed `serverExternalPackages`; `proxy.ts` may import `server/` (Phase 1)
+
+**Context.** Phase 1 puts Mongoose, argon2, ioredis, iron-session and a `worker_threads` pool behind the build check, which fails on `child_process`/`vm`/`eval` strings in `.next/`.
+
+**Decision.** Three spikes, all run against `npm run build` and `npm run e2e` (production build):
+- **Server dependencies.** The route graph for `/api/compile` pulls in Mongoose, the MongoDB driver, argon2 and ioredis. `scripts/check-build.mts` still passes, so `next.config.ts` has no `serverExternalPackages`.
+- **`proxy.ts` imports.** It imports `server/security/headers.ts` and `server/auth/sessionCookie.ts`, both with `import "server-only"`, and the build accepts it. The cookie name lives in its own module so the proxy does not load iron-session, the env parser or `next/headers`. Both modules use only Web APIs.
+- **Worker path.** `new URL("./compile-worker.mjs", import.meta.url)` resolves under `next start`: `e2e/security.spec.ts` posts to `/api/compile` on the production server and gets the stub answer. No `outputFileTracingIncludes` is needed.
+
+**Consequence.** Open risk, not a Phase 1 task: Phases 2-3 must bundle the real `core/` interpreter (TypeScript) into the worker entry, which the plain `.mjs` stub does not exercise.
+
+## ADR-011: `authInterrupts` and `taint` are on; `forbidden()` only in pages (Phase 1)
+
+**Context.** `forbidden()`/`unauthorized()` (next/navigation) need `experimental.authInterrupts`. React's `experimental_taintUniqueValue`, which stops secrets from being serialized to the client, needs `experimental.taint`.
+
+**Decision.**
+- Both flags are on in `next.config.ts`. `server/env.ts` taints `SESSION_SECRET`, `MONGODB_URI` and `REDIS_URL`; the call is a no-op where the API is absent (Vitest).
+- `requireUser()`/`requireRole()` throw the interrupts and are for pages. Server Actions and Route Handlers use `authorize()` or return a status object (`AdminActionResult`, JSON errors), so callers and tests see an HTTP-like status instead of a thrown fallback.
+
+**Consequence.** `experimental.taint` switches the app directory onto React's experimental channel; re-evaluate in Phase 9 when it is stable.
+
+## ADR-012: Nonce CSP forces per-request rendering; no `upgrade-insecure-requests` (Phase 1)
+
+**Context.** A nonce is minted per request in `proxy.ts`; Next applies it only while server-rendering.
+
+**Decision.**
+- `app/layout.tsx` is async and awaits `connection()`, so every page renders per request. The routes show as dynamic in the build output.
+- Production CSP: `script-src 'self' 'nonce-…' 'strict-dynamic'`, `style-src 'self' 'nonce-…'`, `worker-src 'self' blob:`, `frame-ancestors 'none'`, and no `'unsafe-eval'`. Development adds `'unsafe-eval'` and `'unsafe-inline'` styles (React debugging, HMR).
+- `upgrade-insecure-requests` is omitted: it breaks the http e2e server, and HSTS (sent only over https) covers production.
+- The proxy skips prefetches and static assets, and still matches `/api/*` so every response carries `x-request-id`.
+
+**Consequence.** Open risk for Phase 6: CodeMirror and Motion inject styles, which need the nonce (`EditorView.cspNonce`) and no SSR `style=` attributes. The current pages produce no CSP console messages (checked in e2e). Production never gets `'unsafe-inline'` for styles.
+
+## ADR-013: The client IP is the last `X-Forwarded-For` entry (Phase 1)
+
+**Decision.** Rate limiting and audit key on `clientIp()`: the last entry of `x-forwarded-for` (else `x-real-ip`, else `"unknown"`), HMAC-hashed with a key derived from `SESSION_SECRET`. The first entry is client-controlled; the last is what our one trusted proxy appended.
+
+**Consequence.** Correct only behind exactly one trusted proxy. With none, a client can pick its own address and dodge per-IP limits; with two, all clients share the proxy's address. Raw addresses are never stored.
+
+## ADR-014: Seeding runs through `tsx` and never creates admins (Phase 1)
+
+**Context.** ADR-009 runs scripts with Node's type stripping, which cannot load `server/` modules (path aliases, `server-only`).
+
+**Decision.** `npm run seed` is `tsx --conditions=react-server scripts/seed.mts`, an exception to ADR-009. `seed()` is idempotent: it upserts the two Role documents and ensures indexes. With `ADMIN_BOOTSTRAP_EMAIL` set it promotes that user **only if they already exist**. It never creates a user, so an unverified registration cannot claim admin by being first.
+
+**Consequence.** Bootstrapping an admin is two steps: register, then re-run the seed.
+
+## ADR-015: Password policy 12-128, and registration says "email taken" (Phase 1)
+
+**Decision.** New passwords must be 12-128 characters (argon2id, 19 MiB, t=2, p=1). Presented passwords (login, "current password") are only length-bounded, so the sign-in form cannot probe the policy and a later policy change cannot lock anyone out. Registration reports `email_taken`; login returns one generic error for unknown email, wrong password and banned account, with the real reason only in the audit row.
+
+**Consequence.** Registration confirms that an address has an account (enumeration). Accepted until email verification exists; the registration route is rate-limited per IP and email.
+
+## ADR-016: Signed double-submit CSRF, and the `csrf.rejected` audit event (Phase 1)
+
+**Decision.**
+- Mutating Route Handlers call `guardMutation()`: `Origin` must be present, not `"null"`, and match `x-forwarded-host ?? host` (Next's Server Action rule); then `x-csrf-token` must equal the `sl_csrf` cookie and carry an HMAC made with a key derived from `SESSION_SECRET`. A cookie injected by a sibling subdomain cannot be signed, so it fails.
+- Failures answer 403 and write a `csrf.rejected` audit row (reason only, never the token). This event is an addition to the spec's list.
+- A request that fails the guard spends no rate-limit token and has no body read.
+- Server Actions rely on Next's built-in Origin check.
+
+## ADR-017: Lint boundaries added in Phase 1 (Phase 1)
+
+**Decision.**
+- Only `server/repositories/**` and `server/db/**` may import `server/db/models/*`.
+- Integration tests (`tests/integration/**`) may import `app/api/**` route handlers, to call them directly. Every other import of `app/` stays banned.
+- Both rules are proven in `tests/tooling/eslint-boundaries.test.ts`.
+
+## ADR-018: Admin changes serialize through the acting admin's row (Phase 1)
+
+**Context.** Two admins demoting each other write different documents. Under snapshot isolation both transactions commit and no admin is left (write skew), even though each checked "at least one admin remains".
+
+**Decision.** `banUser`/`changeUserRole` first touch the actor's own row inside the transaction, so two concurrent admin changes conflict and the loser retries on fresh state. The transaction also checks that an active admin remains (else it rolls back: `last_admin`) and that the actor is still an active admin (else `forbidden`, 403), because the actor DTO was read before the transaction. `target === actor` (compared case-insensitively) is refused as `self`.
+
+**Consequence.** Concurrent admin changes are serialized per actor pair; throughput is irrelevant at admin volumes.
+
+## ADR-019: The data layer connects lazily (Phase 1)
+
+**Context.** Nothing connected to Mongo at boot. Mongoose buffers an unconnected query for 10 s and then fails, so every request would have been slow and failed.
+
+**Decision.** Repositories are wrapped in `withConnection()` and `inTransaction` calls `connectDb()`, which caches the connection on `globalThis`. A failed connect clears the cache, so the next call retries, and an outage fails after the 3 s server-selection timeout. `connectDb()` reads `MONGODB_URI` only when it has to connect.
+
+**Consequence.** With Mongo down, `/api/compile` still answers (about 3 s on the first call per 30 s, since the limits provider caches its defaults).
+
+## ADR-020: `/api/compile` limits and failure behaviour (Phase 1)
+
+**Decision.**
+- Body cap `MAX_BODY_BYTES` is 24 KiB, not 16: code may be 10,240 bytes and JSON escaping can double newlines and quotes, so 16 KiB would reject valid programs near the limit. The body is read incrementally and abandoned at the cap (413), ignoring `Content-Length`.
+- Rate limits: `compile.user` keyed by user id, else `compile.anon` keyed by hashed IP. If the limiter itself fails, the route answers 503 (fail closed). A failing limits read (Mongo) falls back to the defaults.
+- A failing session lookup is treated as anonymous; failing audit writes are dropped (counted, never logged with contents).
+- Sandbox `timeout`, `crashed` and `busy` all answer 503.

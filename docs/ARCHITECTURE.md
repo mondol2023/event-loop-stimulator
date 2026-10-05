@@ -59,23 +59,30 @@ e2e/                 Playwright
 | `server/`, `components/`, `lib/` | anything except `app/`, `tests/`, `scripts/` |
 | `tests/`, `scripts/` | each other. Only the `conformance/` directories may use `child_process` |
 
-Nothing imports `app/`, `tests/` or `scripts/`. Zod is imported only through `core/shared/zod.ts`, which turns off Zod's `new Function` JIT ([ADR-007](DECISIONS.md)).
+Nothing imports `app/` (integration tests may import `app/api/**` handlers, [ADR-017](DECISIONS.md)), `tests/` or `scripts/`. Only `server/repositories/**` and `server/db/**` import Mongoose models. Zod is imported only through `core/shared/zod.ts`, which turns off Zod's `new Function` JIT ([ADR-007](DECISIONS.md)).
 
 ## Code-execution bans, in three layers
 
 1. **Source.** ESLint bans `eval`, the `Function` constructor, `ShadowRealm`, `vm` and `child_process` across the repo. The only exception is `child_process`, in `scripts/conformance/` and `tests/conformance/`.
 2. **Build.** `npm run build` ends with `scripts/check-build.mts`. It fails if `eval(`, `child_process`, `vm` or `ShadowRealm` appears in `.next/static` or `.next/server`.
-3. **Browser.** A nonce-based CSP without `'unsafe-eval'` (Phase 1).
+3. **Browser.** A nonce-based CSP without `'unsafe-eval'` in production ([ADR-012](DECISIONS.md)).
 
 `tests/tooling/eslint-boundaries.test.ts` and `tests/tooling/build-bans.test.ts` prove the first two.
 
 ## Runtime boundaries
 
 - **Browser.** The UI renders. Compile and simulate run in a Web Worker (`features/playground/worker/`), with Zod-validated messages.
-- **Server.**
-  - `/api/compile` runs the same `core/` interpreter in a `worker_threads` pool (64 MB, 2 s timeout). The pool guards against pathological inputs; it is not a sandbox for user code.
-  - Auth uses iron-session and argon2id.
-  - Data lives in MongoDB, as a replica set so transactions work.
-  - Rate limits use Redis, or memory in dev.
+- **Server.** Requests pass four layers, each of which can only reject:
+  1. `proxy.ts`: mints the CSP nonce and `x-request-id`, sets the security headers, and redirects `/dashboard` and `/admin` visitors who have no session cookie. This is optimistic (no database, no unsealing) and is never the security boundary.
+  2. DAL (`server/auth/dal.ts`): the real authorization point. `getCurrentUser()` re-reads the user on every request and returns null unless the account is active and the cookie's `sessionVersion` matches. `authorize(permission)` yields 401/403 and audits `rbac.denied`.
+  3. Services (`authService`, `userAdmin`): the rules, rate limits and audit rows.
+  4. Repositories: the only importers of Mongoose models. They return plain domain types and validate every id before a query.
+
+  Server Actions and Route Handlers stay thin: Zod, authorize, rate limit, service, audit.
+  - `POST /api/compile` runs, in order: origin + signed CSRF -> caller -> rate limit -> bounded body read -> Zod -> `worker_threads` pool (64 MB, 2 s). Phase 1 runs a stub worker; the pool guards resources and is not a sandbox for user code.
+  - Auth uses iron-session and argon2id; a password change, ban or role change bumps `sessionVersion`, which revokes every older session.
+  - Data lives in MongoDB, as a replica set so transactions work; the connection opens on first use.
+  - Rate limits use Redis, or memory in dev. Settings come from a Mongo `Setting` doc (30 s cache, defaults on failure).
+  - Audit is fire-and-forget through a bounded queue; rows hold `codeHash`, never code, and expire after 90 days.
 - **Boot.** `instrumentation.ts` validates the environment (`server/env.ts`) before the server takes requests.
 - **Conformance.** Expectations come only from real Node on the pinned target, via `npm run conformance:record`. `npm test` compares against the recorded files, so CI doesn't need the pinned Node.
