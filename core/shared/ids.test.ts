@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSlug, parseSnippetId, parseUserId } from "./ids";
+import { asFunctionId, isSlug, parseSnippetId, parseUserId } from "./ids";
 
 describe("parseUserId", () => {
   it("accepts a 24-hex ObjectId string", () => {
@@ -38,5 +38,19 @@ describe("isSlug", () => {
     expect(isSlug("abcdefghi!")).toBe(false);
     expect(isSlug({ $gt: "" })).toBe(false);
     expect(isSlug(null)).toBe(false);
+  });
+});
+
+describe("asFunctionId", () => {
+  it("accepts non-negative integers", () => {
+    expect(asFunctionId(0)).toBe(0);
+    expect(asFunctionId(42)).toBe(42);
+  });
+
+  it("throws for negatives, fractions and non-finite numbers", () => {
+    expect(() => asFunctionId(-1)).toThrow();
+    expect(() => asFunctionId(1.5)).toThrow();
+    expect(() => asFunctionId(Number.NaN)).toThrow();
+    expect(() => asFunctionId(Number.POSITIVE_INFINITY)).toThrow();
   });
 });

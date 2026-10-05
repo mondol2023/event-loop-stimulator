@@ -3,10 +3,12 @@
 // a query operator: the parsers accept only strings of an exact shape.
 
 declare const brand: unique symbol;
-type Brand<T, B extends string> = T & { readonly [brand]: B };
+export type Brand<T, B extends string> = T & { readonly [brand]: B };
 
 export type UserId = Brand<string, "UserId">;
 export type SnippetId = Brand<string, "SnippetId">;
+/** Index of a function in a compiled program (0-based). */
+export type FunctionId = Brand<number, "FunctionId">;
 
 const OBJECT_ID = /^[0-9a-fA-F]{24}$/;
 const SLUG = /^[A-Za-z0-9_-]{10}$/;
@@ -28,4 +30,12 @@ export function parseSnippetId(input: unknown): SnippetId | null {
 /** True for a 10-character url-safe snippet slug (nanoid alphabet). */
 export function isSlug(input: unknown): input is string {
   return typeof input === "string" && SLUG.test(input);
+}
+
+/** A non-negative integer as a `FunctionId`; throws `RangeError` for anything else. */
+export function asFunctionId(n: number): FunctionId {
+  if (!Number.isInteger(n) || n < 0) {
+    throw new RangeError(`FunctionId must be a non-negative integer, got ${String(n)}`);
+  }
+  return n as FunctionId;
 }
