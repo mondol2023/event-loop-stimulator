@@ -380,6 +380,22 @@ describe("rate limiting", () => {
     expect(elsewhere.ok).toBe(true);
   });
 
+  it("also limits one IP across many different emails (the per-email bucket alone is bypassed by rotating emails)", async () => {
+    const ctx = await getRequestContext();
+    for (let i = 0; i < 30; i += 1) {
+      const result = await login({ email: uniqueEmail("rotating"), password: "definitely-wrong-pw" }, ctx);
+      expect(result).toEqual({ ok: false, code: "invalid_credentials" });
+    }
+    const next = await login({ email: uniqueEmail("rotating"), password: "definitely-wrong-pw" }, ctx);
+    expect(next).toMatchObject({ ok: false, code: "rate_limited" });
+    const registered = await register({ email: uniqueEmail("rotating"), password: PASSWORD, displayName: "Rot" }, ctx);
+    expect(registered).toMatchObject({ ok: false, code: "rate_limited" });
+
+    req.setIp(freshIp());
+    const elsewhere = await login({ email: uniqueEmail("rotating"), password: "definitely-wrong-pw" }, await getRequestContext());
+    expect(elsewhere).toEqual({ ok: false, code: "invalid_credentials" });
+  }, 60_000);
+
   it("is checked before any database lookup or password work", async () => {
     const email = uniqueEmail("early");
     const ctx = await getRequestContext();

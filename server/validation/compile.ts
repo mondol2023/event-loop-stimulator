@@ -5,11 +5,11 @@ import { z } from "@/core/shared/zod";
 export const MAX_CODE_BYTES = 10_240;
 
 /**
- * Request body cap. The code may be 10,240 bytes and JSON escaping can double
- * the newlines, tabs and quotes in it, so the envelope is sized for that worst
- * case (about 20.5 KB) plus a little overhead.
+ * Request body cap. The code may be 10,240 bytes, and an ASCII-escaping
+ * serializer writes each 2-byte character as a 6-byte `\uXXXX` (3x), so the
+ * worst case is about 30.7 KB plus a little overhead.
  */
-export const MAX_BODY_BYTES = 24 * 1024;
+export const MAX_BODY_BYTES = 32 * 1024;
 
 const encoder = new TextEncoder();
 

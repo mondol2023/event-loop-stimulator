@@ -23,6 +23,17 @@ function safeEqual(a: string, b: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
+/** One cookie from a `Cookie` request header. */
+export function cookieValue(header: string | null, name: string): string | undefined {
+  if (header === null) return undefined;
+  for (const part of header.split(";")) {
+    const index = part.indexOf("=");
+    if (index === -1) continue;
+    if (part.slice(0, index).trim() === name) return part.slice(index + 1).trim();
+  }
+  return undefined;
+}
+
 export function issueCsrfToken(): string {
   const random = randomBytes(32).toString("base64url");
   return `${random}.${sign(random)}`;

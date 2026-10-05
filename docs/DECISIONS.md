@@ -139,7 +139,7 @@ It allows pure npm packages.
 
 **Context.** ADR-009 runs scripts with Node's type stripping, which cannot load `server/` modules (path aliases, `server-only`).
 
-**Decision.** `npm run seed` is `tsx --conditions=react-server scripts/seed.mts`, an exception to ADR-009. `seed()` is idempotent: it upserts the two Role documents and ensures indexes. With `ADMIN_BOOTSTRAP_EMAIL` set it promotes that user **only if they already exist**. It never creates a user, so an unverified registration cannot claim admin by being first.
+**Decision.** `npm run seed` is `tsx --conditions=react-server --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed.mts` (it loads the same env files as `next dev`), an exception to ADR-009. `seed()` is idempotent: it upserts the two Role documents and ensures indexes. With `ADMIN_BOOTSTRAP_EMAIL` set it promotes that user **only if they already exist**. It never creates a user, so an unverified registration cannot claim admin by being first.
 
 **Consequence.** Bootstrapping an admin is two steps: register, then re-run the seed.
 
@@ -147,7 +147,7 @@ It allows pure npm packages.
 
 **Decision.** New passwords must be 12-128 characters (argon2id, 19 MiB, t=2, p=1). Presented passwords (login, "current password") are only length-bounded, so the sign-in form cannot probe the policy and a later policy change cannot lock anyone out. Registration reports `email_taken`; login returns one generic error for unknown email, wrong password and banned account, with the real reason only in the audit row.
 
-**Consequence.** Registration confirms that an address has an account (enumeration). Accepted until email verification exists; the registration route is rate-limited per IP and email.
+**Consequence.** Registration confirms that an address has an account (enumeration). Accepted until email verification exists; registration, login and password change are rate-limited per IP across all emails (`auth.ip`, 30 per 60 s) and per IP and email (`auth`, 5 per 60 s). The per-IP bucket stops an attacker rotating email addresses from one address; it does not stop a distributed one.
 
 ## ADR-016: Signed double-submit CSRF, and the `csrf.rejected` audit event (Phase 1)
 
@@ -155,6 +155,7 @@ It allows pure npm packages.
 - Mutating Route Handlers call `guardMutation()`: `Origin` must be present, not `"null"`, and match `x-forwarded-host ?? host` (Next's Server Action rule); then `x-csrf-token` must equal the `sl_csrf` cookie and carry an HMAC made with a key derived from `SESSION_SECRET`. A cookie injected by a sibling subdomain cannot be signed, so it fails.
 - Failures answer 403 and write a `csrf.rejected` audit row (reason only, never the token). This event is an addition to the spec's list.
 - A request that fails the guard spends no rate-limit token and has no body read.
+- The token is not bound to a session or user, so it proves only that the request carries a cookie this server signed. The Origin check is the primary defence; the token is the second layer. `GET /api/csrf` returns a still-valid cookie token unchanged instead of rotating it, so several tabs do not invalidate each other.
 - Server Actions rely on Next's built-in Origin check.
 
 ## ADR-017: Lint boundaries added in Phase 1 (Phase 1)
@@ -183,7 +184,7 @@ It allows pure npm packages.
 ## ADR-020: `/api/compile` limits and failure behaviour (Phase 1)
 
 **Decision.**
-- Body cap `MAX_BODY_BYTES` is 24 KiB, not 16: code may be 10,240 bytes and JSON escaping can double newlines and quotes, so 16 KiB would reject valid programs near the limit. The body is read incrementally and abandoned at the cap (413), ignoring `Content-Length`.
+- Body cap `MAX_BODY_BYTES` is 32 KiB: code may be 10,240 bytes and an ASCII-escaping serializer writes each 2-byte character as a 6-byte `\uXXXX` (3x, about 30.7 KB), so a smaller cap would reject valid programs near the limit. The body is read incrementally and abandoned at the cap (413), ignoring `Content-Length`.
 - Rate limits: `compile.user` keyed by user id, else `compile.anon` keyed by hashed IP. If the limiter itself fails, the route answers 503 (fail closed). A failing limits read (Mongo) falls back to the defaults.
 - A failing session lookup is treated as anonymous; failing audit writes are dropped (counted, never logged with contents).
 - Sandbox `timeout`, `crashed` and `busy` all answer 503.

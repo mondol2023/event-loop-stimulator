@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "@/core/shared/zod";
 
-export type RateLimitScope = "compile.anon" | "compile.user" | "auth" | "snippet.write";
+export type RateLimitScope = "compile.anon" | "compile.user" | "auth" | "auth.ip" | "snippet.write";
 export type ScopeLimit = { readonly limit: number; readonly windowSec: number };
 export type Limits = Readonly<Record<RateLimitScope, ScopeLimit>>;
 
@@ -11,6 +11,7 @@ export const DEFAULT_LIMITS: Limits = Object.freeze({
   "compile.anon": Object.freeze({ limit: 20, windowSec: 60 }),
   "compile.user": Object.freeze({ limit: 60, windowSec: 60 }),
   auth: Object.freeze({ limit: 5, windowSec: 60 }),
+  "auth.ip": Object.freeze({ limit: 30, windowSec: 60 }),
   "snippet.write": Object.freeze({ limit: 30, windowSec: 60 }),
 });
 
@@ -29,6 +30,7 @@ const OverrideSchema = z
     "compile.anon": ScopeLimitSchema.optional(),
     "compile.user": ScopeLimitSchema.optional(),
     auth: ScopeLimitSchema.optional(),
+    "auth.ip": ScopeLimitSchema.optional(),
     "snippet.write": ScopeLimitSchema.optional(),
   })
   .strict();

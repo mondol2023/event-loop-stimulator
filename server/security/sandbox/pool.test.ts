@@ -77,4 +77,19 @@ describe("SandboxPool", () => {
     await pool.close();
     expect(await pool.run({ code: "a", lang: "js" })).toEqual({ status: "crashed", reason: "error" });
   });
+
+  it("does not throw when a worker cannot be created, and answers crashed", async () => {
+    // new Worker(123) throws synchronously (ERR_INVALID_ARG_TYPE): that must neither escape the constructor nor a timer.
+    const pool = make({ workerPath: 123 as unknown as string, size: 2 });
+    expect(await pool.run({})).toEqual({ status: "crashed", reason: "error" });
+    expect(await pool.run({})).toEqual({ status: "crashed", reason: "error" });
+  });
+
+  it("does not respawn a broken worker in a loop: a missing worker file costs one crash per job", async () => {
+    const pool = make({ workerPath: fixture("does-not-exist.mjs"), size: 1, timeoutMs: 1000 });
+    for (let i = 0; i < 3; i += 1) expect((await pool.run({})).status).toBe("crashed");
+    // Give a runaway respawn loop time to show itself, then confirm the pool is still responsive.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect((await pool.run({})).status).toBe("crashed");
+  });
 });

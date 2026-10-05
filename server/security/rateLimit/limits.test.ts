@@ -20,6 +20,7 @@ describe("DEFAULT_LIMITS", () => {
       "compile.anon": { limit: 20, windowSec: 60 },
       "compile.user": { limit: 60, windowSec: 60 },
       auth: { limit: 5, windowSec: 60 },
+      "auth.ip": { limit: 30, windowSec: 60 },
       "snippet.write": { limit: 30, windowSec: 60 },
     });
   });

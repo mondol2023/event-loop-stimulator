@@ -44,7 +44,9 @@ async function enforceRateLimit(
 ): Promise<Failure | null> {
   let verdict: { allowed: boolean; retryAfterSec: number } | null;
   try {
-    verdict = await rateLimiter.check("auth", `${ctx.ipHash}:${sha256hex(normalizeEmail(email))}`);
+    // Per IP across all emails (rotating addresses defeats a per-email bucket), then per IP+email.
+    verdict = await rateLimiter.check("auth.ip", ctx.ipHash);
+    if (verdict.allowed) verdict = await rateLimiter.check("auth", `${ctx.ipHash}:${sha256hex(normalizeEmail(email))}`);
   } catch {
     // Deliberately nothing from the error: it may carry connection strings.
     verdict = null;

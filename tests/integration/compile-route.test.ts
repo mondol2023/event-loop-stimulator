@@ -117,6 +117,16 @@ describe("happy path", () => {
   });
 });
 
+describe("ASCII-escaped JSON", () => {
+  it("accepts a within-limit program serialized with unicode escapes (about 3x its UTF-8 size)", async () => {
+    // 5,120 two-byte characters = 10,240 bytes, but 30,720 bytes on the wire as six-byte escapes.
+    const wire = `{"code":"${"\\u00e9".repeat(5120)}","lang":"js"}`;
+    expect(wire.length).toBeGreaterThan(30_000);
+    const response = await POST(post(null, { body: wire }));
+    expect(response.status).toBe(200);
+  });
+});
+
 describe("rate limiting", () => {
   it("answers 429 with an integer Retry-After once the bucket is empty, and audits it", async () => {
     await setLimits({ "compile.anon": { limit: 2, windowSec: 60 } });
@@ -167,8 +177,8 @@ describe("rate limiting", () => {
 
 describe("invalid bodies", () => {
   const cases: [string, unknown][] = [
-    ["NUL", { code: "a\u0000b", lang: "js" }],
-    ["a control character", { code: "a\u0007b", lang: "js" }],
+    ["NUL", { code: "marker_nul\u0000_xyz", lang: "js" }],
+    ["a control character", { code: "marker_bel\u0007_xyz", lang: "js" }],
     ["10,241 bytes", { code: "a".repeat(10_241), lang: "js" }],
     // Fewer than 10,240 characters but more than 10,240 bytes: the cap is on bytes.
     ["3-byte characters over the byte cap", { code: "€".repeat(3500), lang: "js" }],

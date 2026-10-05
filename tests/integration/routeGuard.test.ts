@@ -115,7 +115,7 @@ describe("jsonError", () => {
 
 describe("GET /api/csrf", () => {
   it("sets the sl_csrf cookie and returns a token that verifies against it", async () => {
-    const response = await GET();
+    const response = await GET(new Request("https://app.example/api/csrf"));
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     const { token } = (await response.json()) as { token: string };
@@ -125,5 +125,23 @@ describe("GET /api/csrf", () => {
     expect(setCookie.toLowerCase()).not.toContain("httponly");
     expect(setCookie).toContain("Path=/");
     expect(verifyCsrf(token, token)).toBe(true);
+  });
+
+  it("reuses a valid existing token instead of rotating it (other tabs keep working)", async () => {
+    const existing = issueCsrfToken();
+    const request = new Request("https://app.example/api/csrf", { headers: { cookie: `a=1; ${CSRF_COOKIE}=${existing}` } });
+    const { token } = (await (await GET(request)).json()) as { token: string };
+    expect(token).toBe(existing);
+  });
+
+  it("issues a fresh token when the cookie is forged, unsigned or malformed", async () => {
+    for (const bad of ["forged.value", "nodot", "", issueCsrfToken().replace(/.$/, "A")]) {
+      const request = new Request("https://app.example/api/csrf", { headers: { cookie: `${CSRF_COOKIE}=${bad}` } });
+      const response = await GET(request);
+      const { token } = (await response.json()) as { token: string };
+      expect(token).not.toBe(bad);
+      expect(verifyCsrf(token, token)).toBe(true);
+      expect(response.headers.get("set-cookie") ?? "").toContain(`${CSRF_COOKIE}=${token}`);
+    }
   });
 });

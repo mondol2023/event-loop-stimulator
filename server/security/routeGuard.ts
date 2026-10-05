@@ -1,6 +1,6 @@
 import "server-only";
 import { auditLogger } from "@/server/audit/AuditLogger";
-import { checkOrigin, CSRF_COOKIE, CSRF_HEADER, verifyCsrf } from "@/server/security/csrf";
+import { checkOrigin, CSRF_COOKIE, CSRF_HEADER, cookieValue, verifyCsrf } from "@/server/security/csrf";
 import { requestContextFrom, type RequestContext } from "@/server/security/requestContext";
 
 export function jsonError(status: number, error: string, extra?: HeadersInit): Response {
@@ -8,16 +8,6 @@ export function jsonError(status: number, error: string, extra?: HeadersInit): R
   headers.set("Cache-Control", "no-store");
   headers.set("Content-Type", "application/json");
   return new Response(JSON.stringify({ error }), { status, headers });
-}
-
-function cookieValue(header: string | null, name: string): string | undefined {
-  if (header === null) return undefined;
-  for (const part of header.split(";")) {
-    const index = part.indexOf("=");
-    if (index === -1) continue;
-    if (part.slice(0, index).trim() === name) return part.slice(index + 1).trim();
-  }
-  return undefined;
 }
 
 export type GuardResult = { ok: true; ctx: RequestContext } | { ok: false; response: Response };
