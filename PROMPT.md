@@ -2,8 +2,12 @@
 
 <how_to_use_this_prompt>
 This prompt is written for **Claude Code** working inside this repository. You can give it to Claude with:
-`Read PROMPT.md and execute Phase 0. Follow the workflow section exactly.`
+`Read PROMPT.md and execute Phase N. Follow the workflow section exactly.`
 Then run one phase per session. Each phase ends with a report and a stop for human review.
+
+**Status:** Phases 0 and 1 are complete and reviewed. Phase 2's plan is `docs/superpowers/plans/2026-10-05-phase-2-conformance-frontend-bytecode.md`.
+
+**Precedence:** `docs/DECISIONS.md` (ADR-001 onward) records every deviation from this file and **wins where they conflict**. Read it, `docs/TARGET.md` and `docs/FIDELITY.md` before starting any phase. A phase that deviates from this file adds an ADR in the same commit.
 </how_to_use_this_prompt>
 
 ---
@@ -92,6 +96,8 @@ This section is the heart of the product. Read it before every core phase.
 - **Upgrading the target** is a deliberate change: bump `docs/TARGET.md`, re-record the conformance expectations (§3.4), and review the diffs.
 - **The program model** is exactly what `node main.cjs` does:
   - a CommonJS script, so the module-detection and ESM job-ordering differences can't creep in
+  - the script is the body of `function (exports, require, module, __filename, __dirname)`, so top-level `return` is legal, `this === module.exports`, and the top-level bytecode has `Parameter count 6`
+  - real runs are recorded with stdout and stderr as **pipes**, never a TTY: no colors, and `util.inspect` uses its non-TTY defaults
   - TypeScript handled the way Node's built-in type stripping does: erase types and replace them with whitespace so positions are preserved
   - TS features that need a transform (`enum`, `namespace`, parameter properties) get a diagnostic, exactly as Node's strip-only mode refuses them
 - **Teach the boundary correctly.** V8 owns the language, the heap, compilation and the microtask queue. **Node and libuv own the event loop**: timers, the poll/check phases, and `process.nextTick`. The UI and narration must say so, because "the event loop is part of V8" is a common misconception.
@@ -102,7 +108,7 @@ This section is the heart of the product. Read it before every core phase.
 |---|---|---|
 | Console output text (incl. `util.inspect` formatting of arrays/objects/strings/numbers) | **Exact** | Spec interpreter + our `inspect` reimplementation; differential tests vs pinned Node |
 | Order of sync code, nextTicks, microtasks, timers, immediates | **Exact** | Spec job semantics + Node loop model; differential tests |
-| Uncaught exception / unhandled rejection output, and the exit code | **Exact** after documented normalization (file path → `main.cjs`) | V8 message templates; differential tests |
+| Uncaught exception / unhandled rejection output, process warnings, and the exit code | **Exact** after documented normalization (file path → `main.cjs`; `(node:<pid>)` → `(node:PID)`; `\r\n` → `\n`) | V8 message templates; differential tests |
 | Variable values, object key order, number→string conversion | **Exact** | Spec operations (see §3.3); differential tests |
 | AST and scope analysis (hoisting, TDZ, closures) | **Exact** with respect to ESTree and spec scoping | Parser + scope unit tests |
 | Ignition bytecode listing | **Verified model** | Same opcode sequence as `node --print-bytecode` for every fixture function; operand differences are listed in `docs/FIDELITY.md` |
@@ -146,12 +152,13 @@ The interpreter is a **spec model**, not a wrapper around the host engine.
   2. Drain `process.nextTick` completely, then drain V8's microtask queue completely. Repeat until both are empty.
   3. The loop runs the **timers** phase, then pending, poll, **check** (`setImmediate`), and close.
   4. After **each** timer or immediate callback, repeat step 2's drain. This is Node ≥ 11 behavior.
-  5. Timer delays are coerced as Node does (`< 1` or non-numeric → 1 ms). Timers with the same expiry run in creation order.
+  5. Timer delays are coerced as Node does (`< 1`, non-numeric or `> 2³¹−1` → 1 ms). A delay above 2³¹−1 also writes `TimeoutOverflowWarning: … Timeout duration was set to 1.` to stderr, which the model must reproduce. Timers with the same expiry run in creation order.
   6. The process exits when nothing is referenced.
 - **Honest nondeterminism.** Some orderings are **not** deterministic in real Node, notably `setTimeout(fn, 0)` versus `setImmediate` from the main module. For these, the simulator picks one ordering, **flags it with a visible "Order not guaranteed in real Node" warning**, and explains why. It must never present a coin flip as a rule.
 - **Error fidelity.**
   - Thrown errors use V8's exact message templates for the pinned version, for example `TypeError: Cannot read properties of undefined (reading 'x')` and `ReferenceError: x is not defined`. Keep them in one table with fixture coverage.
-  - Uncaught output reproduces Node's format: the source line, the caret, `Name: message`, the stack frames, and the `Node.js vX` trailer. The only normalization is the file path.
+  - Uncaught output reproduces Node's format: the source line, the caret, `Name: message`, the stack frames, and the `Node.js vX` trailer. The frames include Node's own loader frames (`at Module._compile (node:internal/modules/cjs/loader:1872:14)` …); those are constants of the pinned target, recorded verbatim. The only normalizations are the ones listed in §3.2 (file path, pid, line endings).
+  - Process warnings (`(node:PID) …Warning: …`, then `(Use \`node --trace-warnings ...\`…)`) are part of stderr and are modeled for the warnings the subset can trigger.
 - **Simulator limits are not JS errors.** The limits are call depth, tick count, virtual time and heap cells. When one is hit, **stop and show a "Simulation limit reached — real Node would continue" notice**. Never fabricate a `RangeError`, because the real stack limit is around 10k frames, not 64.
   - A program that never ends, such as `setInterval` without `clearInterval`, shows the output up to the virtual-time limit with that notice.
   - Never invent an auto-clear.
@@ -163,12 +170,13 @@ All of this lives in `tests/conformance/` and `scripts/conformance/`. Those dire
 
 1. **Differential suite.**
    - **Inputs:** repo-owned fixture programs, plus programs **generated** by a grammar-based `fast-check` generator over the supported subset. These are never user submissions.
-   - **Real run:** each program runs on the pinned Node using Node's permission model with no grants, a timeout and a memory cap.
+   - **Real run:** each program runs as `process.execPath --permission --max-old-space-size=64 main.cjs` (or `main.cts`) in a fresh temp directory with **no grants**, an empty environment, a timeout and an output cap. A timeout, an output overflow or a signal death is an **error that fails the recording**, never a partial result.
+   - **Honest flakiness.** On a mismatch, re-run real Node several times: if its own outcomes differ, the program is nondeterministic and is discarded and logged, not reported as a model bug.
    - **Comparison:** our simulator's stdout, stderr and exit code must match byte-for-byte after the documented normalization.
    - **Shrinking:** on a mismatch, `fast-check` shrinks to a minimal program, and that program is committed as a new fixture.
 2. **Recorded expectations.** `npm run conformance:record` writes `*.expected.json` next to each fixture, holding stdout, stderr, exit code, Node version and V8 version. `npm test` compares against these files, so CI works without the pinned Node. A scheduled CI job re-records on the pinned Node and fails if anything drifts.
-3. **Internals fixtures.** These run with `--allow-natives-syntax` and `--print-bytecode --print-bytecode-filter=<fn>`. The checks are:
-   - our bytecode opcode sequence
+3. **Internals fixtures.** These run with `--allow-natives-syntax` and `--print-bytecode`. Name filters (`--print-bytecode-filter`) cannot isolate anonymous functions and the unfiltered listing holds ~100 Node-internal blocks, so the recorder finds the user's functions by walking `SharedFunctionInfo` addresses from the top-level block (see `docs/DECISIONS.md`). Only functions V8 actually compiled, meaning those that were called, have a real listing to compare. The checks are:
+   - our bytecode opcode sequence, tracked by a per-fixture status ratchet (`pending` → `opcodes` → `exact`) so regressions and unrecorded improvements both fail
    - Map identity and transitions
    - elements-kind transitions, for example `PACKED_SMI_ELEMENTS → PACKED_DOUBLE_ELEMENTS → PACKED_ELEMENTS`, and `HOLEY_*` after creating a hole
 4. **test262.** Run the in-subset parts of test262 (Promise, async functions, `await`, operators, scoping) through **our interpreter**. In-subset tests must pass 100%. Exclusions are listed with reasons.
@@ -218,6 +226,8 @@ All of this lives in `tests/conformance/` and `scripts/conformance/`. Those dire
 
 **Working rules:**
 - Make independent tool calls in parallel.
+- Probe real Node before writing a plan or a spec sentence about its behavior (`node --print-bytecode`, a two-line script). Several statements in earlier drafts of this file were wrong until probed; record what you probed in the plan.
+- Plans live in `docs/superpowers/plans/`, one per phase, committed before implementation starts.
 - Keep changes scoped to the current phase. If you notice something worth doing, put it under "Open risks / follow-ups".
 - Prefer editing existing files to creating new ones. Match the surrounding code style. Comments explain *why*.
 - **Settle conflicts by authority:**
@@ -249,7 +259,7 @@ All of this lives in `tests/conformance/` and `scripts/conformance/`. Those dire
 | Editor | **CodeMirror 6** (`@uiw/react-codemirror`, `@codemirror/lang-javascript`) | Read-only instances for the AST, bytecode, asm and hex panes, so all highlighting goes through one API. |
 | Parser | **`@babel/parser`** with `plugins: ["typescript", "estree"]`, `errorRecovery: true` | One parser for JS and TS. Write our own scope analysis on top. |
 | Client state | **Zustand v5** + `subscribeWithSelector`, `useShallow` | See §7.6. |
-| Validation | **Zod v4** | Use it for forms, actions, route handlers, env, and worker messages. Use `.strict()` objects. |
+| Validation | **Zod v4** | Use it for forms, actions, route handlers, env, and worker messages. Use `.strict()` objects. Import it **only** from `@/core/shared/zod` (ADR-007: `jitless`, so it never calls `new Function`). |
 | Database | **MongoDB + Mongoose** | Transactions need a **replica set** (Atlas, Docker `--replSet rs0`, or `MongoMemoryReplSet` in tests). |
 | Auth | **iron-session** + **argon2id** | `getIronSession(await cookies(), opts)`; `nextProxyCookies` in `proxy.ts`. Payload: `{ userId, role, sessionVersion }`. |
 | Rate limiting | Token bucket behind a `RateLimitStore` interface. Use Redis (`ioredis`) when `REDIS_URL` is set, otherwise in-memory for dev only. | Limits live in a Mongo `settings` doc, with a 30 s cache. |
@@ -305,6 +315,7 @@ core/                                # PURE TS — no React/Node/DOM imports; ru
   interpreter/ IgnitionInterpreter.ts  Frame.ts  tiering/TieringModel.ts
   host/       NodeEventLoop.ts (phases, nextTick, timers, immediates)  VirtualClock.ts
   timeline/   Timeline.ts  narration.ts  SimulationEngine.ts
+  views/      CodeViewStrategy emitters (AST, bytecode, later asm/binary)   compile/  CompilationManager.ts
   shared/     result.ts diagnostics.ts ids.ts fidelity.ts (truth-level enum)
 
 features/                            # React feature modules: components/, hooks/, store/
@@ -323,10 +334,10 @@ docs/  TARGET.md  FIDELITY.md  SUPPORTED_SUBSET.md  ARCHITECTURE.md  DECISIONS.m
 ```
 
 **Dependency rule.** Enforce it with ESLint `no-restricted-imports`, so it is checked by tooling rather than by convention:
-- `core/` imports only `core/`.
-- `features/` imports `core/` and `components/`.
+- `core/` imports only `core/` and pure npm libraries (ADR-001).
+- `features/` imports `core/`, `components/` and `lib/`, and reaches the server only through `server/actions/*` (ADR-002).
 - `app/` imports `features/` and `server/`.
-- Nothing imports `app/`, `tests/` or `scripts/`.
+- Nothing imports `app/` (integration tests may import `app/api/**` handlers, ADR-017), `tests/` or `scripts/`. Only `server/repositories/**` and `server/db/**` import Mongoose models.
 
 **Code bans.** Ban `eval`, `new Function`, `node:vm`, `child_process` and `ShadowRealm` everywhere **except** `scripts/conformance/` and `tests/conformance/`. Those directories need `child_process`, and only to run repo-owned or generated programs.
 
@@ -344,14 +355,17 @@ docs/  TARGET.md  FIDELITY.md  SUPPORTED_SUBSET.md  ARCHITECTURE.md  DECISIONS.m
 - Functions: declarations, expressions and arrows; closures (context allocation, shown the way V8 does it); recursion; default parameters.
 - Arrays: literal, index, `push`, `pop`, `length`, holes, `map`/`filter`/`forEach`/`reduce`. Elements-kind transitions are visible.
 - Objects: literals, property get/set/delete, shorthand, methods, `Object.keys`. Hidden-class transitions are visible, and dictionary mode appears after `delete`.
-- Classes with fields and methods, as a stretch goal.
+- Classes with fields and methods, as a stretch goal: **deferred past Phase 2**, refused with a diagnostic until they get their own fixtures.
+- **Glue the list above implies**, so that ordinary programs run: assignment and compound assignment, `++`/`--`, `?:`, `new` (for `new Promise`/`new Error`), `this` in methods, `delete`, bitwise operators, `'use strict'` (sloppy and strict scripts both), top-level `return`, `Math.{abs,ceil,floor,max,min,round,sign,sqrt,trunc}` (IEEE-exact), and on `process` only `nextTick`. Anything not named here or in the list above is refused, not guessed.
 - `console.log`/`error`/`warn` with Node's `util.inspect` formatting, implemented for these value types.
 - **Async and host APIs:**
   - V8: `Promise` (constructor, `resolve`/`reject`/`all`/`race`/`allSettled`/`any`, `then`/`catch`/`finally`), `async`/`await`, `queueMicrotask`.
   - Node: `process.nextTick`, `setTimeout`/`clearTimeout`, `setInterval`/`clearInterval`, `setImmediate`/`clearImmediate`.
 - TypeScript that Node's type stripping accepts. Types are erased with positions preserved, and the "Stripped JS" view shows exactly what V8 receives.
 
-**Excluded, with a diagnostic explaining why** (see §3.3): `Math.random`, `Date`, approximated `Math` functions, `WeakRef`/`FinalizationRegistry`, `performance`, `fetch` and any I/O, `require`/`import`, generators, `eval`-like features, `Proxy`/`Reflect`, `Symbol`, `BigInt`, regex, getters/setters, top-level `await`, and TS `enum`/`namespace`. Excluded features can be added later, one at a time, each with its fixtures.
+**Excluded, with a diagnostic explaining why** (see §3.3): `Math.random`, `Date`, approximated `Math` functions, `WeakRef`/`FinalizationRegistry`, `performance`, `fetch` and any I/O, `require`/`import`, generators, `eval`-like features, `Proxy`/`Reflect`, `Symbol`, `BigInt`, regex, getters/setters, top-level `await`, and TS `enum`/`namespace`. Also refused until added with fixtures: `switch`, `do…while`, `for…in`/`for…of`, labeled statements, destructuring, spread/rest, `arguments`, `instanceof`, `in`, `with`. Excluded features can be added later, one at a time, each with its fixtures.
+
+**Excluded APIs are resolved through scope analysis, not matched by syntax.** `const r = Math.random; r()`, `globalThis.Date`, `Math["random"]` and `(0, eval)(…)` are all refused, while a local `function f(Date){}` that shadows the global is allowed. Syntax errors found by the parser are reported as our own diagnostics; V8's exact `SyntaxError` stderr is a recorded gap in `docs/FIDELITY.md`, not an Exact claim.
 
 **Every diagnostic** is `Diagnostic { code, message, range, hint }`, shown inline. Never fail silently.
 
@@ -359,7 +373,7 @@ docs/  TARGET.md  FIDELITY.md  SUPPORTED_SUBSET.md  ARCHITECTURE.md  DECISIONS.m
 
 | Limit | Value |
 |---|---|
-| Source size | ≤ 10 KB |
+| Source size | ≤ 10,240 bytes (UTF-8) |
 | Lines | ≤ 400 |
 | Ticks | ≤ 5,000 |
 | Call depth | ≤ 64 |
@@ -540,7 +554,7 @@ Responses are `429` with `Retry-After`. Every limit hit is audit-logged.
 
 **CSRF.**
 - Server Actions get Next's built-in Origin/Host check.
-- Mutating Route Handlers check `Origin` and also use a double-submit token.
+- Mutating Route Handlers check `Origin` and also use a **signed** double-submit token (ADR-016); failures are audited as `csrf.rejected`.
 - Cookies are `sameSite=lax`.
 
 **Sandbox.** `/api/compile` runs the same pure `core/` **interpreter** in a `worker_threads` pool, with `resourceLimits` (64 MB) and a 2 s wall-clock timeout. This guards against pathological parses or interpreter loops. It is **not** a sandbox for running user code, because user code is never run.
@@ -552,7 +566,7 @@ Responses are `429` with `Retry-After`. Every limit hit is audit-logged.
 **AuditLogger.**
 - Applied through `withAudit(fn, { event })` wrappers.
 - Events:
-  - `auth.*`, `rbac.denied`, `ratelimit.hit`
+  - `auth.*`, `rbac.denied`, `ratelimit.hit`, `csrf.rejected`
   - `compile.rejected`, `compile.slow`, `sandbox.timeout`
   - `snippet.moderated`, `user.role_changed`, `user.banned`
 - Store a `codeHash`, never raw code.
@@ -596,6 +610,7 @@ Color is always paired with a label or icon.
 **Truth-level badges.** Every pane and view shows its §3.2 level as a quiet badge with a tooltip:
 - **Exact:** neutral, with a check icon.
 - **Verified model:** neutral, with a flask icon.
+- **Modeled:** muted with a dashed outline, with a gauge icon, and "would typically…" wording (tier-ups, deopts, IC states not exposed by V8).
 - **Illustrative:** muted, with a sketch icon.
 
 Badges are never loud. They are trustworthy fine print.
@@ -706,7 +721,7 @@ Badges are never loud. They are trustworthy fine print.
 
 Every phase follows the workflow in §4 and ends with a report and a stop.
 
-### Phase 0 — Foundation
+### Phase 0 — Foundation *(complete; ADR-001 to ADR-009)*
 - Dependencies: swap `framer-motion` for `motion`, remove `gsap`, add the §5 stack, and init shadcn for Tailwind v4.
 - Config: tsconfig strict flags, ESLint boundaries + bans (with the conformance exception), Vitest + Playwright, and the scripts `typecheck`, `test`, `e2e`, `conformance`, `conformance:record`.
 - Environment: `server/env.ts`, `.env.example`, and `docker-compose.yml` with a Mongo replica set and optional Redis.
@@ -719,7 +734,7 @@ Every phase follows the workflow in §4 and ends with a report and a stop.
 - `child_process` in `core/` fails lint.
 - The production build contains no `eval`/`child_process`/`vm`.
 
-### Phase 1 — Data, Auth, RBAC, Security
+### Phase 1 — Data, Auth, RBAC, Security *(complete; ADR-010 to ADR-020)*
 - Data: connection, models, repositories, and a seed.
 - Auth: iron-session + argon2 actions, the DAL, `proxy.ts`.
 - Security: rate limiter (both stores), CSRF, headers (CSP without `unsafe-eval`), AuditLogger, and `/api/compile` (Zod → rate limit → worker pool → stub → audit).
@@ -736,19 +751,23 @@ Every phase follows the workflow in §4 and ends with a report and a stop.
 
 ### Phase 2 — Conformance harness, front end, bytecode
 Build the **harness first**, because it is the correctness backbone:
-- the recorder (pinned Node, permission model with no grants, timeout, memory cap)
-- `*.expected.json` files
-- the comparison runner
+- the recorder (pinned Node, permission model with no grants, timeout, memory cap; §3.4)
+- `*.expected.json` files, including each fixture's real bytecode tree
+- the comparison runner and the `Simulator` contract that Phase 3 implements
 - the `fast-check` program generator over the subset, with shrinking
-- the test262 subset runner
+- the test262 subset runner (the test262 harness API is host-provided by the Phase 3 interpreter, because test262's own `assert.js` is outside the subset)
 
 Then build type stripping → parse → scope analysis → subset validator → BytecodeGenerator (constant pool, feedback slots, `SourcePositionTable`) → the AST and Bytecode views. Write `docs/SUPPORTED_SUBSET.md`.
 
+**What Phase 2 can and cannot prove.** There is no interpreter yet, so simulator-versus-Node output equality, the ≥ 1,000-program differential run and test262-through-our-interpreter belong to Phase 3. Phase 2 ships those harnesses with a `SIMULATOR` slot and `todo` entries that fail once a simulator is set but a test is still `todo`, so Phase 3 cannot forget them.
+
 **Done when:**
-- About 40 fixtures are recorded from real Node, covering every subset feature and every §3.3 tricky case.
-- The bytecode opcode sequence matches `--print-bytecode` for every fixture function, with documented exceptions only.
+- About 40 fixtures are recorded from real Node, covering every subset feature and every §3.3 tricky case, and re-recording produces no diff.
+- The bytecode opcode sequence matches `--print-bytecode` for every fixture function that V8 compiled, with documented exceptions only (a per-fixture ratchet enforces this).
 - Scope tests cover hoisting, TDZ and context allocation.
-- Unsupported or excluded syntax yields a diagnostic with the correct range and a hint.
+- Unsupported or excluded syntax yields a diagnostic with the correct range and a hint, including aliased excluded globals.
+- Every generated program is valid in the subset, and the differential property passes against a real-Node oracle and fails with a shrunk counterexample against a deliberately wrong simulator.
+- `compile()` never throws for any string (property test).
 
 ### Phase 3 — Interpreter, runtime model, Node loop (exactness)
 Build the IgnitionInterpreter over our bytecode, the spec abstract operations, the builtins (including `inspect` and the V8 message templates), the Map/IC/elements-kind/heap model, the Node event loop with nextTick, and the timeline with narration.
@@ -762,6 +781,7 @@ Build the IgnitionInterpreter over our bytecode, the spec abstract operations, t
 - Every limit produces the "real Node would continue" notice, never a fake JS error.
 - The nondeterministic-ordering fixture produces a fidelity warning.
 - A 5,000-tick timeline stays under 20 MB.
+- The `/api/compile` worker runs the real `core/` pipeline under `next start`, so the bundling risk in ADR-010 is closed (the Phase 1 worker is a plain `.mjs` stub and does not exercise it), and a pathological program still hits the 2 s timeout.
 
 ### Phase 4 — Baseline machine code & tiering model
 Build the Sparkplug-style BaselineCompiler templates, the X64Encoder, the `llvm-mc` cross-check script, the TieringModel with deopt events, and the Machine Code view.
@@ -794,6 +814,7 @@ Run `impeccable shape`, then build with `impeccable`, `frontend-design`, `emil-d
   - checks that the setImmediate example shows the nondeterminism warning
   - passes axe
   - shows no CLS during playback
+  - produces no CSP violations in the console: CodeMirror and Motion inject styles, which need the nonce (`EditorView.cspNonce`) and no SSR `style=` attributes (ADR-012)
 
 ### Phase 7 — V8 Internals view + 3D Hardware
 Build the frame inspector, hidden-class graph, IC table, elements-kind lattice, heap strip and tier timeline. Then build the R3F board and the SVG fallback.
@@ -814,6 +835,8 @@ Build snippet CRUD, fork and visibility; the `/s/[slug]` permalink (async `param
 
 ### Phase 9 — Hardening & polish
 - Load-test `/api/compile`.
+- Run the Redis rate-limit store tests against a real Redis (`REDIS_TEST_URL`, `docker compose --profile redis`): they skip silently without it, so Phase 1 never exercised them.
+- Re-evaluate `experimental.taint` and `authInterrupts` (ADR-011) and the one-trusted-proxy assumption behind the client IP (ADR-013).
 - Fuzz the parser and interpreter: no crash, and nothing runs longer than 2 s.
 - Run the differential generator at ≥ 10,000 programs.
 - Review the CSP and run `security-review`.
