@@ -28,6 +28,12 @@ const CHILD_PROCESS = {
   message: `${NEVER_EXECUTE} Only scripts/conformance/ and tests/conformance/ may spawn real node.`,
 };
 const NO_APP = { regex: layer("app"), message: "Nothing imports app/: it is routing only." };
+// Integration tests call Route Handlers directly (they are plain functions), so
+// they may import app/api/**; every other part of app/ stays off limits.
+const NO_APP_EXCEPT_API = {
+  regex: layer("app", "(/(?!api/)|$)"),
+  message: "Nothing imports app/ (only integration tests may import app/api/** route handlers).",
+};
 const NO_TESTS_OR_SCRIPTS = {
   regex: layer("(tests|scripts)"),
   message: "Nothing imports tests/ or scripts/ (the conformance harness stays out of the product).",
@@ -86,14 +92,20 @@ const dynamicImportBans = ({ regex, message }) => [
 /**
  * Both import rules for one block: the shared bans plus `patterns`.
  * `allowChildProcess` is the conformance exception; `allowZod` is for the one
- * module that configures Zod; `allowModels` is for the data layer
+ * module that configures Zod; `allowApiRoutes` is for integration tests; `allowModels` is for the data layer
  * (server/repositories/**, server/db/**), the only code that imports models.
  */
-const restrict = ({ allowChildProcess = false, allowZod = false, allowModels = false, patterns = [] } = {}) => {
+const restrict = ({
+  allowChildProcess = false,
+  allowZod = false,
+  allowModels = false,
+  allowApiRoutes = false,
+  patterns = [],
+} = {}) => {
   const all = [
     VM,
     ...(allowChildProcess ? [] : [CHILD_PROCESS]),
-    NO_APP,
+    allowApiRoutes ? NO_APP_EXCEPT_API : NO_APP,
     ...(allowZod ? [] : [ZOD_VIA_CORE]),
     ...(allowModels ? [] : [NO_MODELS]),
     ...patterns,
@@ -153,6 +165,11 @@ const eslintConfig = defineConfig([
     files: ["tests/**/*.{ts,tsx,mts}", "scripts/**/*.{ts,mts,mjs}"],
     ignores: ["scripts/conformance/**", "tests/conformance/**"],
     rules: restrict(),
+  },
+  {
+    // Integration tests exercise Route Handlers by calling them directly.
+    files: ["tests/integration/**/*.{ts,tsx}"],
+    rules: restrict({ allowApiRoutes: true }),
   },
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "playwright-report/**", "test-results/**"]),
 ]);

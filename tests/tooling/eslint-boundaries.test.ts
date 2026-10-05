@@ -97,6 +97,25 @@ describe("models-import boundary (only server/repositories/** and server/db/** r
   });
 });
 
+describe("route-handler imports (only integration tests may import app/api/**)", () => {
+  it.each([
+    ['import { GET } from "@/app/api/csrf/route";', "tests/integration/x.test.ts"],
+    ['import { POST } from "../../app/api/compile/route";', "tests/integration/x.test.ts"],
+  ])("allows %s in %s", async (code, filePath) => {
+    expect(await ruleIds(code, filePath)).not.toContain(IMPORT);
+  });
+
+  it.each([
+    ['import Page from "@/app/page";', "tests/integration/x.test.ts"],
+    ['import Layout from "../../app/layout";', "tests/integration/x.test.ts"],
+    ['import { GET } from "@/app/api/csrf/route";', "server/auth/x.ts"],
+    ['import { GET } from "@/app/api/csrf/route";', "tests/unit/x.test.ts"],
+    ['import { GET } from "@/app/api/csrf/route";', "features/playground/store.ts"],
+  ])("rejects %s in %s", async (code, filePath) => {
+    expect(await ruleIds(code, filePath)).toContain(IMPORT);
+  });
+});
+
 describe("code-execution bans (repo-wide)", () => {
   it.each([
     ['export const x = eval("1");', "app/page.tsx"],
