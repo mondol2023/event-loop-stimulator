@@ -1,6 +1,7 @@
 import "server-only";
 import { getIronSession, type IronSession, type SessionOptions } from "iron-session";
 import { cookies } from "next/headers";
+import { SESSION_COOKIE_NAME } from "@/server/auth/sessionCookie";
 import { getEnv } from "@/server/env";
 import type { RoleName } from "@/server/repositories/types";
 
@@ -13,9 +14,7 @@ export type SessionData = { userId: string; role: RoleName; sessionVersion: numb
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// `__Host-` pins the cookie to this exact host, forbids a Domain attribute and
-// requires Secure + Path=/, which only holds in production (HTTPS).
-export const SESSION_COOKIE_NAME = isProduction ? "__Host-sl_session" : "sl_session";
+export { SESSION_COOKIE_NAME };
 
 /** Seven days. Revocation does not rely on expiry: it relies on `sessionVersion`. */
 const SESSION_TTL_SECONDS = 604_800;

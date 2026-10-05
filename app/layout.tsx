@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
+import { connection } from "next/server";
 import "./globals.css";
 
 // UI text only. IBM Plex Sans is not a variable font, so weights are explicit.
@@ -21,7 +22,10 @@ export const metadata: Metadata = {
     "See how V8 really runs JavaScript: bytecode, machine code, hidden classes and the Node event loop, tick by tick and exact to real Node.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // The CSP nonce is minted per request in proxy.ts and Next applies it while rendering,
+  // so every page must render per request instead of being prerendered at build time.
+  await connection();
   return (
     // Dark-first IDE theme; the light theme (classroom projectors) is the
     // :root base in globals.css and is selected by removing `dark`.
