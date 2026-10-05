@@ -4,8 +4,11 @@ import { checkPinnedRuntime, readTarget } from "../../scripts/conformance/target
 
 // Spawning real node is only meaningful on the pinned runtime (docs/TARGET.md):
 // on any other Node these tests are skipped rather than weakened.
-const pinned =
-  checkPinnedRuntime({ node: process.versions.node, v8: process.versions.v8 }, readTarget()).length === 0;
+const pinnedProblems = checkPinnedRuntime({ node: process.versions.node, v8: process.versions.v8 }, readTarget());
+const pinned = pinnedProblems.length === 0;
+if (!pinned) {
+  console.warn(`Skipping real-node runner tests: ${pinnedProblems.join("; ")} (docs/TARGET.md)`);
+}
 
 describe.skipIf(!pinned)("runReal (real node, permission model on)", () => {
   it("runs a program and returns stdout, stderr and the exit code", () => {
@@ -59,14 +62,16 @@ describe.skipIf(!pinned)("runReal (real node, permission model on)", () => {
   });
 
   it("throws RealRunError on timeout", () => {
-    expect(() => runReal("for(;;){}", { lang: "js", timeoutMs: 300 })).toThrow(RealRunError);
-    expect(() => runReal("for(;;){}", { lang: "js", timeoutMs: 300 })).toThrow(/timed out/);
+    expect(() => runReal("for(;;){}", { lang: "js", timeoutMs: 300 })).toThrow(
+      expect.objectContaining({ name: "RealRunError", message: expect.stringMatching(/timed out/) }),
+    );
   });
 
   it("throws RealRunError when output exceeds the buffer limit", () => {
     const source = `process.stdout.write("x".repeat(2 * 1024 * 1024))`;
-    expect(() => runReal(source, { lang: "js" })).toThrow(RealRunError);
-    expect(() => runReal(source, { lang: "js" })).toThrow(/output limit/);
+    expect(() => runReal(source, { lang: "js" })).toThrow(
+      expect.objectContaining({ name: "RealRunError", message: expect.stringMatching(/output limit/) }),
+    );
   });
 
   // Windows has no signals: process.kill(.., "SIGKILL") there is a plain exit.

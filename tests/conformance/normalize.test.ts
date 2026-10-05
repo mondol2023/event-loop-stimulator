@@ -2,7 +2,7 @@ import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { normalizeOutput } from "../../scripts/conformance/normalize.mts";
+import { normalizeOutput, normalizeWithSpellings } from "../../scripts/conformance/normalize.mts";
 
 // Fabricated directories: none of these exist, so normalization must work from
 // the spelling alone. Real Node prints the script path in several shapes
@@ -64,6 +64,18 @@ describe("normalizeOutput: script path", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  it("prefers the longer spelling when one is a tail of the other (macOS /var vs /private/var)", () => {
+    // Shortest listed first, as realpathSync insertion order would give.
+    const spellings = ["/var/folders/xx/T/abc", "/private/var/folders/xx/T/abc"];
+    expect(normalizeWithSpellings("/private/var/folders/xx/T/abc/main.cjs:1", spellings)).toBe("main.cjs:1");
+    expect(normalizeWithSpellings("at /var/folders/xx/T/abc/main.cjs:1", spellings)).toBe("at main.cjs:1");
+  });
+
+  it("never mangles a longer path through a shorter spelling tail", () => {
+    const out = normalizeOutput("/private/var/folders/xx/T/abc/main.cjs:1", { dir: "/var/folders/xx/T/abc" });
+    expect(out).toBe("/private/var/folders/xx/T/abc/main.cjs:1");
   });
 
   it("does not touch other paths, other file names or similar prefixes", () => {

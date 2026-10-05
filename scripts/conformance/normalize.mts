@@ -38,12 +38,19 @@ function directorySpellings(dir: string): string[] {
 }
 
 export function normalizeOutput(text: string, ctx: { dir: string }): string {
+  return normalizeWithSpellings(text, directorySpellings(ctx.dir));
+}
+
+/** The same normalization for an explicit set of directory spellings (exported so tests can fabricate real-path aliases). */
+export function normalizeWithSpellings(text: string, spellings: readonly string[]): string {
   let out = text;
-  for (const dir of directorySpellings(ctx.dir)) {
+  for (const dir of [...spellings].sort((a, b) => b.length - a.length)) {
     const pattern = directoryPattern(dir);
     // file:///C:/dir/main.cts (Windows) and file:///tmp/dir/main.cts (POSIX, where the
     // pattern itself starts at the third slash) are both covered by an optional slash.
-    const script = new RegExp(`(?:file:///?)?${pattern}[\\\\/]main\\.c[jt]s(?![A-Za-z0-9_])`, "g");
+    // Longest spelling first (above) plus a left boundary: a short spelling can be the tail of a
+    // longer one (macOS /var/... vs /private/var/...) and must not match inside it.
+    const script = new RegExp(`(?<![A-Za-z0-9_.~-])(?:file:///?)?${pattern}[\\\\/]main\\.c[jt]s(?![A-Za-z0-9_])`, "g");
     out = out.replace(script, "main.cjs");
   }
   return out.replace(/\(node:\d+\)/g, "(node:PID)").replace(/\r\n/g, "\n");
