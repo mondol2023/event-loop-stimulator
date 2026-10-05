@@ -1,4 +1,5 @@
 import "server-only";
+import { withConnection } from "@/server/db/connection";
 import type { ClientSession } from "mongoose";
 import { sessionOption } from "./session";
 import { isSlug, parseSnippetId, parseUserId, type SnippetId, type UserId } from "@/core/shared/ids";
@@ -35,7 +36,7 @@ function toSnippetRecord(doc: SnippetLean): SnippetRecord {
   };
 }
 
-export const snippetRepository = {
+export const snippetRepository = withConnection({
   async create(
     input: {
       ownerId: UserId;
@@ -72,4 +73,4 @@ export const snippetRepository = {
       .lean<SnippetLean[]>();
     return docs.map(toSnippetRecord);
   },
-};
+});

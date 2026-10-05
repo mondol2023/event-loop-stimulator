@@ -1,9 +1,10 @@
 import "server-only";
+import { withConnection } from "@/server/db/connection";
 import type { ClientSession } from "mongoose";
 import { sessionOption } from "./session";
 import { Setting } from "@/server/db/models/Setting";
 
-export const settingRepository = {
+export const settingRepository = withConnection({
   async get(key: string, session?: ClientSession): Promise<unknown | null> {
     if (typeof key !== "string") return null;
     const doc = await Setting.findOne({ key })
@@ -30,4 +31,4 @@ export const settingRepository = {
       { upsert: true, ...sessionOption(session) },
     );
   },
-};
+});

@@ -1,4 +1,5 @@
 import "server-only";
+import { withConnection } from "@/server/db/connection";
 import type { ClientSession } from "mongoose";
 import { sessionOption } from "./session";
 import { parseUserId, type UserId } from "@/core/shared/ids";
@@ -31,7 +32,7 @@ function toAuditRecord(doc: AuditLean): StoredAuditRecord {
   };
 }
 
-export const auditRepository = {
+export const auditRepository = withConnection({
   async insertMany(entries: readonly AuditRecord[], session?: ClientSession): Promise<void> {
     if (entries.length === 0) return;
     for (const entry of entries) {
@@ -58,4 +59,4 @@ export const auditRepository = {
       .lean<AuditLean[]>();
     return docs.map(toAuditRecord);
   },
-};
+});

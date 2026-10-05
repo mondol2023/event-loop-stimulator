@@ -1,4 +1,5 @@
 import "server-only";
+import { withConnection } from "@/server/db/connection";
 import type { ClientSession } from "mongoose";
 import { sessionOption } from "./session";
 import { parseUserId, type UserId } from "@/core/shared/ids";
@@ -72,7 +73,7 @@ async function bumpSession(
 // Every filter value is validated to be a string of the right shape before it
 // reaches a query, on top of the global `sanitizeFilter` option: an object such
 // as `{ $ne: null }` can never become an operator.
-export const userRepository = {
+export const userRepository = withConnection({
   async create(
     input: { email: string; passwordHash: string; displayName: string; role?: RoleName },
     session?: ClientSession,
@@ -130,4 +131,4 @@ export const userRepository = {
   async countActiveByRole(role: RoleName, session?: ClientSession): Promise<number> {
     return User.countDocuments({ role, status: "active" }).session(session ?? null);
   },
-};
+});

@@ -1,10 +1,11 @@
 import "server-only";
+import { withConnection } from "@/server/db/connection";
 import type { ClientSession } from "mongoose";
 import { sessionOption } from "./session";
 import { Role } from "@/server/db/models/Role";
 import type { RoleName, RoleRecord } from "./types";
 
-export const roleRepository = {
+export const roleRepository = withConnection({
   async upsertAll(roles: readonly RoleRecord[], session?: ClientSession): Promise<void> {
     if (roles.length === 0) return;
     await Role.bulkWrite(
@@ -26,4 +27,4 @@ export const roleRepository = {
       .lean<{ name: RoleName; permissions: string[] }>();
     return doc === null ? null : { name: doc.name, permissions: [...doc.permissions] };
   },
-};
+});
