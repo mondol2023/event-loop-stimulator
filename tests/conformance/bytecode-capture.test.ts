@@ -161,6 +161,29 @@ describe("selectUserBytecode (pure)", () => {
   });
 });
 
+describe("captureBytecode against the recorded outcome (injected run)", () => {
+  // The sample's main script is 190 characters long; the text itself is never parsed here.
+  const source = "x".repeat(190);
+  const fakeRun = (exitCode: number) => () => ({ stdout: sample, stderr: "boom", exitCode });
+
+  it("returns the tree when the capture run exits like the recorded run", () => {
+    const tree = captureBytecode(source, "js", { expectedExitCodes: [0], run: fakeRun(0) });
+    expect(tree).toEqual(selectUserBytecode(parseBytecodeListing(sample)));
+  });
+
+  it("throws when the capture run exits differently, even though the listing parses", () => {
+    // The root is compiled before anything can go wrong, so a run that died early
+    // still yields a tree; only the exit code shows its children may be missing.
+    expect(() => captureBytecode(source, "js", { expectedExitCodes: [0], run: fakeRun(134) })).toThrow(
+      expect.objectContaining({ name: "BytecodeCaptureError", message: expect.stringMatching(/exited with 134.*recorded run\(s\) exited with 0.*boom/) }),
+    );
+  });
+
+  it("accepts any exit code a nondeterministic fixture recorded", () => {
+    expect(() => captureBytecode(source, "js", { expectedExitCodes: [0, 1], run: fakeRun(1) })).not.toThrow();
+  });
+});
+
 // Spawning real node is only meaningful on the pinned runtime (docs/TARGET.md).
 const pinnedProblems = checkPinnedRuntime({ node: process.versions.node, v8: process.versions.v8 }, readTarget());
 const pinned = pinnedProblems.length === 0;
@@ -213,6 +236,13 @@ describe.skipIf(!pinned)("captureBytecode (real node)", () => {
 
   it("throws BytecodeCaptureError when the program never reaches its main script", () => {
     expect(() => captureBytecode("function (", "js")).toThrow(BytecodeCaptureError);
+  });
+
+  it("throws when the real capture run ends differently from the recorded outcome", () => {
+    // Recorded as exiting 0, but this program throws after f's call: g is never compiled.
+    const diverging = "function f(a){return a}\nfunction g(){return 2}\nf(1);\nthrow new Error('x');\ng();";
+    expect(() => captureBytecode(diverging, "js", { expectedExitCodes: [0] })).toThrow(/exited with 1/);
+    expect(names(captureBytecode(diverging, "js", { expectedExitCodes: [1] })).sort()).toEqual(["", "f"]);
   });
 
   it("produces a tree the expectation schema accepts", () => {

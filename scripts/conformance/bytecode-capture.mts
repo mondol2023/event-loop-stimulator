@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import type { RealFunctionBytecode, RealInstruction } from "./expectation.mts";
+import type { RealFunctionBytecode, RealInstruction, RunFn } from "./expectation.mts";
 import { runReal } from "./run-real.mts";
 
 // Real Ignition bytecode for the user functions of a repo-owned fixture program,
@@ -219,15 +219,27 @@ const MARK = fileURLToPath(new URL("./mark.cjs", import.meta.url));
 // The listing of even a small program is ~0.7-1 MB of Node internals.
 const LISTING_MAX_BYTES = 32 * 1024 * 1024;
 
+export type CaptureOptions = {
+  readonly nodeArgs?: readonly string[];
+  /**
+   * Exit codes of the recorded run(s). A capture run that ends differently took
+   * another path (an exception, an out-of-memory exit), so the functions it never
+   * reached would be missing from the tree without any error: that throws instead.
+   */
+  readonly expectedExitCodes?: readonly number[];
+  /** The runner; only tests replace it. */
+  readonly run?: RunFn;
+};
+
 /**
  * Runs a repo-owned fixture program once more under `--print-bytecode` and
  * returns the bytecode tree of its main script. Throws on any failure.
  */
-export function captureBytecode(source: string, lang: "js" | "ts", nodeArgs: readonly string[] = []): RealFunctionBytecode {
-  const run = runReal(source, {
+export function captureBytecode(source: string, lang: "js" | "ts", opts: CaptureOptions = {}): RealFunctionBytecode {
+  const run = (opts.run ?? runReal)(source, {
     lang,
     nodeArgs: [
-      ...nodeArgs,
+      ...(opts.nodeArgs ?? []),
       // Keep SharedFunctionInfos where they were printed (no compaction) and
       // compiled once (no flushing), so the address walk is unambiguous.
       "--no-compact",
@@ -239,6 +251,13 @@ export function captureBytecode(source: string, lang: "js" | "ts", nodeArgs: rea
     ],
     maxBufferBytes: LISTING_MAX_BYTES,
   });
+  const expected = opts.expectedExitCodes;
+  if (expected !== undefined && !expected.includes(run.exitCode)) {
+    throw new BytecodeCaptureError(
+      `the bytecode run exited with ${run.exitCode}, but the recorded run(s) exited with ${expected.join(", ")}: ` +
+        `the capture would be partial (stderr: ${run.stderr.slice(0, 500)})`,
+    );
+  }
   try {
     const scriptLength = source.charCodeAt(0) === 0xfeff ? source.length - 1 : source.length;
     return selectUserBytecode(parseBytecodeListing(run.stdout), scriptLength);

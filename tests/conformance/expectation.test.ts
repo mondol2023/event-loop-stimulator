@@ -104,6 +104,16 @@ describe("buildExpectation", () => {
       expect(e.bytecode).toEqual(bc);
     });
 
+    it("hands the hook the recorded outcomes, so it can reject a diverging capture run", () => {
+      const fail: RealRun = { stdout: "", stderr: "x", exitCode: 1 };
+      let seen: unknown;
+      buildExpectation(fixture({ meta: { expect: "run" } }), target, () => fail, (_f, outcomes) => {
+        seen = outcomes;
+        return bc;
+      });
+      expect(seen).toEqual([{ stdout: "", stderr: "x", exitCode: 1 }]);
+    });
+
     it("lets a capture failure propagate instead of dropping the bytecode", () => {
       const failing = () => {
         throw new Error("capture failed");

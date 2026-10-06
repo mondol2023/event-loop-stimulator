@@ -48,7 +48,7 @@ Each gap names the construct, the difference from real Node/V8, and the fixture 
 - **Root.** `mark.cjs` calls `__silicon_marker__()` just before Node compiles `main.cjs`/`main.cts`. The main script is the first `Parameter count 6` block after the marker block. The capture also checks that the 5-byte CJS wrapper block comes just before it.
 - **Children.** Children are found by walking SharedFunctionInfo addresses from the root's constant pool to the matching block headers, never by name. `--no-compact` keeps SFIs from moving and `--no-flush-bytecode` keeps each function compiled once. An address that is compiled twice, or a block whose name differs from the pool entry, aborts the record. A function that was never called has no block and is left out of `children`.
 - **`.cts` positions.** Node appends `\n\n//# sourceURL=file:///<temp dir>/main.cts` to a stripped `.cts`, so the main script's implicit `Return` position depends on the temp path. Positions that point into that appended text are moved back to the end of the program. The result is exactly what V8 prints for the same stripped text as `.cjs`, so a `.cts` and its whitespace-stripped `.cjs` give identical trees.
-- **Failure.** Any surprise in the listing throws `BytecodeCaptureError` and aborts the record, naming the fixture. A capture is never partial.
+- **Failure.** Any surprise in the listing throws `BytecodeCaptureError` and aborts the record, naming the fixture. So does a capture run whose exit code is not among the recorded outcomes' exit codes: a run that took another path would leave out the functions it never reached. A capture is never partial.
 
 ## Bytecode operand differences
 

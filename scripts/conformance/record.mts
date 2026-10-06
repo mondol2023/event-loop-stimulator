@@ -23,8 +23,13 @@ console.log(`Pinned runtime OK: Node.js ${target.node} (V8 ${target.v8}).`);
 
 // Real Ignition bytecode, captured in a second run under --print-bytecode;
 // `buildExpectation` calls this for a `kind: "program"` fixture that exits 0 or
-// declares `expect: "run"`. It throws on any failure, which aborts the record.
-const capture: CaptureBytecode = (fixture) => captureBytecode(fixture.source, fixture.lang, fixture.meta.nodeArgs ?? []);
+// declares `expect: "run"`. It throws on any failure (including a capture run
+// whose exit code differs from the recorded one), which aborts the record.
+const capture: CaptureBytecode = (fixture, outcomes) =>
+  captureBytecode(fixture.source, fixture.lang, {
+    nodeArgs: fixture.meta.nodeArgs ?? [],
+    expectedExitCodes: outcomes.map((o) => o.exitCode),
+  });
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "tests", "conformance");
 

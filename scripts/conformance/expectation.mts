@@ -79,7 +79,7 @@ export type RunFn = (source: string, opts: RealRunOptions) => RealRun;
  * WHEN it is called. It returns the main script's tree or THROWS: a failed
  * capture must abort the record, never drop the bytecode silently.
  */
-export type CaptureBytecode = (fixture: Fixture) => RealFunctionBytecode;
+export type CaptureBytecode = (fixture: Fixture, outcomes: readonly Outcome[]) => RealFunctionBytecode;
 
 export const DEFAULT_NONDETERMINISTIC_RUNS = 25;
 
@@ -126,6 +126,6 @@ export function buildExpectation(
 
   const wantsBytecode =
     fixture.kind === "program" && (fixture.meta.expect === "run" || outcomes.some((o) => o.exitCode === 0));
-  if (captureBytecode && wantsBytecode) expectation.bytecode = captureBytecode(fixture);
+  if (captureBytecode && wantsBytecode) expectation.bytecode = captureBytecode(fixture, outcomes);
   return expectation;
 }
