@@ -1,0 +1,2329 @@
+{
+  "schema": 1,
+  "fixture": "promise-any-aggregate-error",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "empty: AggregateError | All promises were rejected []\nAggregateError | All promises were rejected\n3 [ 'a', 'b', 3 ]\nstring []\nany fulfills with: winner\nplain value wins: 1\na late success beats an early failure: slow success\nerrors keep input order: [ 'one', 'two' ]\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 482,
+      "parameterCount": 6,
+      "registerCount": 12,
+      "frameSize": 96
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateFunctionContext [0], [1]"
+      },
+      {
+        "offset": 3,
+        "text": "PushContext r2"
+      },
+      {
+        "offset": 5,
+        "text": "LdaTheHole"
+      },
+      {
+        "offset": 6,
+        "text": "StaCurrentContextSlot [2]"
+      },
+      {
+        "offset": 8,
+        "position": {
+          "at": 126,
+          "kind": "S"
+        },
+        "text": "CreateClosure [1], [0], #2"
+      },
+      {
+        "offset": 12,
+        "position": {
+          "at": 126,
+          "kind": "E"
+        },
+        "text": "StaCurrentContextSlot [2]"
+      },
+      {
+        "offset": 14,
+        "position": {
+          "at": 195,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 17,
+        "text": "Star5"
+      },
+      {
+        "offset": 18,
+        "position": {
+          "at": 203,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [3], [2]"
+      },
+      {
+        "offset": 22,
+        "text": "Star4"
+      },
+      {
+        "offset": 23,
+        "text": "CreateArrayLiteral [4], [4], #37"
+      },
+      {
+        "offset": 27,
+        "text": "Star6"
+      },
+      {
+        "offset": 28,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 29,
+        "text": "Star7"
+      },
+      {
+        "offset": 30,
+        "position": {
+          "at": 208,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 33,
+        "text": "Star9"
+      },
+      {
+        "offset": 34,
+        "position": {
+          "at": 216,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r9, [5], [5]"
+      },
+      {
+        "offset": 38,
+        "text": "Star8"
+      },
+      {
+        "offset": 39,
+        "position": {
+          "at": 227,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [6], [7]"
+      },
+      {
+        "offset": 42,
+        "text": "Star10"
+      },
+      {
+        "offset": 43,
+        "text": "LdaConstant [7]"
+      },
+      {
+        "offset": 45,
+        "text": "Star11"
+      },
+      {
+        "offset": 46,
+        "text": "Ldar r10"
+      },
+      {
+        "offset": 48,
+        "position": {
+          "at": 223,
+          "kind": "E"
+        },
+        "text": "Construct r10, r11-r11, [9]"
+      },
+      {
+        "offset": 53,
+        "text": "Star10"
+      },
+      {
+        "offset": 54,
+        "position": {
+          "at": 216,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r8, r9, r10, [11]"
+      },
+      {
+        "offset": 59,
+        "text": "StaInArrayLiteral r6, r7, [13]"
+      },
+      {
+        "offset": 63,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 65,
+        "text": "Star7"
+      },
+      {
+        "offset": 66,
+        "position": {
+          "at": 240,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 69,
+        "text": "Star9"
+      },
+      {
+        "offset": 70,
+        "position": {
+          "at": 248,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r9, [5], [5]"
+      },
+      {
+        "offset": 74,
+        "text": "Star8"
+      },
+      {
+        "offset": 75,
+        "text": "LdaConstant [8]"
+      },
+      {
+        "offset": 77,
+        "text": "Star10"
+      },
+      {
+        "offset": 78,
+        "position": {
+          "at": 248,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r8, r9, r10, [15]"
+      },
+      {
+        "offset": 83,
+        "text": "StaInArrayLiteral r6, r7, [13]"
+      },
+      {
+        "offset": 87,
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 89,
+        "text": "Star7"
+      },
+      {
+        "offset": 90,
+        "position": {
+          "at": 261,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 93,
+        "text": "Star9"
+      },
+      {
+        "offset": 94,
+        "position": {
+          "at": 269,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r9, [5], [5]"
+      },
+      {
+        "offset": 98,
+        "text": "Star8"
+      },
+      {
+        "offset": 99,
+        "text": "LdaSmi [3]"
+      },
+      {
+        "offset": 101,
+        "text": "Star10"
+      },
+      {
+        "offset": 102,
+        "position": {
+          "at": 269,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r8, r9, r10, [17]"
+      },
+      {
+        "offset": 107,
+        "text": "StaInArrayLiteral r6, r7, [13]"
+      },
+      {
+        "offset": 111,
+        "position": {
+          "at": 203,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [19]"
+      },
+      {
+        "offset": 116,
+        "text": "Star4"
+      },
+      {
+        "offset": 117,
+        "position": {
+          "at": 280,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r4, [9], [21]"
+      },
+      {
+        "offset": 121,
+        "text": "Star3"
+      },
+      {
+        "offset": 122,
+        "text": "CreateClosure [10], [1], #2"
+      },
+      {
+        "offset": 126,
+        "text": "Star5"
+      },
+      {
+        "offset": 127,
+        "position": {
+          "at": 286,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r3, r4, r5, [23]"
+      },
+      {
+        "offset": 132,
+        "position": {
+          "at": 438,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 135,
+        "text": "Star5"
+      },
+      {
+        "offset": 136,
+        "position": {
+          "at": 446,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [3], [2]"
+      },
+      {
+        "offset": 140,
+        "text": "Star4"
+      },
+      {
+        "offset": 141,
+        "text": "CreateEmptyArrayLiteral [25]"
+      },
+      {
+        "offset": 143,
+        "text": "Star6"
+      },
+      {
+        "offset": 144,
+        "position": {
+          "at": 446,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [26]"
+      },
+      {
+        "offset": 149,
+        "text": "Star4"
+      },
+      {
+        "offset": 150,
+        "position": {
+          "at": 453,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r4, [9], [28]"
+      },
+      {
+        "offset": 154,
+        "text": "Star3"
+      },
+      {
+        "offset": 155,
+        "text": "CreateClosure [11], [2], #2"
+      },
+      {
+        "offset": 159,
+        "text": "Star5"
+      },
+      {
+        "offset": 160,
+        "position": {
+          "at": 459,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r3, r4, r5, [30]"
+      },
+      {
+        "offset": 165,
+        "position": {
+          "at": 526,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 168,
+        "text": "Star5"
+      },
+      {
+        "offset": 169,
+        "position": {
+          "at": 534,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [3], [2]"
+      },
+      {
+        "offset": 173,
+        "text": "Star4"
+      },
+      {
+        "offset": 174,
+        "text": "CreateArrayLiteral [12], [32], #37"
+      },
+      {
+        "offset": 178,
+        "text": "Star6"
+      },
+      {
+        "offset": 179,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 180,
+        "text": "Star7"
+      },
+      {
+        "offset": 181,
+        "position": {
+          "at": 539,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 184,
+        "text": "Star9"
+      },
+      {
+        "offset": 185,
+        "position": {
+          "at": 547,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r9, [5], [5]"
+      },
+      {
+        "offset": 189,
+        "text": "Star8"
+      },
+      {
+        "offset": 190,
+        "text": "LdaConstant [13]"
+      },
+      {
+        "offset": 192,
+        "text": "Star10"
+      },
+      {
+        "offset": 193,
+        "position": {
+          "at": 547,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r8, r9, r10, [33]"
+      },
+      {
+        "offset": 198,
+        "text": "StaInArrayLiteral r6, r7, [35]"
+      },
+      {
+        "offset": 202,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 204,
+        "text": "Star7"
+      },
+      {
+        "offset": 205,
+        "position": {
+          "at": 566,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 208,
+        "text": "Star9"
+      },
+      {
+        "offset": 209,
+        "position": {
+          "at": 574,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r9, [14], [37]"
+      },
+      {
+        "offset": 213,
+        "text": "Star8"
+      },
+      {
+        "offset": 214,
+        "text": "LdaConstant [15]"
+      },
+      {
+        "offset": 216,
+        "text": "Star10"
+      },
+      {
+        "offset": 217,
+        "position": {
+          "at": 574,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r8, r9, r10, [39]"
+      },
+      {
+        "offset": 222,
+        "text": "StaInArrayLiteral r6, r7, [35]"
+      },
+      {
+        "offset": 226,
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 228,
+        "text": "Star7"
+      },
+      {
+        "offset": 229,
+        "position": {
+          "at": 593,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 232,
+        "text": "Star9"
+      },
+      {
+        "offset": 233,
+        "position": {
+          "at": 601,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r9, [14], [37]"
+      },
+      {
+        "offset": 237,
+        "text": "Star8"
+      },
+      {
+        "offset": 238,
+        "text": "LdaConstant [16]"
+      },
+      {
+        "offset": 240,
+        "text": "Star10"
+      },
+      {
+        "offset": 241,
+        "position": {
+          "at": 601,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r8, r9, r10, [41]"
+      },
+      {
+        "offset": 246,
+        "text": "StaInArrayLiteral r6, r7, [35]"
+      },
+      {
+        "offset": 250,
+        "position": {
+          "at": 534,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [43]"
+      },
+      {
+        "offset": 255,
+        "text": "Star4"
+      },
+      {
+        "offset": 256,
+        "position": {
+          "at": 619,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r4, [17], [45]"
+      },
+      {
+        "offset": 260,
+        "text": "Star3"
+      },
+      {
+        "offset": 261,
+        "text": "CreateClosure [18], [3], #2"
+      },
+      {
+        "offset": 265,
+        "text": "Star5"
+      },
+      {
+        "offset": 266,
+        "position": {
+          "at": 620,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r3, r4, r5, [47]"
+      },
+      {
+        "offset": 271,
+        "position": {
+          "at": 676,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 274,
+        "text": "Star5"
+      },
+      {
+        "offset": 275,
+        "position": {
+          "at": 684,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [3], [2]"
+      },
+      {
+        "offset": 279,
+        "text": "Star4"
+      },
+      {
+        "offset": 280,
+        "text": "CreateArrayLiteral [19], [49], #37"
+      },
+      {
+        "offset": 284,
+        "text": "Star6"
+      },
+      {
+        "offset": 285,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 287,
+        "text": "Star7"
+      },
+      {
+        "offset": 288,
+        "position": {
+          "at": 692,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 291,
+        "text": "Star9"
+      },
+      {
+        "offset": 292,
+        "position": {
+          "at": 700,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r9, [5], [5]"
+      },
+      {
+        "offset": 296,
+        "text": "Star8"
+      },
+      {
+        "offset": 297,
+        "text": "LdaConstant [20]"
+      },
+      {
+        "offset": 299,
+        "text": "Star10"
+      },
+      {
+        "offset": 300,
+        "position": {
+          "at": 700,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r8, r9, r10, [50]"
+      },
+      {
+        "offset": 305,
+        "text": "StaInArrayLiteral r6, r7, [52]"
+      },
+      {
+        "offset": 309,
+        "position": {
+          "at": 684,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [54]"
+      },
+      {
+        "offset": 314,
+        "text": "Star4"
+      },
+      {
+        "offset": 315,
+        "position": {
+          "at": 713,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r4, [17], [56]"
+      },
+      {
+        "offset": 319,
+        "text": "Star3"
+      },
+      {
+        "offset": 320,
+        "text": "CreateClosure [21], [4], #2"
+      },
+      {
+        "offset": 324,
+        "text": "Star5"
+      },
+      {
+        "offset": 325,
+        "position": {
+          "at": 714,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r3, r4, r5, [58]"
+      },
+      {
+        "offset": 330,
+        "position": {
+          "at": 779,
+          "kind": "S"
+        },
+        "text": "CreateClosure [22], [5], #2"
+      },
+      {
+        "offset": 334,
+        "text": "Star0"
+      },
+      {
+        "offset": 335,
+        "position": {
+          "at": 876,
+          "kind": "S"
+        },
+        "text": "CreateClosure [23], [6], #2"
+      },
+      {
+        "offset": 339,
+        "text": "Star1"
+      },
+      {
+        "offset": 340,
+        "position": {
+          "at": 964,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 343,
+        "text": "Star5"
+      },
+      {
+        "offset": 344,
+        "position": {
+          "at": 972,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [3], [2]"
+      },
+      {
+        "offset": 348,
+        "text": "Star4"
+      },
+      {
+        "offset": 349,
+        "text": "CreateArrayLiteral [24], [60], #37"
+      },
+      {
+        "offset": 353,
+        "text": "Star6"
+      },
+      {
+        "offset": 354,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 355,
+        "text": "Star7"
+      },
+      {
+        "offset": 356,
+        "text": "LdaConstant [25]"
+      },
+      {
+        "offset": 358,
+        "text": "Star9"
+      },
+      {
+        "offset": 359,
+        "text": "LdaSmi [20]"
+      },
+      {
+        "offset": 361,
+        "text": "Star10"
+      },
+      {
+        "offset": 362,
+        "position": {
+          "at": 977,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r1, r9, r10, [61]"
+      },
+      {
+        "offset": 367,
+        "text": "StaInArrayLiteral r6, r7, [63]"
+      },
+      {
+        "offset": 371,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 373,
+        "text": "Star7"
+      },
+      {
+        "offset": 374,
+        "text": "LdaConstant [26]"
+      },
+      {
+        "offset": 376,
+        "text": "Star9"
+      },
+      {
+        "offset": 377,
+        "text": "LdaSmi [60]"
+      },
+      {
+        "offset": 379,
+        "text": "Star10"
+      },
+      {
+        "offset": 380,
+        "position": {
+          "at": 1008,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r9, r10, [65]"
+      },
+      {
+        "offset": 385,
+        "text": "StaInArrayLiteral r6, r7, [63]"
+      },
+      {
+        "offset": 389,
+        "position": {
+          "at": 972,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [67]"
+      },
+      {
+        "offset": 394,
+        "text": "Star4"
+      },
+      {
+        "offset": 395,
+        "position": {
+          "at": 1035,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r4, [17], [69]"
+      },
+      {
+        "offset": 399,
+        "text": "Star3"
+      },
+      {
+        "offset": 400,
+        "text": "CreateClosure [27], [7], #2"
+      },
+      {
+        "offset": 404,
+        "text": "Star5"
+      },
+      {
+        "offset": 405,
+        "position": {
+          "at": 1036,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r3, r4, r5, [71]"
+      },
+      {
+        "offset": 410,
+        "position": {
+          "at": 1111,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [2], [0]"
+      },
+      {
+        "offset": 413,
+        "text": "Star5"
+      },
+      {
+        "offset": 414,
+        "position": {
+          "at": 1119,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [3], [2]"
+      },
+      {
+        "offset": 418,
+        "text": "Star4"
+      },
+      {
+        "offset": 419,
+        "text": "CreateArrayLiteral [28], [73], #37"
+      },
+      {
+        "offset": 423,
+        "text": "Star6"
+      },
+      {
+        "offset": 424,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 425,
+        "text": "Star7"
+      },
+      {
+        "offset": 426,
+        "text": "LdaConstant [29]"
+      },
+      {
+        "offset": 428,
+        "text": "Star9"
+      },
+      {
+        "offset": 429,
+        "text": "LdaSmi [20]"
+      },
+      {
+        "offset": 431,
+        "text": "Star10"
+      },
+      {
+        "offset": 432,
+        "position": {
+          "at": 1124,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r1, r9, r10, [74]"
+      },
+      {
+        "offset": 437,
+        "text": "StaInArrayLiteral r6, r7, [76]"
+      },
+      {
+        "offset": 441,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 443,
+        "text": "Star7"
+      },
+      {
+        "offset": 444,
+        "text": "LdaConstant [30]"
+      },
+      {
+        "offset": 446,
+        "text": "Star9"
+      },
+      {
+        "offset": 447,
+        "text": "LdaSmi [60]"
+      },
+      {
+        "offset": 449,
+        "text": "Star10"
+      },
+      {
+        "offset": 450,
+        "position": {
+          "at": 1146,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r1, r9, r10, [78]"
+      },
+      {
+        "offset": 455,
+        "text": "StaInArrayLiteral r6, r7, [76]"
+      },
+      {
+        "offset": 459,
+        "position": {
+          "at": 1119,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [80]"
+      },
+      {
+        "offset": 464,
+        "text": "Star4"
+      },
+      {
+        "offset": 465,
+        "position": {
+          "at": 1168,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r4, [9], [82]"
+      },
+      {
+        "offset": 469,
+        "text": "Star3"
+      },
+      {
+        "offset": 470,
+        "text": "CreateClosure [31], [8], #2"
+      },
+      {
+        "offset": 474,
+        "text": "Star5"
+      },
+      {
+        "offset": 475,
+        "position": {
+          "at": 1174,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r3, r4, r5, [84]"
+      },
+      {
+        "offset": 480,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 481,
+        "position": {
+          "at": 1233,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<ScopeInfo FUNCTION_SCOPE>",
+      "<SharedFunctionInfo reasons>",
+      "<String[7]: #Promise>",
+      "<String[3]: #any>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[3]>>",
+      "<String[6]: #reject>",
+      "<String[5]: #Error>",
+      "<String[1]: #a>",
+      "<String[1]: #b>",
+      "<String[5]: #catch>",
+      "<SharedFunctionInfo>",
+      "<SharedFunctionInfo>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[3]>>",
+      "<String[7]: #ignored>",
+      "<String[7]: #resolve>",
+      "<String[6]: #winner>",
+      "<String[5]: #later>",
+      "<String[4]: #then>",
+      "<SharedFunctionInfo>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[2]>>",
+      "<String[1]: #x>",
+      "<SharedFunctionInfo>",
+      "<SharedFunctionInfo later>",
+      "<SharedFunctionInfo failLater>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[2]>>",
+      "<String[12]: #fast failure>",
+      "<String[12]: #slow success>",
+      "<SharedFunctionInfo>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[2]>>",
+      "<String[3]: #one>",
+      "<String[3]: #two>",
+      "<SharedFunctionInfo>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "1": {
+        "name": "reasons",
+        "header": {
+          "length": 16,
+          "parameterCount": 2,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 141,
+              "kind": "S"
+            },
+            "text": "GetNamedProperty a0, [0], [0]"
+          },
+          {
+            "offset": 4,
+            "text": "Star0"
+          },
+          {
+            "offset": 5,
+            "text": "CreateClosure [1], [0], #2"
+          },
+          {
+            "offset": 9,
+            "text": "Star2"
+          },
+          {
+            "offset": 10,
+            "position": {
+              "at": 141,
+              "kind": "E"
+            },
+            "text": "CallProperty1 r0, a0, r2, [2]"
+          },
+          {
+            "offset": 15,
+            "position": {
+              "at": 192,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[3]: #map>",
+          "<SharedFunctionInfo>"
+        ],
+        "handlerTable": [],
+        "children": {
+          "1": {
+            "name": "",
+            "header": {
+              "length": 15,
+              "parameterCount": 2,
+              "registerCount": 0,
+              "frameSize": 0
+            },
+            "instructions": [
+              {
+                "offset": 0,
+                "position": {
+                  "at": 153,
+                  "kind": "S"
+                },
+                "text": "Ldar a0"
+              },
+              {
+                "offset": 2,
+                "text": "TestTypeOf #7"
+              },
+              {
+                "offset": 4,
+                "text": "JumpIfFalse [8] (@12)"
+              },
+              {
+                "offset": 6,
+                "position": {
+                  "at": 179,
+                  "kind": "E"
+                },
+                "text": "GetNamedProperty a0, [0], [0]"
+              },
+              {
+                "offset": 10,
+                "text": "Jump [4] (@14)"
+              },
+              {
+                "offset": 12,
+                "text": "Ldar a0"
+              },
+              {
+                "offset": 14,
+                "position": {
+                  "at": 191,
+                  "kind": "S"
+                },
+                "text": "Return"
+              }
+            ],
+            "constantPool": [
+              "<String[7]: #message>"
+            ],
+            "handlerTable": [],
+            "children": {}
+          }
+        }
+      },
+      "10": {
+        "name": "",
+        "header": {
+          "length": 106,
+          "parameterCount": 2,
+          "registerCount": 5,
+          "frameSize": 40
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 298,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 306,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star0"
+          },
+          {
+            "offset": 9,
+            "position": {
+              "at": 312,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty a0, [2], [4]"
+          },
+          {
+            "offset": 13,
+            "text": "Star2"
+          },
+          {
+            "offset": 14,
+            "text": "LdaConstant [3]"
+          },
+          {
+            "offset": 16,
+            "text": "Star3"
+          },
+          {
+            "offset": 17,
+            "position": {
+              "at": 325,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty a0, [4], [6]"
+          },
+          {
+            "offset": 21,
+            "text": "Star4"
+          },
+          {
+            "offset": 22,
+            "position": {
+              "at": 306,
+              "kind": "E"
+            },
+            "text": "CallProperty r0, r1-r4, [8]"
+          },
+          {
+            "offset": 27,
+            "position": {
+              "at": 337,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 30,
+            "text": "Star1"
+          },
+          {
+            "offset": 31,
+            "position": {
+              "at": 345,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 35,
+            "text": "Star0"
+          },
+          {
+            "offset": 36,
+            "position": {
+              "at": 351,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty a0, [5], [10]"
+          },
+          {
+            "offset": 40,
+            "text": "Star2"
+          },
+          {
+            "offset": 41,
+            "position": {
+              "at": 358,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r2, [6], [12]"
+          },
+          {
+            "offset": 45,
+            "text": "Star2"
+          },
+          {
+            "offset": 46,
+            "text": "LdaImmutableCurrentContextSlot [2]"
+          },
+          {
+            "offset": 48,
+            "position": {
+              "at": 366,
+              "kind": "E"
+            },
+            "text": "ThrowReferenceErrorIfHole [7]"
+          },
+          {
+            "offset": 50,
+            "text": "Star3"
+          },
+          {
+            "offset": 51,
+            "position": {
+              "at": 376,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty a0, [5], [10]"
+          },
+          {
+            "offset": 55,
+            "text": "Star4"
+          },
+          {
+            "offset": 56,
+            "position": {
+              "at": 366,
+              "kind": "E"
+            },
+            "text": "CallUndefinedReceiver1 r3, r4, [14]"
+          },
+          {
+            "offset": 60,
+            "text": "Star3"
+          },
+          {
+            "offset": 61,
+            "position": {
+              "at": 345,
+              "kind": "E"
+            },
+            "text": "CallProperty2 r0, r1, r2, r3, [16]"
+          },
+          {
+            "offset": 67,
+            "position": {
+              "at": 388,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 70,
+            "text": "Star1"
+          },
+          {
+            "offset": 71,
+            "position": {
+              "at": 396,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 75,
+            "text": "Star0"
+          },
+          {
+            "offset": 76,
+            "position": {
+              "at": 409,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty a0, [8], [18]"
+          },
+          {
+            "offset": 80,
+            "text": "TypeOf [20]"
+          },
+          {
+            "offset": 82,
+            "text": "Star2"
+          },
+          {
+            "offset": 83,
+            "position": {
+              "at": 416,
+              "kind": "E"
+            },
+            "text": "LdaGlobal [9], [21]"
+          },
+          {
+            "offset": 86,
+            "text": "Star4"
+          },
+          {
+            "offset": 87,
+            "position": {
+              "at": 423,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r4, [10], [23]"
+          },
+          {
+            "offset": 91,
+            "text": "Star3"
+          },
+          {
+            "offset": 92,
+            "position": {
+              "at": 423,
+              "kind": "E"
+            },
+            "text": "CallProperty1 r3, r4, a0, [25]"
+          },
+          {
+            "offset": 97,
+            "text": "Star3"
+          },
+          {
+            "offset": 98,
+            "position": {
+              "at": 396,
+              "kind": "E"
+            },
+            "text": "CallProperty2 r0, r1, r2, r3, [27]"
+          },
+          {
+            "offset": 104,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 105,
+            "position": {
+              "at": 433,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[7]: #console>",
+          "<String[3]: #log>",
+          "<String[4]: #name>",
+          "<String[1]: #|>",
+          "<String[7]: #message>",
+          "<String[6]: #errors>",
+          "<String[6]: #length>",
+          "<String[7]: #reasons>",
+          "<String[5]: #stack>",
+          "<String[6]: #Object>",
+          "<String[4]: #keys>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "11": {
+        "name": "",
+        "header": {
+          "length": 36,
+          "parameterCount": 2,
+          "registerCount": 7,
+          "frameSize": 56
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 475,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 475,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star0"
+          },
+          {
+            "offset": 9,
+            "text": "LdaConstant [2]"
+          },
+          {
+            "offset": 11,
+            "text": "Star2"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 491,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty a0, [3], [4]"
+          },
+          {
+            "offset": 16,
+            "text": "Star3"
+          },
+          {
+            "offset": 17,
+            "text": "LdaConstant [4]"
+          },
+          {
+            "offset": 19,
+            "text": "Star4"
+          },
+          {
+            "offset": 20,
+            "position": {
+              "at": 504,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty a0, [5], [6]"
+          },
+          {
+            "offset": 24,
+            "text": "Star5"
+          },
+          {
+            "offset": 25,
+            "position": {
+              "at": 515,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty a0, [6], [8]"
+          },
+          {
+            "offset": 29,
+            "text": "Star6"
+          },
+          {
+            "offset": 30,
+            "position": {
+              "at": 475,
+              "kind": "E"
+            },
+            "text": "CallProperty r0, r1-r6, [10]"
+          },
+          {
+            "offset": 35,
+            "position": {
+              "at": 522,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[7]: #console>",
+          "<String[3]: #log>",
+          "<String[6]: #empty:>",
+          "<String[4]: #name>",
+          "<String[1]: #|>",
+          "<String[7]: #message>",
+          "<String[6]: #errors>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "18": {
+        "name": "",
+        "header": {
+          "length": 19,
+          "parameterCount": 2,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 642,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 642,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star0"
+          },
+          {
+            "offset": 9,
+            "text": "LdaConstant [2]"
+          },
+          {
+            "offset": 11,
+            "text": "Star2"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 642,
+              "kind": "E"
+            },
+            "text": "CallProperty2 r0, r1, r2, a0, [4]"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 670,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[7]: #console>",
+          "<String[3]: #log>",
+          "<String[18]: #any fulfills with:>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "21": {
+        "name": "",
+        "header": {
+          "length": 19,
+          "parameterCount": 2,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 734,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 734,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star0"
+          },
+          {
+            "offset": 9,
+            "text": "LdaConstant [2]"
+          },
+          {
+            "offset": 11,
+            "text": "Star2"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 734,
+              "kind": "E"
+            },
+            "text": "CallProperty2 r0, r1, r2, a0, [4]"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 761,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[7]: #console>",
+          "<String[3]: #log>",
+          "<String[17]: #plain value wins:>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "22": {
+        "name": "later",
+        "header": {
+          "length": 30,
+          "parameterCount": 3,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 779,
+              "kind": "E"
+            },
+            "text": "CreateFunctionContext [0], [2]"
+          },
+          {
+            "offset": 3,
+            "text": "PushContext r0"
+          },
+          {
+            "offset": 5,
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 7,
+            "text": "StaCurrentContextSlot [3]"
+          },
+          {
+            "offset": 9,
+            "text": "Ldar a1"
+          },
+          {
+            "offset": 11,
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 13,
+            "position": {
+              "at": 794,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [1], [0]"
+          },
+          {
+            "offset": 16,
+            "text": "Star1"
+          },
+          {
+            "offset": 17,
+            "text": "CreateClosure [2], [0], #2"
+          },
+          {
+            "offset": 21,
+            "text": "Star2"
+          },
+          {
+            "offset": 22,
+            "text": "Ldar r1"
+          },
+          {
+            "offset": 24,
+            "position": {
+              "at": 794,
+              "kind": "E"
+            },
+            "text": "Construct r1, r2-r2, [2]"
+          },
+          {
+            "offset": 29,
+            "position": {
+              "at": 856,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<ScopeInfo FUNCTION_SCOPE>",
+          "<String[7]: #Promise>",
+          "<SharedFunctionInfo>"
+        ],
+        "handlerTable": [],
+        "children": {
+          "2": {
+            "name": "",
+            "header": {
+              "length": 29,
+              "parameterCount": 2,
+              "registerCount": 4,
+              "frameSize": 32
+            },
+            "instructions": [
+              {
+                "offset": 0,
+                "position": {
+                  "at": 806,
+                  "kind": "E"
+                },
+                "text": "CreateFunctionContext [0], [1]"
+              },
+              {
+                "offset": 3,
+                "text": "PushContext r0"
+              },
+              {
+                "offset": 5,
+                "text": "Ldar a0"
+              },
+              {
+                "offset": 7,
+                "text": "StaCurrentContextSlot [2]"
+              },
+              {
+                "offset": 9,
+                "position": {
+                  "at": 819,
+                  "kind": "S"
+                },
+                "text": "LdaGlobal [1], [0]"
+              },
+              {
+                "offset": 12,
+                "text": "Star1"
+              },
+              {
+                "offset": 13,
+                "text": "CreateClosure [2], [0], #2"
+              },
+              {
+                "offset": 17,
+                "text": "Star2"
+              },
+              {
+                "offset": 18,
+                "text": "LdaImmutableContextSlot r0, [2], [0]"
+              },
+              {
+                "offset": 22,
+                "text": "Star3"
+              },
+              {
+                "offset": 23,
+                "position": {
+                  "at": 819,
+                  "kind": "E"
+                },
+                "text": "CallUndefinedReceiver2 r1, r2, r3, [2]"
+              },
+              {
+                "offset": 28,
+                "position": {
+                  "at": 855,
+                  "kind": "S"
+                },
+                "text": "Return"
+              }
+            ],
+            "constantPool": [
+              "<ScopeInfo FUNCTION_SCOPE>",
+              "<String[10]: #setTimeout>",
+              "<SharedFunctionInfo>"
+            ],
+            "handlerTable": [],
+            "children": {
+              "2": {
+                "name": "",
+                "header": {
+                  "length": 13,
+                  "parameterCount": 1,
+                  "registerCount": 2,
+                  "frameSize": 16
+                },
+                "instructions": [
+                  {
+                    "offset": 0,
+                    "position": {
+                      "at": 836,
+                      "kind": "S"
+                    },
+                    "text": "LdaImmutableCurrentContextSlot [2]"
+                  },
+                  {
+                    "offset": 2,
+                    "text": "Star0"
+                  },
+                  {
+                    "offset": 3,
+                    "text": "LdaImmutableContextSlot <context>, [3], [1]"
+                  },
+                  {
+                    "offset": 7,
+                    "text": "Star1"
+                  },
+                  {
+                    "offset": 8,
+                    "position": {
+                      "at": 836,
+                      "kind": "E"
+                    },
+                    "text": "CallUndefinedReceiver1 r0, r1, [0]"
+                  },
+                  {
+                    "offset": 12,
+                    "position": {
+                      "at": 850,
+                      "kind": "S"
+                    },
+                    "text": "Return"
+                  }
+                ],
+                "constantPool": [],
+                "handlerTable": [],
+                "children": {}
+              }
+            }
+          }
+        }
+      },
+      "23": {
+        "name": "failLater",
+        "header": {
+          "length": 30,
+          "parameterCount": 3,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 876,
+              "kind": "E"
+            },
+            "text": "CreateFunctionContext [0], [2]"
+          },
+          {
+            "offset": 3,
+            "text": "PushContext r0"
+          },
+          {
+            "offset": 5,
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 7,
+            "text": "StaCurrentContextSlot [3]"
+          },
+          {
+            "offset": 9,
+            "text": "Ldar a1"
+          },
+          {
+            "offset": 11,
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 13,
+            "position": {
+              "at": 892,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [1], [0]"
+          },
+          {
+            "offset": 16,
+            "text": "Star1"
+          },
+          {
+            "offset": 17,
+            "text": "CreateClosure [2], [0], #2"
+          },
+          {
+            "offset": 21,
+            "text": "Star2"
+          },
+          {
+            "offset": 22,
+            "text": "Ldar r1"
+          },
+          {
+            "offset": 24,
+            "position": {
+              "at": 892,
+              "kind": "E"
+            },
+            "text": "Construct r1, r2-r2, [2]"
+          },
+          {
+            "offset": 29,
+            "position": {
+              "at": 962,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<ScopeInfo FUNCTION_SCOPE>",
+          "<String[7]: #Promise>",
+          "<SharedFunctionInfo>"
+        ],
+        "handlerTable": [],
+        "children": {
+          "2": {
+            "name": "",
+            "header": {
+              "length": 29,
+              "parameterCount": 3,
+              "registerCount": 4,
+              "frameSize": 32
+            },
+            "instructions": [
+              {
+                "offset": 0,
+                "position": {
+                  "at": 904,
+                  "kind": "E"
+                },
+                "text": "CreateFunctionContext [0], [1]"
+              },
+              {
+                "offset": 3,
+                "text": "PushContext r0"
+              },
+              {
+                "offset": 5,
+                "text": "Ldar a1"
+              },
+              {
+                "offset": 7,
+                "text": "StaCurrentContextSlot [2]"
+              },
+              {
+                "offset": 9,
+                "position": {
+                  "at": 925,
+                  "kind": "S"
+                },
+                "text": "LdaGlobal [1], [0]"
+              },
+              {
+                "offset": 12,
+                "text": "Star1"
+              },
+              {
+                "offset": 13,
+                "text": "CreateClosure [2], [0], #2"
+              },
+              {
+                "offset": 17,
+                "text": "Star2"
+              },
+              {
+                "offset": 18,
+                "text": "LdaImmutableContextSlot r0, [2], [0]"
+              },
+              {
+                "offset": 22,
+                "text": "Star3"
+              },
+              {
+                "offset": 23,
+                "position": {
+                  "at": 925,
+                  "kind": "E"
+                },
+                "text": "CallUndefinedReceiver2 r1, r2, r3, [2]"
+              },
+              {
+                "offset": 28,
+                "position": {
+                  "at": 961,
+                  "kind": "S"
+                },
+                "text": "Return"
+              }
+            ],
+            "constantPool": [
+              "<ScopeInfo FUNCTION_SCOPE>",
+              "<String[10]: #setTimeout>",
+              "<SharedFunctionInfo>"
+            ],
+            "handlerTable": [],
+            "children": {
+              "2": {
+                "name": "",
+                "header": {
+                  "length": 13,
+                  "parameterCount": 1,
+                  "registerCount": 2,
+                  "frameSize": 16
+                },
+                "instructions": [
+                  {
+                    "offset": 0,
+                    "position": {
+                      "at": 942,
+                      "kind": "S"
+                    },
+                    "text": "LdaImmutableCurrentContextSlot [2]"
+                  },
+                  {
+                    "offset": 2,
+                    "text": "Star0"
+                  },
+                  {
+                    "offset": 3,
+                    "text": "LdaImmutableContextSlot <context>, [3], [1]"
+                  },
+                  {
+                    "offset": 7,
+                    "text": "Star1"
+                  },
+                  {
+                    "offset": 8,
+                    "position": {
+                      "at": 942,
+                      "kind": "E"
+                    },
+                    "text": "CallUndefinedReceiver1 r0, r1, [0]"
+                  },
+                  {
+                    "offset": 12,
+                    "position": {
+                      "at": 956,
+                      "kind": "S"
+                    },
+                    "text": "Return"
+                  }
+                ],
+                "constantPool": [],
+                "handlerTable": [],
+                "children": {}
+              }
+            }
+          }
+        }
+      },
+      "27": {
+        "name": "",
+        "header": {
+          "length": 19,
+          "parameterCount": 2,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 1058,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 1058,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star0"
+          },
+          {
+            "offset": 9,
+            "text": "LdaConstant [2]"
+          },
+          {
+            "offset": 11,
+            "text": "Star2"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 1058,
+              "kind": "E"
+            },
+            "text": "CallProperty2 r0, r1, r2, a0, [4]"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 1106,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[7]: #console>",
+          "<String[3]: #log>",
+          "<String[38]: #a late success beats an early failure:>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "31": {
+        "name": "",
+        "header": {
+          "length": 24,
+          "parameterCount": 2,
+          "registerCount": 4,
+          "frameSize": 32
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 1190,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 1190,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star0"
+          },
+          {
+            "offset": 9,
+            "text": "LdaConstant [2]"
+          },
+          {
+            "offset": 11,
+            "text": "Star2"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 1224,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty a0, [3], [4]"
+          },
+          {
+            "offset": 16,
+            "text": "Star3"
+          },
+          {
+            "offset": 17,
+            "position": {
+              "at": 1190,
+              "kind": "E"
+            },
+            "text": "CallProperty2 r0, r1, r2, r3, [6]"
+          },
+          {
+            "offset": 23,
+            "position": {
+              "at": 1231,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[7]: #console>",
+          "<String[3]: #log>",
+          "<String[24]: #errors keep input order:>",
+          "<String[6]: #errors>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}

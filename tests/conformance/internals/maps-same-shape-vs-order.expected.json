@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "fixture": "maps-same-shape-vs-order",
+  "kind": "internals",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "literals, same order: true\nliterals, other order: false\nsame transitions: true\nliteral vs transitions: false\nother transition order: false\nafter adding a property: false\nsame added property: true\ndifferent value types: true\ndelete the last property: false false\ndelete an earlier property: false false\narray vs object: false true\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ]
+}

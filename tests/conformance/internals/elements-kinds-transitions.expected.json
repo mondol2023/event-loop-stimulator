@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "fixture": "elements-kinds-transitions",
+  "kind": "internals",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "[1, 2, 3]             PACKED_SMI_ELEMENTS\npush(4)               PACKED_SMI_ELEMENTS\npush(4.5)             PACKED_DOUBLE_ELEMENTS\npush('x')             PACKED_ELEMENTS\npop twice, no way back PACKED_ELEMENTS\n[1.5, 2.5]            PACKED_DOUBLE_ELEMENTS\npush(3)               PACKED_DOUBLE_ELEMENTS\npush({})              PACKED_ELEMENTS\n[{}, 's']             PACKED_ELEMENTS\n[]                    PACKED_SMI_ELEMENTS\n[].push(1)            PACKED_SMI_ELEMENTS\nhole at 3, 4          HOLEY_SMI_ELEMENTS\nholes filled, stays   HOLEY_SMI_ELEMENTS\n[1, , 3]              HOLEY_SMI_ELEMENTS\ndelete a[1]           HOLEY_SMI_ELEMENTS\ndouble with a hole    HOLEY_DOUBLE_ELEMENTS\nfar write             DICTIONARY_ELEMENTS\nlength = 1            PACKED_SMI_ELEMENTS\n[NaN, 1]              PACKED_DOUBLE_ELEMENTS\n[1, -0]               PACKED_DOUBLE_ELEMENTS\n[1, 2 ** 31]          PACKED_DOUBLE_ELEMENTS\nmap(n => n / 2)       PACKED_DOUBLE_ELEMENTS\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ]
+}

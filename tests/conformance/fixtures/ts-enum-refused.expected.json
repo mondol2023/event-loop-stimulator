@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "fixture": "ts-enum-refused",
+  "kind": "program",
+  "lang": "ts",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "main.cjs:2\n    // Strip-only mode cannot erase an enum (it has a runtime representation): Node refuses the file.\n  > enum Color {\n      Red,\n      Green,\n      Blue,\n  > }\n    console.log(Color.Green, Color[0]);\n\nSyntaxError [ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]: TypeScript enum is not supported in strip-only mode\n    at parseTypeScript (node:internal/modules/typescript:68:40)\n    at processTypeScriptCode (node:internal/modules/typescript:146:42)\n    at stripTypeScriptModuleTypes (node:internal/modules/typescript:215:22)\n    at Module._compile (node:internal/modules/cjs/loader:1826:15)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX'\n}\n\nNode.js v24.19.0\n",
+      "exitCode": 1
+    }
+  ]
+}

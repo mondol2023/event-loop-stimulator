@@ -1,0 +1,227 @@
+{
+  "schema": 1,
+  "fixture": "uncaught-reference-error",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "before\n",
+      "stderr": "main.cjs:3\n  return missingVariable + 1;\n  ^\n\nReferenceError: missingVariable is not defined\n    at useMissing (main.cjs:3:3)\n    at Object.<anonymous> (main.cjs:6:13)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47\n\nNode.js v24.19.0\n",
+      "exitCode": 1
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 59,
+      "parameterCount": 6,
+      "registerCount": 4,
+      "frameSize": 32
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star0"
+      },
+      {
+        "offset": 5,
+        "position": {
+          "at": 128,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 8,
+        "text": "Star2"
+      },
+      {
+        "offset": 9,
+        "position": {
+          "at": 136,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r2, [2], [2]"
+      },
+      {
+        "offset": 13,
+        "text": "Star1"
+      },
+      {
+        "offset": 14,
+        "text": "LdaConstant [3]"
+      },
+      {
+        "offset": 16,
+        "text": "Star3"
+      },
+      {
+        "offset": 17,
+        "position": {
+          "at": 136,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r1, r2, r3, [4]"
+      },
+      {
+        "offset": 22,
+        "position": {
+          "at": 151,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 25,
+        "text": "Star2"
+      },
+      {
+        "offset": 26,
+        "position": {
+          "at": 159,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r2, [2], [2]"
+      },
+      {
+        "offset": 30,
+        "text": "Star1"
+      },
+      {
+        "offset": 31,
+        "position": {
+          "at": 163,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver0 r0, [6]"
+      },
+      {
+        "offset": 34,
+        "text": "Star3"
+      },
+      {
+        "offset": 35,
+        "position": {
+          "at": 159,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r1, r2, r3, [8]"
+      },
+      {
+        "offset": 40,
+        "position": {
+          "at": 178,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 43,
+        "text": "Star2"
+      },
+      {
+        "offset": 44,
+        "position": {
+          "at": 186,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r2, [2], [2]"
+      },
+      {
+        "offset": 48,
+        "text": "Star1"
+      },
+      {
+        "offset": 49,
+        "text": "LdaConstant [4]"
+      },
+      {
+        "offset": 51,
+        "text": "Star3"
+      },
+      {
+        "offset": 52,
+        "position": {
+          "at": 186,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r1, r2, r3, [10]"
+      },
+      {
+        "offset": 57,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 58,
+        "position": {
+          "at": 205,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo useMissing>",
+      "<String[7]: #console>",
+      "<String[3]: #log>",
+      "<String[6]: #before>",
+      "<String[11]: #not reached>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "0": {
+        "name": "useMissing",
+        "header": {
+          "length": 7,
+          "parameterCount": 1,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 98,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [1]"
+          },
+          {
+            "offset": 3,
+            "position": {
+              "at": 121,
+              "kind": "E"
+            },
+            "text": "AddSmi [1], [0]"
+          },
+          {
+            "offset": 6,
+            "position": {
+              "at": 125,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[15]: #missingVariable>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}

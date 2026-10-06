@@ -1,0 +1,2462 @@
+{
+  "schema": 1,
+  "fixture": "loose-equality-coercions",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "null == undefined -> true\nnull == 0 -> false\nnull >= 0 -> true\nundefined == 0 -> false\n0 == '' -> true\n0 == '0' -> true\n'' == '0' -> false\nfalse == '0' -> true\nfalse == '' -> true\ntrue == 1 -> true\ntrue == '1' -> true\ntrue == 2 -> false\n1 == '1' -> true\n1 === '1' -> false\nNaN == NaN -> false\nNaN != NaN -> true\n'b' == 'B' -> false\n'10' < '9' -> true\n'10' < 9 -> false\n'a' < 'b' -> true\nnull < 1 -> true\nundefined < 1 -> false\n'abc' < 1 -> false\n1 + '2' -> 12\n'3' - 1 -> 2\n'5' * '2' -> 10\ntrue + 1 -> 2\nnull + 1 -> 1\nundefined + 1 -> NaN\n'a' - 1 -> NaN\n1 + 2 + '3' -> 33\n'1' + 2 + 3 -> 123\n+'' -> 0\n+' 12 ' -> 12\n+'0x10' -> 16\n+'1e3' -> 1000\n+'12px' -> NaN\n+null -> 0\n+undefined -> NaN\n+true -> 1\n!!'' -> false\n!!'0' -> true\n!!NaN -> false\n!!{} -> true\nanswer == 42 -> true\nanswer == 'text' -> false\nanswer + 1 -> 43\nanswer + '' -> 42\n`${answer}` -> text\nanswer > 41 -> true\nanswer == other -> false\nanswer == answer -> true\nnull == false -> false\nundefined == false -> false\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 826,
+      "parameterCount": 6,
+      "registerCount": 6,
+      "frameSize": 48
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star0"
+      },
+      {
+        "offset": 5,
+        "position": {
+          "at": 167,
+          "kind": "S"
+        },
+        "text": "LdaConstant [1]"
+      },
+      {
+        "offset": 7,
+        "text": "Star4"
+      },
+      {
+        "offset": 8,
+        "text": "LdaNull"
+      },
+      {
+        "offset": 9,
+        "text": "TestUndetectable"
+      },
+      {
+        "offset": 10,
+        "text": "Star5"
+      },
+      {
+        "offset": 11,
+        "position": {
+          "at": 167,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [0]"
+      },
+      {
+        "offset": 16,
+        "position": {
+          "at": 213,
+          "kind": "S"
+        },
+        "text": "LdaConstant [2]"
+      },
+      {
+        "offset": 18,
+        "text": "Star4"
+      },
+      {
+        "offset": 19,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 20,
+        "text": "TestUndetectable"
+      },
+      {
+        "offset": 21,
+        "text": "Star5"
+      },
+      {
+        "offset": 22,
+        "position": {
+          "at": 213,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [2]"
+      },
+      {
+        "offset": 27,
+        "position": {
+          "at": 243,
+          "kind": "S"
+        },
+        "text": "LdaConstant [3]"
+      },
+      {
+        "offset": 29,
+        "text": "Star4"
+      },
+      {
+        "offset": 30,
+        "text": "LdaNull"
+      },
+      {
+        "offset": 31,
+        "text": "Star5"
+      },
+      {
+        "offset": 32,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 33,
+        "position": {
+          "at": 266,
+          "kind": "E"
+        },
+        "text": "TestGreaterThanOrEqual r5, [4]"
+      },
+      {
+        "offset": 36,
+        "text": "Star5"
+      },
+      {
+        "offset": 37,
+        "position": {
+          "at": 243,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [5]"
+      },
+      {
+        "offset": 42,
+        "position": {
+          "at": 273,
+          "kind": "S"
+        },
+        "text": "LdaConstant [4]"
+      },
+      {
+        "offset": 44,
+        "text": "Star4"
+      },
+      {
+        "offset": 45,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 46,
+        "text": "TestUndetectable"
+      },
+      {
+        "offset": 47,
+        "text": "Star5"
+      },
+      {
+        "offset": 48,
+        "position": {
+          "at": 273,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [7]"
+      },
+      {
+        "offset": 53,
+        "position": {
+          "at": 313,
+          "kind": "S"
+        },
+        "text": "LdaConstant [5]"
+      },
+      {
+        "offset": 55,
+        "text": "Star4"
+      },
+      {
+        "offset": 56,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 57,
+        "text": "Star5"
+      },
+      {
+        "offset": 58,
+        "text": "LdaConstant [6]"
+      },
+      {
+        "offset": 60,
+        "position": {
+          "at": 331,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [9]"
+      },
+      {
+        "offset": 63,
+        "text": "Star5"
+      },
+      {
+        "offset": 64,
+        "position": {
+          "at": 313,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [10]"
+      },
+      {
+        "offset": 69,
+        "position": {
+          "at": 339,
+          "kind": "S"
+        },
+        "text": "LdaConstant [7]"
+      },
+      {
+        "offset": 71,
+        "text": "Star4"
+      },
+      {
+        "offset": 72,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 73,
+        "text": "Star5"
+      },
+      {
+        "offset": 74,
+        "text": "LdaConstant [8]"
+      },
+      {
+        "offset": 76,
+        "position": {
+          "at": 358,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [12]"
+      },
+      {
+        "offset": 79,
+        "text": "Star5"
+      },
+      {
+        "offset": 80,
+        "position": {
+          "at": 339,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [13]"
+      },
+      {
+        "offset": 85,
+        "position": {
+          "at": 367,
+          "kind": "S"
+        },
+        "text": "LdaConstant [9]"
+      },
+      {
+        "offset": 87,
+        "text": "Star4"
+      },
+      {
+        "offset": 88,
+        "text": "LdaConstant [6]"
+      },
+      {
+        "offset": 90,
+        "text": "Star5"
+      },
+      {
+        "offset": 91,
+        "text": "LdaConstant [8]"
+      },
+      {
+        "offset": 93,
+        "position": {
+          "at": 388,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [15]"
+      },
+      {
+        "offset": 96,
+        "text": "Star5"
+      },
+      {
+        "offset": 97,
+        "position": {
+          "at": 367,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [16]"
+      },
+      {
+        "offset": 102,
+        "position": {
+          "at": 397,
+          "kind": "S"
+        },
+        "text": "LdaConstant [10]"
+      },
+      {
+        "offset": 104,
+        "text": "Star4"
+      },
+      {
+        "offset": 105,
+        "text": "LdaFalse"
+      },
+      {
+        "offset": 106,
+        "text": "Star5"
+      },
+      {
+        "offset": 107,
+        "text": "LdaConstant [8]"
+      },
+      {
+        "offset": 109,
+        "position": {
+          "at": 424,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [18]"
+      },
+      {
+        "offset": 112,
+        "text": "Star5"
+      },
+      {
+        "offset": 113,
+        "position": {
+          "at": 397,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [19]"
+      },
+      {
+        "offset": 118,
+        "position": {
+          "at": 433,
+          "kind": "S"
+        },
+        "text": "LdaConstant [11]"
+      },
+      {
+        "offset": 120,
+        "text": "Star4"
+      },
+      {
+        "offset": 121,
+        "text": "LdaFalse"
+      },
+      {
+        "offset": 122,
+        "text": "Star5"
+      },
+      {
+        "offset": 123,
+        "text": "LdaConstant [6]"
+      },
+      {
+        "offset": 125,
+        "position": {
+          "at": 459,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [21]"
+      },
+      {
+        "offset": 128,
+        "text": "Star5"
+      },
+      {
+        "offset": 129,
+        "position": {
+          "at": 433,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [22]"
+      },
+      {
+        "offset": 134,
+        "position": {
+          "at": 467,
+          "kind": "S"
+        },
+        "text": "LdaConstant [12]"
+      },
+      {
+        "offset": 136,
+        "text": "Star4"
+      },
+      {
+        "offset": 137,
+        "text": "LdaTrue"
+      },
+      {
+        "offset": 138,
+        "text": "Star5"
+      },
+      {
+        "offset": 139,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 141,
+        "position": {
+          "at": 490,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [24]"
+      },
+      {
+        "offset": 144,
+        "text": "Star5"
+      },
+      {
+        "offset": 145,
+        "position": {
+          "at": 467,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [25]"
+      },
+      {
+        "offset": 150,
+        "position": {
+          "at": 497,
+          "kind": "S"
+        },
+        "text": "LdaConstant [13]"
+      },
+      {
+        "offset": 152,
+        "text": "Star4"
+      },
+      {
+        "offset": 153,
+        "text": "LdaTrue"
+      },
+      {
+        "offset": 154,
+        "text": "Star5"
+      },
+      {
+        "offset": 155,
+        "text": "LdaConstant [14]"
+      },
+      {
+        "offset": 157,
+        "position": {
+          "at": 522,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [27]"
+      },
+      {
+        "offset": 160,
+        "text": "Star5"
+      },
+      {
+        "offset": 161,
+        "position": {
+          "at": 497,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [28]"
+      },
+      {
+        "offset": 166,
+        "position": {
+          "at": 531,
+          "kind": "S"
+        },
+        "text": "LdaConstant [15]"
+      },
+      {
+        "offset": 168,
+        "text": "Star4"
+      },
+      {
+        "offset": 169,
+        "text": "LdaTrue"
+      },
+      {
+        "offset": 170,
+        "text": "Star5"
+      },
+      {
+        "offset": 171,
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 173,
+        "position": {
+          "at": 554,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [30]"
+      },
+      {
+        "offset": 176,
+        "text": "Star5"
+      },
+      {
+        "offset": 177,
+        "position": {
+          "at": 531,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [31]"
+      },
+      {
+        "offset": 182,
+        "position": {
+          "at": 561,
+          "kind": "S"
+        },
+        "text": "LdaConstant [16]"
+      },
+      {
+        "offset": 184,
+        "text": "Star4"
+      },
+      {
+        "offset": 185,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 187,
+        "text": "Star5"
+      },
+      {
+        "offset": 188,
+        "text": "LdaConstant [14]"
+      },
+      {
+        "offset": 190,
+        "position": {
+          "at": 580,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [33]"
+      },
+      {
+        "offset": 193,
+        "text": "Star5"
+      },
+      {
+        "offset": 194,
+        "position": {
+          "at": 561,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [34]"
+      },
+      {
+        "offset": 199,
+        "position": {
+          "at": 589,
+          "kind": "S"
+        },
+        "text": "LdaConstant [17]"
+      },
+      {
+        "offset": 201,
+        "text": "Star4"
+      },
+      {
+        "offset": 202,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 204,
+        "text": "Star5"
+      },
+      {
+        "offset": 205,
+        "text": "LdaConstant [14]"
+      },
+      {
+        "offset": 207,
+        "position": {
+          "at": 609,
+          "kind": "E"
+        },
+        "text": "TestEqualStrict r5, [36]"
+      },
+      {
+        "offset": 210,
+        "text": "Star5"
+      },
+      {
+        "offset": 211,
+        "position": {
+          "at": 589,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [37]"
+      },
+      {
+        "offset": 216,
+        "position": {
+          "at": 619,
+          "kind": "S"
+        },
+        "text": "LdaConstant [18]"
+      },
+      {
+        "offset": 218,
+        "text": "Star4"
+      },
+      {
+        "offset": 219,
+        "position": {
+          "at": 638,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [19], [39]"
+      },
+      {
+        "offset": 222,
+        "text": "Star5"
+      },
+      {
+        "offset": 223,
+        "position": {
+          "at": 645,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [19], [39]"
+      },
+      {
+        "offset": 226,
+        "position": {
+          "at": 642,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [41]"
+      },
+      {
+        "offset": 229,
+        "text": "Star5"
+      },
+      {
+        "offset": 230,
+        "position": {
+          "at": 619,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [42]"
+      },
+      {
+        "offset": 235,
+        "position": {
+          "at": 651,
+          "kind": "S"
+        },
+        "text": "LdaConstant [20]"
+      },
+      {
+        "offset": 237,
+        "text": "Star4"
+      },
+      {
+        "offset": 238,
+        "position": {
+          "at": 670,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [19], [39]"
+      },
+      {
+        "offset": 241,
+        "text": "Star5"
+      },
+      {
+        "offset": 242,
+        "position": {
+          "at": 677,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [19], [39]"
+      },
+      {
+        "offset": 245,
+        "position": {
+          "at": 674,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [44]"
+      },
+      {
+        "offset": 248,
+        "text": "LogicalNot"
+      },
+      {
+        "offset": 249,
+        "text": "Star5"
+      },
+      {
+        "offset": 250,
+        "position": {
+          "at": 651,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [45]"
+      },
+      {
+        "offset": 255,
+        "position": {
+          "at": 683,
+          "kind": "S"
+        },
+        "text": "LdaConstant [21]"
+      },
+      {
+        "offset": 257,
+        "text": "Star4"
+      },
+      {
+        "offset": 258,
+        "text": "LdaConstant [22]"
+      },
+      {
+        "offset": 260,
+        "text": "Star5"
+      },
+      {
+        "offset": 261,
+        "text": "LdaConstant [23]"
+      },
+      {
+        "offset": 263,
+        "position": {
+          "at": 706,
+          "kind": "E"
+        },
+        "text": "TestEqual r5, [47]"
+      },
+      {
+        "offset": 266,
+        "text": "Star5"
+      },
+      {
+        "offset": 267,
+        "position": {
+          "at": 683,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [48]"
+      },
+      {
+        "offset": 272,
+        "position": {
+          "at": 715,
+          "kind": "S"
+        },
+        "text": "LdaConstant [24]"
+      },
+      {
+        "offset": 274,
+        "text": "Star4"
+      },
+      {
+        "offset": 275,
+        "text": "LdaConstant [25]"
+      },
+      {
+        "offset": 277,
+        "text": "Star5"
+      },
+      {
+        "offset": 278,
+        "text": "LdaConstant [26]"
+      },
+      {
+        "offset": 280,
+        "position": {
+          "at": 739,
+          "kind": "E"
+        },
+        "text": "TestLessThan r5, [50]"
+      },
+      {
+        "offset": 283,
+        "text": "Star5"
+      },
+      {
+        "offset": 284,
+        "position": {
+          "at": 715,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [51]"
+      },
+      {
+        "offset": 289,
+        "position": {
+          "at": 747,
+          "kind": "S"
+        },
+        "text": "LdaConstant [27]"
+      },
+      {
+        "offset": 291,
+        "text": "Star4"
+      },
+      {
+        "offset": 292,
+        "text": "LdaConstant [25]"
+      },
+      {
+        "offset": 294,
+        "text": "Star5"
+      },
+      {
+        "offset": 295,
+        "text": "LdaSmi [9]"
+      },
+      {
+        "offset": 297,
+        "position": {
+          "at": 769,
+          "kind": "E"
+        },
+        "text": "TestLessThan r5, [53]"
+      },
+      {
+        "offset": 300,
+        "text": "Star5"
+      },
+      {
+        "offset": 301,
+        "position": {
+          "at": 747,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [54]"
+      },
+      {
+        "offset": 306,
+        "position": {
+          "at": 775,
+          "kind": "S"
+        },
+        "text": "LdaConstant [28]"
+      },
+      {
+        "offset": 308,
+        "text": "Star4"
+      },
+      {
+        "offset": 309,
+        "text": "LdaConstant [29]"
+      },
+      {
+        "offset": 311,
+        "text": "Star5"
+      },
+      {
+        "offset": 312,
+        "text": "LdaConstant [22]"
+      },
+      {
+        "offset": 314,
+        "position": {
+          "at": 797,
+          "kind": "E"
+        },
+        "text": "TestLessThan r5, [56]"
+      },
+      {
+        "offset": 317,
+        "text": "Star5"
+      },
+      {
+        "offset": 318,
+        "position": {
+          "at": 775,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [57]"
+      },
+      {
+        "offset": 323,
+        "position": {
+          "at": 805,
+          "kind": "S"
+        },
+        "text": "LdaConstant [30]"
+      },
+      {
+        "offset": 325,
+        "text": "Star4"
+      },
+      {
+        "offset": 326,
+        "text": "LdaNull"
+      },
+      {
+        "offset": 327,
+        "text": "Star5"
+      },
+      {
+        "offset": 328,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 330,
+        "position": {
+          "at": 827,
+          "kind": "E"
+        },
+        "text": "TestLessThan r5, [59]"
+      },
+      {
+        "offset": 333,
+        "text": "Star5"
+      },
+      {
+        "offset": 334,
+        "position": {
+          "at": 805,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [60]"
+      },
+      {
+        "offset": 339,
+        "position": {
+          "at": 833,
+          "kind": "S"
+        },
+        "text": "LdaConstant [31]"
+      },
+      {
+        "offset": 341,
+        "text": "Star4"
+      },
+      {
+        "offset": 342,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 343,
+        "text": "Star5"
+      },
+      {
+        "offset": 344,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 346,
+        "position": {
+          "at": 865,
+          "kind": "E"
+        },
+        "text": "TestLessThan r5, [62]"
+      },
+      {
+        "offset": 349,
+        "text": "Star5"
+      },
+      {
+        "offset": 350,
+        "position": {
+          "at": 833,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [63]"
+      },
+      {
+        "offset": 355,
+        "position": {
+          "at": 871,
+          "kind": "S"
+        },
+        "text": "LdaConstant [32]"
+      },
+      {
+        "offset": 357,
+        "text": "Star4"
+      },
+      {
+        "offset": 358,
+        "text": "LdaConstant [33]"
+      },
+      {
+        "offset": 360,
+        "text": "Star5"
+      },
+      {
+        "offset": 361,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 363,
+        "position": {
+          "at": 895,
+          "kind": "E"
+        },
+        "text": "TestLessThan r5, [65]"
+      },
+      {
+        "offset": 366,
+        "text": "Star5"
+      },
+      {
+        "offset": 367,
+        "position": {
+          "at": 871,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [66]"
+      },
+      {
+        "offset": 372,
+        "position": {
+          "at": 902,
+          "kind": "S"
+        },
+        "text": "LdaConstant [34]"
+      },
+      {
+        "offset": 374,
+        "text": "Star4"
+      },
+      {
+        "offset": 375,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 377,
+        "text": "Star5"
+      },
+      {
+        "offset": 378,
+        "text": "LdaConstant [35]"
+      },
+      {
+        "offset": 380,
+        "position": {
+          "at": 920,
+          "kind": "E"
+        },
+        "text": "Add r5, [68]"
+      },
+      {
+        "offset": 383,
+        "text": "Star5"
+      },
+      {
+        "offset": 384,
+        "position": {
+          "at": 902,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [69]"
+      },
+      {
+        "offset": 389,
+        "position": {
+          "at": 928,
+          "kind": "S"
+        },
+        "text": "LdaConstant [36]"
+      },
+      {
+        "offset": 391,
+        "text": "Star4"
+      },
+      {
+        "offset": 392,
+        "text": "LdaConstant [37]"
+      },
+      {
+        "offset": 394,
+        "position": {
+          "at": 948,
+          "kind": "E"
+        },
+        "text": "SubSmi [1], [71]"
+      },
+      {
+        "offset": 397,
+        "text": "Star5"
+      },
+      {
+        "offset": 398,
+        "position": {
+          "at": 928,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [72]"
+      },
+      {
+        "offset": 403,
+        "position": {
+          "at": 954,
+          "kind": "S"
+        },
+        "text": "LdaConstant [38]"
+      },
+      {
+        "offset": 405,
+        "text": "Star4"
+      },
+      {
+        "offset": 406,
+        "text": "LdaConstant [39]"
+      },
+      {
+        "offset": 408,
+        "text": "Star5"
+      },
+      {
+        "offset": 409,
+        "text": "LdaConstant [35]"
+      },
+      {
+        "offset": 411,
+        "position": {
+          "at": 976,
+          "kind": "E"
+        },
+        "text": "Mul r5, [74]"
+      },
+      {
+        "offset": 414,
+        "text": "Star5"
+      },
+      {
+        "offset": 415,
+        "position": {
+          "at": 954,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [75]"
+      },
+      {
+        "offset": 420,
+        "position": {
+          "at": 984,
+          "kind": "S"
+        },
+        "text": "LdaConstant [40]"
+      },
+      {
+        "offset": 422,
+        "text": "Star4"
+      },
+      {
+        "offset": 423,
+        "text": "LdaTrue"
+      },
+      {
+        "offset": 424,
+        "position": {
+          "at": 1006,
+          "kind": "E"
+        },
+        "text": "AddSmi [1], [77]"
+      },
+      {
+        "offset": 427,
+        "text": "Star5"
+      },
+      {
+        "offset": 428,
+        "position": {
+          "at": 984,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [78]"
+      },
+      {
+        "offset": 433,
+        "position": {
+          "at": 1012,
+          "kind": "S"
+        },
+        "text": "LdaConstant [41]"
+      },
+      {
+        "offset": 435,
+        "text": "Star4"
+      },
+      {
+        "offset": 436,
+        "text": "LdaNull"
+      },
+      {
+        "offset": 437,
+        "position": {
+          "at": 1034,
+          "kind": "E"
+        },
+        "text": "AddSmi [1], [80]"
+      },
+      {
+        "offset": 440,
+        "text": "Star5"
+      },
+      {
+        "offset": 441,
+        "position": {
+          "at": 1012,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [81]"
+      },
+      {
+        "offset": 446,
+        "position": {
+          "at": 1040,
+          "kind": "S"
+        },
+        "text": "LdaConstant [42]"
+      },
+      {
+        "offset": 448,
+        "text": "Star4"
+      },
+      {
+        "offset": 449,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 450,
+        "position": {
+          "at": 1072,
+          "kind": "E"
+        },
+        "text": "AddSmi [1], [83]"
+      },
+      {
+        "offset": 453,
+        "text": "Star5"
+      },
+      {
+        "offset": 454,
+        "position": {
+          "at": 1040,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [84]"
+      },
+      {
+        "offset": 459,
+        "position": {
+          "at": 1078,
+          "kind": "S"
+        },
+        "text": "LdaConstant [43]"
+      },
+      {
+        "offset": 461,
+        "text": "Star4"
+      },
+      {
+        "offset": 462,
+        "text": "LdaConstant [29]"
+      },
+      {
+        "offset": 464,
+        "position": {
+          "at": 1098,
+          "kind": "E"
+        },
+        "text": "SubSmi [1], [86]"
+      },
+      {
+        "offset": 467,
+        "text": "Star5"
+      },
+      {
+        "offset": 468,
+        "position": {
+          "at": 1078,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [87]"
+      },
+      {
+        "offset": 473,
+        "position": {
+          "at": 1104,
+          "kind": "S"
+        },
+        "text": "LdaConstant [44]"
+      },
+      {
+        "offset": 475,
+        "text": "Star4"
+      },
+      {
+        "offset": 476,
+        "text": "LdaSmi [3]"
+      },
+      {
+        "offset": 478,
+        "text": "Star5"
+      },
+      {
+        "offset": 479,
+        "text": "LdaConstant [37]"
+      },
+      {
+        "offset": 481,
+        "position": {
+          "at": 1130,
+          "kind": "E"
+        },
+        "text": "Add r5, [89]"
+      },
+      {
+        "offset": 484,
+        "text": "Star5"
+      },
+      {
+        "offset": 485,
+        "position": {
+          "at": 1104,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [90]"
+      },
+      {
+        "offset": 490,
+        "position": {
+          "at": 1138,
+          "kind": "S"
+        },
+        "text": "LdaConstant [45]"
+      },
+      {
+        "offset": 492,
+        "text": "Star4"
+      },
+      {
+        "offset": 493,
+        "text": "LdaConstant [14]"
+      },
+      {
+        "offset": 495,
+        "position": {
+          "at": 1162,
+          "kind": "E"
+        },
+        "text": "AddSmi [2], [92]"
+      },
+      {
+        "offset": 498,
+        "position": {
+          "at": 1166,
+          "kind": "E"
+        },
+        "text": "AddSmi [3], [93]"
+      },
+      {
+        "offset": 501,
+        "text": "Star5"
+      },
+      {
+        "offset": 502,
+        "position": {
+          "at": 1138,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [94]"
+      },
+      {
+        "offset": 507,
+        "position": {
+          "at": 1173,
+          "kind": "S"
+        },
+        "text": "LdaConstant [46]"
+      },
+      {
+        "offset": 509,
+        "text": "Star4"
+      },
+      {
+        "offset": 510,
+        "text": "LdaConstant [6]"
+      },
+      {
+        "offset": 512,
+        "position": {
+          "at": 1185,
+          "kind": "E"
+        },
+        "text": "ToNumber [96]"
+      },
+      {
+        "offset": 514,
+        "text": "Star5"
+      },
+      {
+        "offset": 515,
+        "position": {
+          "at": 1173,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [97]"
+      },
+      {
+        "offset": 520,
+        "position": {
+          "at": 1191,
+          "kind": "S"
+        },
+        "text": "LdaConstant [47]"
+      },
+      {
+        "offset": 522,
+        "text": "Star4"
+      },
+      {
+        "offset": 523,
+        "text": "LdaConstant [48]"
+      },
+      {
+        "offset": 525,
+        "position": {
+          "at": 1207,
+          "kind": "E"
+        },
+        "text": "ToNumber [99]"
+      },
+      {
+        "offset": 527,
+        "text": "Star5"
+      },
+      {
+        "offset": 528,
+        "position": {
+          "at": 1191,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [100]"
+      },
+      {
+        "offset": 533,
+        "position": {
+          "at": 1217,
+          "kind": "S"
+        },
+        "text": "LdaConstant [49]"
+      },
+      {
+        "offset": 535,
+        "text": "Star4"
+      },
+      {
+        "offset": 536,
+        "text": "LdaConstant [50]"
+      },
+      {
+        "offset": 538,
+        "position": {
+          "at": 1233,
+          "kind": "E"
+        },
+        "text": "ToNumber [102]"
+      },
+      {
+        "offset": 540,
+        "text": "Star5"
+      },
+      {
+        "offset": 541,
+        "position": {
+          "at": 1217,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [103]"
+      },
+      {
+        "offset": 546,
+        "position": {
+          "at": 1243,
+          "kind": "S"
+        },
+        "text": "LdaConstant [51]"
+      },
+      {
+        "offset": 548,
+        "text": "Star4"
+      },
+      {
+        "offset": 549,
+        "text": "LdaConstant [52]"
+      },
+      {
+        "offset": 551,
+        "position": {
+          "at": 1258,
+          "kind": "E"
+        },
+        "text": "ToNumber [105]"
+      },
+      {
+        "offset": 553,
+        "text": "Star5"
+      },
+      {
+        "offset": 554,
+        "position": {
+          "at": 1243,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [106]"
+      },
+      {
+        "offset": 559,
+        "position": {
+          "at": 1267,
+          "kind": "S"
+        },
+        "text": "LdaConstant [53]"
+      },
+      {
+        "offset": 561,
+        "text": "Star4"
+      },
+      {
+        "offset": 562,
+        "text": "LdaConstant [54]"
+      },
+      {
+        "offset": 564,
+        "position": {
+          "at": 1283,
+          "kind": "E"
+        },
+        "text": "ToNumber [108]"
+      },
+      {
+        "offset": 566,
+        "text": "Star5"
+      },
+      {
+        "offset": 567,
+        "position": {
+          "at": 1267,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [109]"
+      },
+      {
+        "offset": 572,
+        "position": {
+          "at": 1293,
+          "kind": "S"
+        },
+        "text": "LdaConstant [55]"
+      },
+      {
+        "offset": 574,
+        "text": "Star4"
+      },
+      {
+        "offset": 575,
+        "text": "LdaNull"
+      },
+      {
+        "offset": 576,
+        "position": {
+          "at": 1307,
+          "kind": "E"
+        },
+        "text": "ToNumber [111]"
+      },
+      {
+        "offset": 578,
+        "text": "Star5"
+      },
+      {
+        "offset": 579,
+        "position": {
+          "at": 1293,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [112]"
+      },
+      {
+        "offset": 584,
+        "position": {
+          "at": 1315,
+          "kind": "S"
+        },
+        "text": "LdaConstant [56]"
+      },
+      {
+        "offset": 586,
+        "text": "Star4"
+      },
+      {
+        "offset": 587,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 588,
+        "position": {
+          "at": 1334,
+          "kind": "E"
+        },
+        "text": "ToNumber [114]"
+      },
+      {
+        "offset": 590,
+        "text": "Star5"
+      },
+      {
+        "offset": 591,
+        "position": {
+          "at": 1315,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [115]"
+      },
+      {
+        "offset": 596,
+        "position": {
+          "at": 1347,
+          "kind": "S"
+        },
+        "text": "LdaConstant [57]"
+      },
+      {
+        "offset": 598,
+        "text": "Star4"
+      },
+      {
+        "offset": 599,
+        "text": "LdaTrue"
+      },
+      {
+        "offset": 600,
+        "position": {
+          "at": 1361,
+          "kind": "E"
+        },
+        "text": "ToNumber [117]"
+      },
+      {
+        "offset": 602,
+        "text": "Star5"
+      },
+      {
+        "offset": 603,
+        "position": {
+          "at": 1347,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [118]"
+      },
+      {
+        "offset": 608,
+        "position": {
+          "at": 1369,
+          "kind": "S"
+        },
+        "text": "LdaConstant [58]"
+      },
+      {
+        "offset": 610,
+        "text": "Star4"
+      },
+      {
+        "offset": 611,
+        "text": "LdaFalse"
+      },
+      {
+        "offset": 612,
+        "text": "Star5"
+      },
+      {
+        "offset": 613,
+        "position": {
+          "at": 1369,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [120]"
+      },
+      {
+        "offset": 618,
+        "position": {
+          "at": 1389,
+          "kind": "S"
+        },
+        "text": "LdaConstant [59]"
+      },
+      {
+        "offset": 620,
+        "text": "Star4"
+      },
+      {
+        "offset": 621,
+        "text": "LdaTrue"
+      },
+      {
+        "offset": 622,
+        "text": "Star5"
+      },
+      {
+        "offset": 623,
+        "position": {
+          "at": 1389,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [122]"
+      },
+      {
+        "offset": 628,
+        "position": {
+          "at": 1411,
+          "kind": "S"
+        },
+        "text": "LdaConstant [60]"
+      },
+      {
+        "offset": 630,
+        "text": "Star4"
+      },
+      {
+        "offset": 631,
+        "position": {
+          "at": 1427,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [19], [39]"
+      },
+      {
+        "offset": 634,
+        "text": "ToBoolean"
+      },
+      {
+        "offset": 635,
+        "text": "Star5"
+      },
+      {
+        "offset": 636,
+        "position": {
+          "at": 1411,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [124]"
+      },
+      {
+        "offset": 641,
+        "position": {
+          "at": 1433,
+          "kind": "S"
+        },
+        "text": "LdaConstant [61]"
+      },
+      {
+        "offset": 643,
+        "text": "Star4"
+      },
+      {
+        "offset": 644,
+        "text": "CreateEmptyObjectLiteral"
+      },
+      {
+        "offset": 645,
+        "text": "ToBoolean"
+      },
+      {
+        "offset": 646,
+        "text": "Star5"
+      },
+      {
+        "offset": 647,
+        "position": {
+          "at": 1433,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [126]"
+      },
+      {
+        "offset": 652,
+        "position": {
+          "at": 1557,
+          "kind": "S"
+        },
+        "text": "CreateObjectLiteral [62], [128], #41"
+      },
+      {
+        "offset": 656,
+        "text": "Star3"
+      },
+      {
+        "offset": 657,
+        "position": {
+          "at": 1561,
+          "kind": "E"
+        },
+        "text": "CreateClosure [63], [1], #2"
+      },
+      {
+        "offset": 661,
+        "text": "DefineNamedOwnProperty r3, [64], [129]"
+      },
+      {
+        "offset": 665,
+        "position": {
+          "at": 1595,
+          "kind": "E"
+        },
+        "text": "CreateClosure [65], [2], #2"
+      },
+      {
+        "offset": 669,
+        "text": "DefineNamedOwnProperty r3, [66], [131]"
+      },
+      {
+        "offset": 673,
+        "text": "Mov r3, r1"
+      },
+      {
+        "offset": 676,
+        "position": {
+          "at": 1635,
+          "kind": "S"
+        },
+        "text": "LdaConstant [67]"
+      },
+      {
+        "offset": 678,
+        "text": "Star4"
+      },
+      {
+        "offset": 679,
+        "text": "LdaSmi [42]"
+      },
+      {
+        "offset": 681,
+        "position": {
+          "at": 1663,
+          "kind": "E"
+        },
+        "text": "TestEqual r1, [133]"
+      },
+      {
+        "offset": 684,
+        "text": "Star5"
+      },
+      {
+        "offset": 685,
+        "position": {
+          "at": 1635,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [134]"
+      },
+      {
+        "offset": 690,
+        "position": {
+          "at": 1671,
+          "kind": "S"
+        },
+        "text": "LdaConstant [68]"
+      },
+      {
+        "offset": 692,
+        "text": "Star4"
+      },
+      {
+        "offset": 693,
+        "text": "LdaConstant [69]"
+      },
+      {
+        "offset": 695,
+        "position": {
+          "at": 1703,
+          "kind": "E"
+        },
+        "text": "TestEqual r1, [136]"
+      },
+      {
+        "offset": 698,
+        "text": "Star5"
+      },
+      {
+        "offset": 699,
+        "position": {
+          "at": 1671,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [137]"
+      },
+      {
+        "offset": 704,
+        "position": {
+          "at": 1715,
+          "kind": "S"
+        },
+        "text": "LdaConstant [70]"
+      },
+      {
+        "offset": 706,
+        "text": "Star4"
+      },
+      {
+        "offset": 707,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 709,
+        "position": {
+          "at": 1741,
+          "kind": "E"
+        },
+        "text": "AddSmi [1], [139]"
+      },
+      {
+        "offset": 712,
+        "text": "Star5"
+      },
+      {
+        "offset": 713,
+        "position": {
+          "at": 1715,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [140]"
+      },
+      {
+        "offset": 718,
+        "position": {
+          "at": 1747,
+          "kind": "S"
+        },
+        "text": "LdaConstant [71]"
+      },
+      {
+        "offset": 720,
+        "text": "Star4"
+      },
+      {
+        "offset": 721,
+        "text": "LdaConstant [6]"
+      },
+      {
+        "offset": 723,
+        "position": {
+          "at": 1774,
+          "kind": "E"
+        },
+        "text": "Add r1, [142]"
+      },
+      {
+        "offset": 726,
+        "text": "Star5"
+      },
+      {
+        "offset": 727,
+        "position": {
+          "at": 1747,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [143]"
+      },
+      {
+        "offset": 732,
+        "position": {
+          "at": 1781,
+          "kind": "S"
+        },
+        "text": "LdaConstant [72]"
+      },
+      {
+        "offset": 734,
+        "text": "Star4"
+      },
+      {
+        "offset": 735,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 737,
+        "position": {
+          "at": 1804,
+          "kind": "E"
+        },
+        "text": "ToString"
+      },
+      {
+        "offset": 738,
+        "text": "Star5"
+      },
+      {
+        "offset": 739,
+        "position": {
+          "at": 1781,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [146]"
+      },
+      {
+        "offset": 744,
+        "position": {
+          "at": 1815,
+          "kind": "S"
+        },
+        "text": "LdaConstant [73]"
+      },
+      {
+        "offset": 746,
+        "text": "Star4"
+      },
+      {
+        "offset": 747,
+        "text": "LdaSmi [41]"
+      },
+      {
+        "offset": 749,
+        "position": {
+          "at": 1842,
+          "kind": "E"
+        },
+        "text": "TestGreaterThan r1, [148]"
+      },
+      {
+        "offset": 752,
+        "text": "Star5"
+      },
+      {
+        "offset": 753,
+        "position": {
+          "at": 1815,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [149]"
+      },
+      {
+        "offset": 758,
+        "position": {
+          "at": 1863,
+          "kind": "S"
+        },
+        "text": "CreateObjectLiteral [74], [151], #41"
+      },
+      {
+        "offset": 762,
+        "text": "Star3"
+      },
+      {
+        "offset": 763,
+        "position": {
+          "at": 1874,
+          "kind": "E"
+        },
+        "text": "CreateClosure [75], [3], #2"
+      },
+      {
+        "offset": 767,
+        "text": "DefineNamedOwnProperty r3, [64], [152]"
+      },
+      {
+        "offset": 771,
+        "text": "Mov r3, r2"
+      },
+      {
+        "offset": 774,
+        "position": {
+          "at": 1886,
+          "kind": "S"
+        },
+        "text": "LdaConstant [76]"
+      },
+      {
+        "offset": 776,
+        "text": "Star4"
+      },
+      {
+        "offset": 777,
+        "text": "Ldar r2"
+      },
+      {
+        "offset": 779,
+        "position": {
+          "at": 1917,
+          "kind": "E"
+        },
+        "text": "TestEqual r1, [154]"
+      },
+      {
+        "offset": 782,
+        "text": "Star5"
+      },
+      {
+        "offset": 783,
+        "position": {
+          "at": 1886,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [155]"
+      },
+      {
+        "offset": 788,
+        "position": {
+          "at": 1928,
+          "kind": "S"
+        },
+        "text": "LdaConstant [77]"
+      },
+      {
+        "offset": 790,
+        "text": "Star4"
+      },
+      {
+        "offset": 791,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 793,
+        "position": {
+          "at": 1960,
+          "kind": "E"
+        },
+        "text": "TestEqual r1, [157]"
+      },
+      {
+        "offset": 796,
+        "text": "Star5"
+      },
+      {
+        "offset": 797,
+        "position": {
+          "at": 1928,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [158]"
+      },
+      {
+        "offset": 802,
+        "position": {
+          "at": 1972,
+          "kind": "S"
+        },
+        "text": "LdaConstant [78]"
+      },
+      {
+        "offset": 804,
+        "text": "Star4"
+      },
+      {
+        "offset": 805,
+        "text": "LdaFalse"
+      },
+      {
+        "offset": 806,
+        "text": "TestUndetectable"
+      },
+      {
+        "offset": 807,
+        "text": "Star5"
+      },
+      {
+        "offset": 808,
+        "position": {
+          "at": 1972,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [160]"
+      },
+      {
+        "offset": 813,
+        "position": {
+          "at": 2010,
+          "kind": "S"
+        },
+        "text": "LdaConstant [79]"
+      },
+      {
+        "offset": 815,
+        "text": "Star4"
+      },
+      {
+        "offset": 816,
+        "text": "LdaFalse"
+      },
+      {
+        "offset": 817,
+        "text": "TestUndetectable"
+      },
+      {
+        "offset": 818,
+        "text": "Star5"
+      },
+      {
+        "offset": 819,
+        "position": {
+          "at": 2010,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r4, r5, [162]"
+      },
+      {
+        "offset": 824,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 825,
+        "position": {
+          "at": 2057,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo show>",
+      "<String[17]: #null == undefined>",
+      "<String[9]: #null == 0>",
+      "<String[9]: #null >= 0>",
+      "<String[14]: #undefined == 0>",
+      "<String[7]: #0 == ''>",
+      "<String[0]: #>",
+      "<String[8]: #0 == '0'>",
+      "<String[1]: #0>",
+      "<String[9]: #'' == '0'>",
+      "<String[12]: #false == '0'>",
+      "<String[11]: #false == ''>",
+      "<String[9]: #true == 1>",
+      "<String[11]: #true == '1'>",
+      "<String[1]: #1>",
+      "<String[9]: #true == 2>",
+      "<String[8]: #1 == '1'>",
+      "<String[9]: #1 === '1'>",
+      "<String[10]: #NaN == NaN>",
+      "<String[3]: #NaN>",
+      "<String[10]: #NaN != NaN>",
+      "<String[10]: #'b' == 'B'>",
+      "<String[1]: #b>",
+      "<String[1]: #B>",
+      "<String[10]: #'10' < '9'>",
+      "<String[2]: #10>",
+      "<String[1]: #9>",
+      "<String[8]: #'10' < 9>",
+      "<String[9]: #'a' < 'b'>",
+      "<String[1]: #a>",
+      "<String[8]: #null < 1>",
+      "<String[13]: #undefined < 1>",
+      "<String[9]: #'abc' < 1>",
+      "<String[3]: #abc>",
+      "<String[7]: #1 + '2'>",
+      "<String[1]: #2>",
+      "<String[7]: #'3' - 1>",
+      "<String[1]: #3>",
+      "<String[9]: #'5' * '2'>",
+      "<String[1]: #5>",
+      "<String[8]: #true + 1>",
+      "<String[8]: #null + 1>",
+      "<String[13]: #undefined + 1>",
+      "<String[7]: #'a' - 1>",
+      "<String[11]: #1 + 2 + '3'>",
+      "<String[11]: #'1' + 2 + 3>",
+      "<String[3]: #+''>",
+      "<String[7]: #+' 12 '>",
+      "<String[4]: # 12 >",
+      "<String[7]: #+'0x10'>",
+      "<String[4]: #0x10>",
+      "<String[6]: #+'1e3'>",
+      "<String[3]: #1e3>",
+      "<String[7]: #+'12px'>",
+      "<String[4]: #12px>",
+      "<String[5]: #+null>",
+      "<String[10]: #+undefined>",
+      "<String[5]: #+true>",
+      "<String[4]: #!!''>",
+      "<String[5]: #!!'0'>",
+      "<String[5]: #!!NaN>",
+      "<String[4]: #!!{}>",
+      "<ObjectBoilerplateDescription[4]>",
+      "<SharedFunctionInfo valueOf>",
+      "<String[7]: #valueOf>",
+      "<SharedFunctionInfo toString>",
+      "<String[8]: #toString>",
+      "<String[12]: #answer == 42>",
+      "<String[16]: #answer == 'text'>",
+      "<String[4]: #text>",
+      "<String[10]: #answer + 1>",
+      "<String[11]: #answer + ''>",
+      "<String[11]: #`${answer}`>",
+      "<String[11]: #answer > 41>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<SharedFunctionInfo valueOf>",
+      "<String[15]: #answer == other>",
+      "<String[16]: #answer == answer>",
+      "<String[13]: #null == false>",
+      "<String[18]: #undefined == false>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "0": {
+        "name": "show",
+        "header": {
+          "length": 25,
+          "parameterCount": 3,
+          "registerCount": 5,
+          "frameSize": 40
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 132,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 140,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star0"
+          },
+          {
+            "offset": 9,
+            "text": "LdaConstant [2]"
+          },
+          {
+            "offset": 11,
+            "text": "Star3"
+          },
+          {
+            "offset": 12,
+            "text": "Mov a0, r2"
+          },
+          {
+            "offset": 15,
+            "text": "Mov a1, r4"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 140,
+              "kind": "E"
+            },
+            "text": "CallProperty r0, r1-r4, [4]"
+          },
+          {
+            "offset": 23,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 24,
+            "position": {
+              "at": 165,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[7]: #console>",
+          "<String[3]: #log>",
+          "<String[2]: #->>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "63": {
+        "name": "valueOf",
+        "header": {
+          "length": 3,
+          "parameterCount": 1,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 1577,
+              "kind": "S"
+            },
+            "text": "LdaSmi [42]"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 1587,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "65": {
+        "name": "toString",
+        "header": {
+          "length": 3,
+          "parameterCount": 1,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 1612,
+              "kind": "S"
+            },
+            "text": "LdaConstant [0]"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 1626,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[4]: #text>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}

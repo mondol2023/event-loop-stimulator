@@ -171,7 +171,19 @@ const eslintConfig = defineConfig([
     files: ["tests/integration/**/*.{ts,tsx}"],
     rules: restrict({ allowApiRoutes: true }),
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "playwright-report/**", "test-results/**"]),
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    "playwright-report/**",
+    "test-results/**",
+    // Conformance fixtures no ESLint parser or rule set can accept by construction (they are programs for
+    // real node, never imported): internals probes use V8's `%Name()` natives syntax, which does not parse,
+    // and ts-namespace-refused exists to hold a runtime `namespace`, which @typescript-eslint/no-namespace forbids.
+    "tests/conformance/internals/**",
+    "tests/conformance/fixtures/ts-namespace-refused.cts",
+  ]),
 ]);
 
 export default eslintConfig;

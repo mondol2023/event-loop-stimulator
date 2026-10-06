@@ -1,0 +1,401 @@
+{
+  "schema": 1,
+  "fixture": "timer-overflow-warning",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "scheduled\nfirst timer fired after the delay was coerced to 1\nsecond timer fired after the delay was coerced to 1\nan ordinary timer, 20 ms\n",
+      "stderr": "(node:PID) TimeoutOverflowWarning: 2147483648 does not fit into a 32-bit signed integer.\nTimeout duration was set to 1.\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:PID) TimeoutOverflowWarning: 4294967296 does not fit into a 32-bit signed integer.\nTimeout duration was set to 1.\n",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 70,
+      "parameterCount": 6,
+      "registerCount": 3,
+      "frameSize": 24
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 207,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 3,
+        "text": "Star0"
+      },
+      {
+        "offset": 4,
+        "text": "CreateClosure [1], [0], #2"
+      },
+      {
+        "offset": 8,
+        "text": "Star1"
+      },
+      {
+        "offset": 9,
+        "text": "LdaConstant [2]"
+      },
+      {
+        "offset": 11,
+        "text": "Star2"
+      },
+      {
+        "offset": 12,
+        "position": {
+          "at": 207,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r1, r2, [2]"
+      },
+      {
+        "offset": 17,
+        "position": {
+          "at": 301,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 20,
+        "text": "Star0"
+      },
+      {
+        "offset": 21,
+        "text": "CreateClosure [3], [1], #2"
+      },
+      {
+        "offset": 25,
+        "text": "Star1"
+      },
+      {
+        "offset": 26,
+        "text": "LdaConstant [4]"
+      },
+      {
+        "offset": 28,
+        "text": "Star2"
+      },
+      {
+        "offset": 29,
+        "position": {
+          "at": 301,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r1, r2, [4]"
+      },
+      {
+        "offset": 34,
+        "position": {
+          "at": 396,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 37,
+        "text": "Star0"
+      },
+      {
+        "offset": 38,
+        "text": "CreateClosure [5], [2], #2"
+      },
+      {
+        "offset": 42,
+        "text": "Star1"
+      },
+      {
+        "offset": 43,
+        "text": "LdaSmi [20]"
+      },
+      {
+        "offset": 45,
+        "text": "Star2"
+      },
+      {
+        "offset": 46,
+        "position": {
+          "at": 396,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r1, r2, [6]"
+      },
+      {
+        "offset": 51,
+        "position": {
+          "at": 459,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [6], [8]"
+      },
+      {
+        "offset": 54,
+        "text": "Star1"
+      },
+      {
+        "offset": 55,
+        "position": {
+          "at": 467,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [7], [10]"
+      },
+      {
+        "offset": 59,
+        "text": "Star0"
+      },
+      {
+        "offset": 60,
+        "text": "LdaConstant [8]"
+      },
+      {
+        "offset": 62,
+        "text": "Star2"
+      },
+      {
+        "offset": 63,
+        "position": {
+          "at": 467,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [12]"
+      },
+      {
+        "offset": 68,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 69,
+        "position": {
+          "at": 484,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<String[10]: #setTimeout>",
+      "<SharedFunctionInfo>",
+      "<HeapNumber 2147483648.0>",
+      "<SharedFunctionInfo>",
+      "<HeapNumber 4294967296.0>",
+      "<SharedFunctionInfo>",
+      "<String[7]: #console>",
+      "<String[3]: #log>",
+      "<String[9]: #scheduled>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "1": {
+        "name": "",
+        "header": {
+          "length": 18,
+          "parameterCount": 1,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 232,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 232,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star0"
+          },
+          {
+            "offset": 9,
+            "text": "LdaConstant [2]"
+          },
+          {
+            "offset": 11,
+            "text": "Star2"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 232,
+              "kind": "E"
+            },
+            "text": "CallProperty1 r0, r1, r2, [4]"
+          },
+          {
+            "offset": 17,
+            "position": {
+              "at": 289,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[7]: #console>",
+          "<String[3]: #log>",
+          "<String[50]: #first timer fired after the delay was coerced to 1>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "3": {
+        "name": "",
+        "header": {
+          "length": 18,
+          "parameterCount": 1,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 326,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 326,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star0"
+          },
+          {
+            "offset": 9,
+            "text": "LdaConstant [2]"
+          },
+          {
+            "offset": 11,
+            "text": "Star2"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 326,
+              "kind": "E"
+            },
+            "text": "CallProperty1 r0, r1, r2, [4]"
+          },
+          {
+            "offset": 17,
+            "position": {
+              "at": 384,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[7]: #console>",
+          "<String[3]: #log>",
+          "<String[51]: #second timer fired after the delay was coerced to 1>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "5": {
+        "name": "",
+        "header": {
+          "length": 18,
+          "parameterCount": 1,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 421,
+              "kind": "S"
+            },
+            "text": "LdaGlobal [0], [0]"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 421,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r1, [1], [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star0"
+          },
+          {
+            "offset": 9,
+            "text": "LdaConstant [2]"
+          },
+          {
+            "offset": 11,
+            "text": "Star2"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 421,
+              "kind": "E"
+            },
+            "text": "CallProperty1 r0, r1, r2, [4]"
+          },
+          {
+            "offset": 17,
+            "position": {
+              "at": 452,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[7]: #console>",
+          "<String[3]: #log>",
+          "<String[24]: #an ordinary timer, 20 ms>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,1410 @@
+{
+  "schema": 1,
+  "fixture": "inspect-nesting-and-wrapping",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "{ a: { b: { c: [Object] } } }\n{ a: { b: { c: {} } } }\n{ a: { b: { c: [] } } }\n[ [ [ [Array] ] ] ]\n[ [ [ [] ] ] ]\n{ list: [ 1, [ 2, [Array] ] ] }\n{\n  alpha: 'aaaaaaaaaa',\n  beta: 'bbbbbbbbbb',\n  gamma: 'cccccccccc',\n  delta: 'dddddddddd'\n}\n{\n  alpha: 'aaaaaaaaaa',\n  beta: 'bbbbbbbbbb',\n  gamma: 'cccccccccc',\n  delta: 'dddddddddd',\n  epsilon: 1\n}\n[\n  'aaaaaaaaaaaaaaaaaaaa',\n  'bbbbbbbbbbbbbbbbbbbb',\n  'cccccccccccccccccccc',\n  'dddddddddddddddddddd'\n]\n{\n  outer: {\n    inner: {\n      alpha: 'aaaaaaaaaa',\n      beta: 'bbbbbbbbbb',\n      gamma: 'cccccccccc',\n      delta: 'dddddd'\n    }\n  }\n}\n[ 1, 2, 3, 4, 5, 6 ]\n[\n  1, 2, 3, 4,\n  5, 6, 7\n]\n[\n        1,       22,\n      333,     4444,\n    55555,   666666,\n  7777777, 88888888\n]\n[\n  'a',       'bb',\n  'ccc',     'dddd',\n  'eeeee',   'ffffff',\n  'ggggggg'\n]\n[\n  1.5, 2.25, 3.125,  4,  5,\n    6,    7,     8,  9, 10,\n   11,   12,    13, 14, 15,\n   16,   17,    18, 19, 20,\n   21,   22,    23, 24, 25,\n   26,   27\n]\n[\n   0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11,\n  12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,\n  24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,\n  36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,\n  48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,\n  60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71,\n  72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83,\n  84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,\n  96, 97, 98, 99,\n  ... 1 more item\n]\n[\n  'plain',\n  \"it's\",\n  'say \"hi\"',\n  `it's \"both\"`,\n  'back`tick',\n  'new\\nline',\n  'tab\\t',\n  'back\\\\slash'\n]\n{ '3': 3, 'needs-quotes': 1, valid_id: 2, 'a b': 4, '': 5 }\n{\n  f: [Function: named],\n  g: [Function: anonymous],\n  h: [Function: h],\n  n: null,\n  u: undefined,\n  t: true,\n  big: 1e+21,\n  neg: -0\n}\n[ null, undefined, NaN, -0, 's' ] [ [Function: named], [Function: anonymous] ]\n{} [] [ [] ] [ {} ] { a: {} } { a: [] }\ntop-level strings print raw: it's [ \"it's\" ]\nvalues 1 two { three: 3 } [ 4 ] null undefined\n{ a: 1 } between [ 2 ]\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 612,
+      "parameterCount": 6,
+      "registerCount": 13,
+      "frameSize": 104
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star1"
+      },
+      {
+        "offset": 5,
+        "position": {
+          "at": 129,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 8,
+        "text": "Star5"
+      },
+      {
+        "offset": 9,
+        "position": {
+          "at": 137,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 13,
+        "text": "Star4"
+      },
+      {
+        "offset": 14,
+        "text": "CreateObjectLiteral [3], [4], #8"
+      },
+      {
+        "offset": 18,
+        "text": "Star6"
+      },
+      {
+        "offset": 19,
+        "position": {
+          "at": 137,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [5]"
+      },
+      {
+        "offset": 24,
+        "position": {
+          "at": 173,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 27,
+        "text": "Star5"
+      },
+      {
+        "offset": 28,
+        "position": {
+          "at": 181,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 32,
+        "text": "Star4"
+      },
+      {
+        "offset": 33,
+        "text": "CreateObjectLiteral [4], [7], #8"
+      },
+      {
+        "offset": 37,
+        "text": "Star6"
+      },
+      {
+        "offset": 38,
+        "position": {
+          "at": 181,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [8]"
+      },
+      {
+        "offset": 43,
+        "position": {
+          "at": 211,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 46,
+        "text": "Star5"
+      },
+      {
+        "offset": 47,
+        "position": {
+          "at": 219,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 51,
+        "text": "Star4"
+      },
+      {
+        "offset": 52,
+        "text": "CreateObjectLiteral [5], [10], #12"
+      },
+      {
+        "offset": 56,
+        "text": "Star6"
+      },
+      {
+        "offset": 57,
+        "position": {
+          "at": 219,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [11]"
+      },
+      {
+        "offset": 62,
+        "position": {
+          "at": 249,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 65,
+        "text": "Star5"
+      },
+      {
+        "offset": 66,
+        "position": {
+          "at": 257,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 70,
+        "text": "Star4"
+      },
+      {
+        "offset": 71,
+        "text": "CreateArrayLiteral [6], [13], #4"
+      },
+      {
+        "offset": 75,
+        "text": "Star6"
+      },
+      {
+        "offset": 76,
+        "position": {
+          "at": 257,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [14]"
+      },
+      {
+        "offset": 81,
+        "position": {
+          "at": 273,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 84,
+        "text": "Star5"
+      },
+      {
+        "offset": 85,
+        "position": {
+          "at": 281,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 89,
+        "text": "Star4"
+      },
+      {
+        "offset": 90,
+        "text": "CreateArrayLiteral [7], [16], #4"
+      },
+      {
+        "offset": 94,
+        "text": "Star6"
+      },
+      {
+        "offset": 95,
+        "position": {
+          "at": 281,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [17]"
+      },
+      {
+        "offset": 100,
+        "position": {
+          "at": 296,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 103,
+        "text": "Star5"
+      },
+      {
+        "offset": 104,
+        "position": {
+          "at": 304,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 108,
+        "text": "Star4"
+      },
+      {
+        "offset": 109,
+        "text": "CreateObjectLiteral [8], [19], #12"
+      },
+      {
+        "offset": 113,
+        "text": "Star6"
+      },
+      {
+        "offset": 114,
+        "position": {
+          "at": 304,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [20]"
+      },
+      {
+        "offset": 119,
+        "position": {
+          "at": 426,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 122,
+        "text": "Star5"
+      },
+      {
+        "offset": 123,
+        "position": {
+          "at": 434,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 127,
+        "text": "Star4"
+      },
+      {
+        "offset": 128,
+        "text": "CreateObjectLiteral [9], [22], #41"
+      },
+      {
+        "offset": 132,
+        "text": "Star6"
+      },
+      {
+        "offset": 133,
+        "position": {
+          "at": 434,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [23]"
+      },
+      {
+        "offset": 138,
+        "position": {
+          "at": 526,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 141,
+        "text": "Star5"
+      },
+      {
+        "offset": 142,
+        "position": {
+          "at": 534,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 146,
+        "text": "Star4"
+      },
+      {
+        "offset": 147,
+        "text": "CreateObjectLiteral [10], [25], #41"
+      },
+      {
+        "offset": 151,
+        "text": "Star6"
+      },
+      {
+        "offset": 152,
+        "position": {
+          "at": 534,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [26]"
+      },
+      {
+        "offset": 157,
+        "position": {
+          "at": 638,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 160,
+        "text": "Star5"
+      },
+      {
+        "offset": 161,
+        "position": {
+          "at": 646,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 165,
+        "text": "Star4"
+      },
+      {
+        "offset": 166,
+        "text": "CreateArrayLiteral [11], [28], #37"
+      },
+      {
+        "offset": 170,
+        "text": "Star6"
+      },
+      {
+        "offset": 171,
+        "position": {
+          "at": 646,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [29]"
+      },
+      {
+        "offset": 176,
+        "position": {
+          "at": 749,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 179,
+        "text": "Star5"
+      },
+      {
+        "offset": 180,
+        "position": {
+          "at": 757,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 184,
+        "text": "Star4"
+      },
+      {
+        "offset": 185,
+        "text": "CreateObjectLiteral [12], [31], #8"
+      },
+      {
+        "offset": 189,
+        "text": "Star6"
+      },
+      {
+        "offset": 190,
+        "position": {
+          "at": 757,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [32]"
+      },
+      {
+        "offset": 195,
+        "position": {
+          "at": 933,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 198,
+        "text": "Star5"
+      },
+      {
+        "offset": 199,
+        "position": {
+          "at": 941,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 203,
+        "text": "Star4"
+      },
+      {
+        "offset": 204,
+        "text": "CreateArrayLiteral [13], [34], #37"
+      },
+      {
+        "offset": 208,
+        "text": "Star6"
+      },
+      {
+        "offset": 209,
+        "position": {
+          "at": 941,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [35]"
+      },
+      {
+        "offset": 214,
+        "position": {
+          "at": 966,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 217,
+        "text": "Star5"
+      },
+      {
+        "offset": 218,
+        "position": {
+          "at": 974,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 222,
+        "text": "Star4"
+      },
+      {
+        "offset": 223,
+        "text": "CreateArrayLiteral [14], [37], #37"
+      },
+      {
+        "offset": 227,
+        "text": "Star6"
+      },
+      {
+        "offset": 228,
+        "position": {
+          "at": 974,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [38]"
+      },
+      {
+        "offset": 233,
+        "position": {
+          "at": 1002,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 236,
+        "text": "Star5"
+      },
+      {
+        "offset": 237,
+        "position": {
+          "at": 1010,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 241,
+        "text": "Star4"
+      },
+      {
+        "offset": 242,
+        "text": "CreateArrayLiteral [15], [40], #37"
+      },
+      {
+        "offset": 246,
+        "text": "Star6"
+      },
+      {
+        "offset": 247,
+        "position": {
+          "at": 1010,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [41]"
+      },
+      {
+        "offset": 252,
+        "position": {
+          "at": 1069,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 255,
+        "text": "Star5"
+      },
+      {
+        "offset": 256,
+        "position": {
+          "at": 1077,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 260,
+        "text": "Star4"
+      },
+      {
+        "offset": 261,
+        "text": "CreateArrayLiteral [16], [43], #37"
+      },
+      {
+        "offset": 265,
+        "text": "Star6"
+      },
+      {
+        "offset": 266,
+        "position": {
+          "at": 1077,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [44]"
+      },
+      {
+        "offset": 271,
+        "position": {
+          "at": 1140,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 274,
+        "text": "Star5"
+      },
+      {
+        "offset": 275,
+        "position": {
+          "at": 1148,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 279,
+        "text": "Star4"
+      },
+      {
+        "offset": 280,
+        "text": "CreateArrayLiteral [17], [46], #37"
+      },
+      {
+        "offset": 284,
+        "text": "Star6"
+      },
+      {
+        "offset": 285,
+        "position": {
+          "at": 1148,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [47]"
+      },
+      {
+        "offset": 290,
+        "position": {
+          "at": 1316,
+          "kind": "S"
+        },
+        "text": "CreateEmptyArrayLiteral [49]"
+      },
+      {
+        "offset": 292,
+        "text": "Star0"
+      },
+      {
+        "offset": 293,
+        "position": {
+          "at": 1333,
+          "kind": "S"
+        },
+        "text": "LdaZero"
+      },
+      {
+        "offset": 294,
+        "text": "Star3"
+      },
+      {
+        "offset": 295,
+        "position": {
+          "at": 1338,
+          "kind": "S"
+        },
+        "text": "LdaSmi [101]"
+      },
+      {
+        "offset": 297,
+        "position": {
+          "at": 1338,
+          "kind": "E"
+        },
+        "text": "TestLessThan r3, [50]"
+      },
+      {
+        "offset": 300,
+        "text": "JumpIfFalse [21] (@321)"
+      },
+      {
+        "offset": 302,
+        "position": {
+          "at": 1359,
+          "kind": "S"
+        },
+        "text": "GetNamedProperty r0, [18], [51]"
+      },
+      {
+        "offset": 306,
+        "text": "Star4"
+      },
+      {
+        "offset": 307,
+        "position": {
+          "at": 1359,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r0, r3, [53]"
+      },
+      {
+        "offset": 312,
+        "position": {
+          "at": 1346,
+          "kind": "S"
+        },
+        "text": "Ldar r3"
+      },
+      {
+        "offset": 314,
+        "text": "Inc [55]"
+      },
+      {
+        "offset": 316,
+        "text": "Star3"
+      },
+      {
+        "offset": 317,
+        "position": {
+          "at": 1320,
+          "kind": "E"
+        },
+        "text": "JumpLoop [22], [0], [56] (@295)"
+      },
+      {
+        "offset": 321,
+        "position": {
+          "at": 1370,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 324,
+        "text": "Star5"
+      },
+      {
+        "offset": 325,
+        "position": {
+          "at": 1378,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 329,
+        "text": "Star4"
+      },
+      {
+        "offset": 330,
+        "position": {
+          "at": 1378,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r0, [57]"
+      },
+      {
+        "offset": 335,
+        "position": {
+          "at": 1495,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 338,
+        "text": "Star5"
+      },
+      {
+        "offset": 339,
+        "position": {
+          "at": 1503,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 343,
+        "text": "Star4"
+      },
+      {
+        "offset": 344,
+        "text": "CreateArrayLiteral [19], [59], #37"
+      },
+      {
+        "offset": 348,
+        "text": "Star6"
+      },
+      {
+        "offset": 349,
+        "position": {
+          "at": 1503,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [60]"
+      },
+      {
+        "offset": 354,
+        "position": {
+          "at": 1604,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 357,
+        "text": "Star5"
+      },
+      {
+        "offset": 358,
+        "position": {
+          "at": 1612,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 362,
+        "text": "Star4"
+      },
+      {
+        "offset": 363,
+        "text": "CreateObjectLiteral [20], [62], #41"
+      },
+      {
+        "offset": 367,
+        "text": "Star6"
+      },
+      {
+        "offset": 368,
+        "position": {
+          "at": 1612,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [63]"
+      },
+      {
+        "offset": 373,
+        "position": {
+          "at": 1737,
+          "kind": "S"
+        },
+        "text": "CreateClosure [21], [1], #2"
+      },
+      {
+        "offset": 377,
+        "text": "Star2"
+      },
+      {
+        "offset": 378,
+        "position": {
+          "at": 1747,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 381,
+        "text": "Star5"
+      },
+      {
+        "offset": 382,
+        "position": {
+          "at": 1755,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 386,
+        "text": "Star4"
+      },
+      {
+        "offset": 387,
+        "text": "CreateObjectLiteral [22], [65], #41"
+      },
+      {
+        "offset": 391,
+        "text": "Star6"
+      },
+      {
+        "offset": 392,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 394,
+        "position": {
+          "at": 1764,
+          "kind": "E"
+        },
+        "text": "DefineNamedOwnProperty r6, [23], [66]"
+      },
+      {
+        "offset": 398,
+        "text": "Ldar r2"
+      },
+      {
+        "offset": 400,
+        "position": {
+          "at": 1774,
+          "kind": "E"
+        },
+        "text": "DefineNamedOwnProperty r6, [24], [68]"
+      },
+      {
+        "offset": 404,
+        "position": {
+          "at": 1788,
+          "kind": "E"
+        },
+        "text": "CreateClosure [25], [2], #2"
+      },
+      {
+        "offset": 408,
+        "text": "DefineNamedOwnProperty r6, [26], [70]"
+      },
+      {
+        "offset": 412,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 413,
+        "position": {
+          "at": 1816,
+          "kind": "E"
+        },
+        "text": "DefineNamedOwnProperty r6, [27], [72]"
+      },
+      {
+        "offset": 417,
+        "position": {
+          "at": 1755,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r4, r5, r6, [74]"
+      },
+      {
+        "offset": 422,
+        "position": {
+          "at": 1859,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 425,
+        "text": "Star5"
+      },
+      {
+        "offset": 426,
+        "position": {
+          "at": 1867,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 430,
+        "text": "Star4"
+      },
+      {
+        "offset": 431,
+        "text": "CreateArrayLiteral [28], [76], #37"
+      },
+      {
+        "offset": 435,
+        "text": "Star6"
+      },
+      {
+        "offset": 436,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 438,
+        "text": "Star7"
+      },
+      {
+        "offset": 439,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 440,
+        "position": {
+          "at": 1878,
+          "kind": "E"
+        },
+        "text": "StaInArrayLiteral r6, r7, [77]"
+      },
+      {
+        "offset": 444,
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 446,
+        "text": "Star7"
+      },
+      {
+        "offset": 447,
+        "position": {
+          "at": 1889,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [29], [79]"
+      },
+      {
+        "offset": 450,
+        "text": "StaInArrayLiteral r6, r7, [77]"
+      },
+      {
+        "offset": 454,
+        "text": "CreateArrayLiteral [30], [81], #37"
+      },
+      {
+        "offset": 458,
+        "text": "Star7"
+      },
+      {
+        "offset": 459,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 460,
+        "text": "Star8"
+      },
+      {
+        "offset": 461,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 463,
+        "position": {
+          "at": 1905,
+          "kind": "E"
+        },
+        "text": "StaInArrayLiteral r7, r8, [82]"
+      },
+      {
+        "offset": 467,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 469,
+        "text": "Star8"
+      },
+      {
+        "offset": 470,
+        "text": "Ldar r2"
+      },
+      {
+        "offset": 472,
+        "position": {
+          "at": 1912,
+          "kind": "E"
+        },
+        "text": "StaInArrayLiteral r7, r8, [82]"
+      },
+      {
+        "offset": 476,
+        "position": {
+          "at": 1867,
+          "kind": "E"
+        },
+        "text": "CallProperty2 r4, r5, r6, r7, [84]"
+      },
+      {
+        "offset": 482,
+        "position": {
+          "at": 1925,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 485,
+        "text": "Star5"
+      },
+      {
+        "offset": 486,
+        "position": {
+          "at": 1933,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 490,
+        "text": "Star4"
+      },
+      {
+        "offset": 491,
+        "text": "CreateEmptyObjectLiteral"
+      },
+      {
+        "offset": 492,
+        "text": "Star6"
+      },
+      {
+        "offset": 493,
+        "text": "CreateEmptyArrayLiteral [86]"
+      },
+      {
+        "offset": 495,
+        "text": "Star7"
+      },
+      {
+        "offset": 496,
+        "text": "CreateArrayLiteral [31], [87], #4"
+      },
+      {
+        "offset": 500,
+        "text": "Star8"
+      },
+      {
+        "offset": 501,
+        "text": "CreateArrayLiteral [32], [88], #4"
+      },
+      {
+        "offset": 505,
+        "text": "Star9"
+      },
+      {
+        "offset": 506,
+        "text": "CreateObjectLiteral [33], [89], #8"
+      },
+      {
+        "offset": 510,
+        "text": "Star10"
+      },
+      {
+        "offset": 511,
+        "text": "CreateObjectLiteral [34], [90], #12"
+      },
+      {
+        "offset": 515,
+        "text": "Star11"
+      },
+      {
+        "offset": 516,
+        "position": {
+          "at": 1933,
+          "kind": "E"
+        },
+        "text": "CallProperty r4, r5-r11, [91]"
+      },
+      {
+        "offset": 521,
+        "position": {
+          "at": 1980,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 524,
+        "text": "Star5"
+      },
+      {
+        "offset": 525,
+        "position": {
+          "at": 1988,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 529,
+        "text": "Star4"
+      },
+      {
+        "offset": 530,
+        "text": "LdaConstant [35]"
+      },
+      {
+        "offset": 532,
+        "text": "Star6"
+      },
+      {
+        "offset": 533,
+        "text": "LdaConstant [36]"
+      },
+      {
+        "offset": 535,
+        "text": "Star7"
+      },
+      {
+        "offset": 536,
+        "text": "CreateArrayLiteral [37], [93], #37"
+      },
+      {
+        "offset": 540,
+        "text": "Star8"
+      },
+      {
+        "offset": 541,
+        "position": {
+          "at": 1988,
+          "kind": "E"
+        },
+        "text": "CallProperty r4, r5-r8, [94]"
+      },
+      {
+        "offset": 546,
+        "position": {
+          "at": 2090,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 549,
+        "text": "Star5"
+      },
+      {
+        "offset": 550,
+        "position": {
+          "at": 2098,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 554,
+        "text": "Star4"
+      },
+      {
+        "offset": 555,
+        "text": "LdaConstant [38]"
+      },
+      {
+        "offset": 557,
+        "text": "Star6"
+      },
+      {
+        "offset": 558,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 560,
+        "text": "Star7"
+      },
+      {
+        "offset": 561,
+        "text": "LdaConstant [39]"
+      },
+      {
+        "offset": 563,
+        "text": "Star8"
+      },
+      {
+        "offset": 564,
+        "text": "CreateObjectLiteral [40], [96], #41"
+      },
+      {
+        "offset": 568,
+        "text": "Star9"
+      },
+      {
+        "offset": 569,
+        "text": "CreateArrayLiteral [41], [97], #37"
+      },
+      {
+        "offset": 573,
+        "text": "Star10"
+      },
+      {
+        "offset": 574,
+        "text": "LdaNull"
+      },
+      {
+        "offset": 575,
+        "text": "Star11"
+      },
+      {
+        "offset": 576,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 577,
+        "text": "Star12"
+      },
+      {
+        "offset": 578,
+        "position": {
+          "at": 2098,
+          "kind": "E"
+        },
+        "text": "CallProperty r4, r5-r12, [98]"
+      },
+      {
+        "offset": 583,
+        "position": {
+          "at": 2159,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [1], [0]"
+      },
+      {
+        "offset": 586,
+        "text": "Star5"
+      },
+      {
+        "offset": 587,
+        "position": {
+          "at": 2167,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [2], [2]"
+      },
+      {
+        "offset": 591,
+        "text": "Star4"
+      },
+      {
+        "offset": 592,
+        "text": "CreateObjectLiteral [42], [100], #41"
+      },
+      {
+        "offset": 596,
+        "text": "Star6"
+      },
+      {
+        "offset": 597,
+        "text": "LdaConstant [43]"
+      },
+      {
+        "offset": 599,
+        "text": "Star7"
+      },
+      {
+        "offset": 600,
+        "text": "CreateArrayLiteral [44], [101], #37"
+      },
+      {
+        "offset": 604,
+        "text": "Star8"
+      },
+      {
+        "offset": 605,
+        "position": {
+          "at": 2167,
+          "kind": "E"
+        },
+        "text": "CallProperty r4, r5-r8, [102]"
+      },
+      {
+        "offset": 610,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 611,
+        "position": {
+          "at": 2197,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo named>",
+      "<String[7]: #console>",
+      "<String[3]: #log>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[1]>>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[1]>>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<ObjectBoilerplateDescription[8]>",
+      "<ObjectBoilerplateDescription[10]>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[4]>>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[6]>>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[7]>>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[8]>>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[7]>>",
+      "<ArrayBoilerplateDescription PACKED_DOUBLE_ELEMENTS, <FixedDoubleArray[27]>>",
+      "<String[4]: #push>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[8]>>",
+      "<ObjectBoilerplateDescription[10]>",
+      "<SharedFunctionInfo anonymous>",
+      "<ObjectBoilerplateDescription[16]>",
+      "<String[1]: #f>",
+      "<String[1]: #g>",
+      "<SharedFunctionInfo h>",
+      "<String[1]: #h>",
+      "<String[1]: #u>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[5]>>",
+      "<String[3]: #NaN>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[2]>>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[1]>>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[1]>>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<String[28]: #top-level strings print raw:>",
+      "<String[4]: #it's>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[1]>>",
+      "<String[6]: #values>",
+      "<String[3]: #two>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[1]>>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<String[7]: #between>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[1]>>"
+    ],
+    "handlerTable": [],
+    "children": {}
+  }
+}
