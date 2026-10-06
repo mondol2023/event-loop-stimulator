@@ -45,6 +45,12 @@ describe("normalizeOutput: script path", () => {
     expect(normalizeOutput("at c:\\Users\\A B\\Temp\\sl-real-x\\main.cjs:1:1", { dir: spaced })).toBe("at main.cjs:1:1");
   });
 
+  it("accepts the percent-encoded ~ of an 8.3 short name in a file URL", () => {
+    const short = "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\sl-real-x";
+    expect(normalizeOutput("file:///C:/Users/ADMINI%7E1/AppData/Local/Temp/sl-real-x/main.cts:2", { dir: short })).toBe("main.cjs:2");
+    expect(normalizeOutput("at C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\sl-real-x\\main.cjs:1:1", { dir: short })).toBe("at main.cjs:1:1");
+  });
+
   it("replaces every occurrence", () => {
     const text = `${WIN}\\main.cjs:1\n  at f (${WIN}\\main.cjs:2:3)\n  at g (${WIN}\\main.cjs:4:5)`;
     expect(normalizeOutput(text, { dir: WIN })).toBe("main.cjs:1\n  at f (main.cjs:2:3)\n  at g (main.cjs:4:5)");

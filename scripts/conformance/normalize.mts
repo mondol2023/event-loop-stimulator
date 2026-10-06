@@ -12,7 +12,8 @@ const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 function segmentPattern(segment: string): string {
   if (/^[A-Za-z]:$/.test(segment)) return `[${segment[0]!.toLowerCase()}${segment[0]!.toUpperCase()}]:`;
   const literal = escapeRegExp(segment);
-  const encoded = escapeRegExp(encodeURIComponent(segment));
+  // encodeURIComponent leaves "~" alone, but Node's file: URLs print it as %7E (the 8.3 short name ADMINI~1 shows as ADMINI%7E1).
+  const encoded = escapeRegExp(encodeURIComponent(segment).replace(/~/g, "%7E"));
   return encoded === literal ? literal : `(?:${literal}|${encoded})`;
 }
 
