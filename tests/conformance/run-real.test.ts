@@ -74,6 +74,12 @@ describe.skipIf(!pinned)("runReal (real node, permission model on)", () => {
     );
   });
 
+  it("raises the output limit with maxBufferBytes", () => {
+    const source = `process.stdout.write("x".repeat(2 * 1024 * 1024))`;
+    const run = runReal(source, { lang: "js", maxBufferBytes: 4 * 1024 * 1024 });
+    expect(run.stdout).toHaveLength(2 * 1024 * 1024);
+  });
+
   // Windows has no signals: process.kill(.., "SIGKILL") there is a plain exit.
   it.skipIf(process.platform === "win32")("throws RealRunError when the process dies from a signal", () => {
     expect(() => runReal(`process.kill(process.pid, "SIGKILL")`, { lang: "js" })).toThrow(RealRunError);

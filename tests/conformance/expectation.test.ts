@@ -104,6 +104,13 @@ describe("buildExpectation", () => {
       expect(e.bytecode).toEqual(bc);
     });
 
+    it("lets a capture failure propagate instead of dropping the bytecode", () => {
+      const failing = () => {
+        throw new Error("capture failed");
+      };
+      expect(() => buildExpectation(fixture(), target, () => ok("1\n"), failing)).toThrow("capture failed");
+    });
+
     it("never captures for internals fixtures", () => {
       const e = buildExpectation(fixture({ kind: "internals" }), target, () => ok(""), () => bc);
       expect("bytecode" in e).toBe(false);

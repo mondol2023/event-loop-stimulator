@@ -22,6 +22,9 @@ export type RealRunOptions = {
   readonly lang: "js" | "ts";
   readonly nodeArgs?: readonly string[];
   readonly timeoutMs?: number;
+  // Output cap; the default suits a program run. The bytecode pass needs more,
+  // because `--print-bytecode` also lists every Node-internal function compiled.
+  readonly maxBufferBytes?: number;
 };
 
 /** A run that did not finish cleanly: no partial result is ever returned. */
@@ -30,12 +33,13 @@ export class RealRunError extends Error {
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
-const MAX_BUFFER = 1024 * 1024;
+const DEFAULT_MAX_BUFFER = 1024 * 1024;
 // Next augments ProcessEnv with a required NODE_ENV; the child must get none.
 const EMPTY_ENV = {} as NodeJS.ProcessEnv;
 
 export function runReal(source: string, opts: RealRunOptions): RealRun {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const maxBuffer = opts.maxBufferBytes ?? DEFAULT_MAX_BUFFER;
   const file = opts.lang === "ts" ? "main.cts" : "main.cjs";
   const dir = mkdtempSync(join(tmpdir(), "sl-real-"));
   try {
@@ -43,11 +47,11 @@ export function runReal(source: string, opts: RealRunOptions): RealRun {
     const result = spawnSync(
       process.execPath,
       ["--permission", "--max-old-space-size=64", ...(opts.nodeArgs ?? []), file],
-      { cwd: dir, env: EMPTY_ENV, timeout: timeoutMs, maxBuffer: MAX_BUFFER, encoding: "utf8" },
+      { cwd: dir, env: EMPTY_ENV, timeout: timeoutMs, maxBuffer, encoding: "utf8" },
     );
     const code = (result.error as NodeJS.ErrnoException | undefined)?.code;
     if (code === "ETIMEDOUT") throw new RealRunError(`real node timed out after ${timeoutMs} ms`);
-    if (code === "ENOBUFS") throw new RealRunError(`real node exceeded the output limit of ${MAX_BUFFER} bytes`);
+    if (code === "ENOBUFS") throw new RealRunError(`real node exceeded the output limit of ${maxBuffer} bytes`);
     if (result.error) throw new RealRunError(`real node could not run: ${result.error.message}`);
     if (result.signal !== null) throw new RealRunError(`real node was killed by ${result.signal}`);
     if (result.status === null) throw new RealRunError("real node ended without an exit code");

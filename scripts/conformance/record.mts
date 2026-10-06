@@ -1,7 +1,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildExpectation, serializeExpectation, type CaptureBytecode } from "./expectation.mts";
+import { BytecodeCaptureError, captureBytecode } from "./bytecode-capture.mts";
+import { buildExpectation, parseExpectation, serializeExpectation, type CaptureBytecode } from "./expectation.mts";
 import { checkIntegrity, discoverFixtures, expectationFile } from "./fixtures.mts";
 import { RealRunError, runReal } from "./run-real.mts";
 import { checkPinnedRuntime, readTarget } from "./target.mts";
@@ -20,10 +21,10 @@ if (problems.length > 0) {
 }
 console.log(`Pinned runtime OK: Node.js ${target.node} (V8 ${target.v8}).`);
 
-// SEAM (Task 4): bytecode capture is wired here. Until then expectations hold
-// `outcomes` only; `buildExpectation` calls this for a `kind: "program"` fixture
-// that exits 0 or declares `expect: "run"`.
-const captureBytecode: CaptureBytecode | undefined = undefined;
+// Real Ignition bytecode, captured in a second run under --print-bytecode;
+// `buildExpectation` calls this for a `kind: "program"` fixture that exits 0 or
+// declares `expect: "run"`. It throws on any failure, which aborts the record.
+const capture: CaptureBytecode = (fixture) => captureBytecode(fixture.source, fixture.lang, fixture.meta.nodeArgs ?? []);
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "tests", "conformance");
 
@@ -35,16 +36,22 @@ try {
   process.exit(1);
 }
 
-// Run everything before writing anything: a RealRunError on any fixture aborts
-// the whole record and leaves the existing expectations untouched.
+// Run and validate everything before writing anything: a RealRunError, a failed
+// bytecode capture or a schema error on any fixture aborts the whole record and
+// leaves the existing expectations untouched.
 const results: { file: string; text: string }[] = [];
 for (const fixture of fixtures) {
   try {
-    const expectation = buildExpectation(fixture, target, runReal, captureBytecode);
+    const expectation = parseExpectation(buildExpectation(fixture, target, runReal, capture));
     results.push({ file: expectationFile(fixture), text: serializeExpectation(expectation) });
     console.log(`  recorded ${fixture.file} (${expectation.outcomes.length} outcome(s))`);
   } catch (e) {
-    const reason = e instanceof RealRunError ? e.message : e instanceof Error ? (e.stack ?? e.message) : String(e);
+    const reason =
+      e instanceof RealRunError || e instanceof BytecodeCaptureError
+        ? e.message
+        : e instanceof Error
+          ? (e.stack ?? e.message)
+          : String(e);
     console.error(`Recording aborted at fixture "${fixture.name}" (${fixture.file}): ${reason}`);
     process.exit(1);
   }

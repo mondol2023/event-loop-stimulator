@@ -40,6 +40,16 @@ These are refused with a diagnostic instead of approximated. The list is filled 
 
 Each gap names the construct, the difference from real Node/V8, and the fixture that shows it. There are none yet: the interpreter lands in Phase 3.
 
+## How real bytecode is captured
+
+`npm run conformance:record` captures the bytecode of every `kind: "program"` fixture that exits 0 or declares `expect: "run"`, in a second run of the fixture (`scripts/conformance/bytecode-capture.mts`). **The primary path shipped**; neither fallback (dropping `--permission`, name filters) was needed.
+
+- **Run.** The fixture runs through the same sandbox as its recorded run (`--permission` with no grants beyond read access to `scripts/conformance/mark.cjs`, empty env, timeout, 64 MiB heap), plus `--print-bytecode --no-compact --no-flush-bytecode --require mark.cjs`. The output cap is raised to 32 MiB, because the listing includes ~100 Node-internal functions (about 1 MB even for a small program).
+- **Root.** `mark.cjs` calls `__silicon_marker__()` just before Node compiles `main.cjs`/`main.cts`. The main script is the first `Parameter count 6` block after the marker block. The capture also checks that the 5-byte CJS wrapper block comes just before it.
+- **Children.** Children are found by walking SharedFunctionInfo addresses from the root's constant pool to the matching block headers, never by name. `--no-compact` keeps SFIs from moving and `--no-flush-bytecode` keeps each function compiled once. An address that is compiled twice, or a block whose name differs from the pool entry, aborts the record. A function that was never called has no block and is left out of `children`.
+- **`.cts` positions.** Node appends `\n\n//# sourceURL=file:///<temp dir>/main.cts` to a stripped `.cts`, so the main script's implicit `Return` position depends on the temp path. Positions that point into that appended text are moved back to the end of the program. The result is exactly what V8 prints for the same stripped text as `.cjs`, so a `.cts` and its whitespace-stripped `.cjs` give identical trees.
+- **Failure.** Any surprise in the listing throws `BytecodeCaptureError` and aborts the record, naming the fixture. A capture is never partial.
+
 ## Bytecode operand differences
 
 Opcode sequences match `--print-bytecode`. Operand-level differences are listed here, per fixture. There are none yet: the bytecode generator lands in Phase 2.

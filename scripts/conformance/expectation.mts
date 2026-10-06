@@ -75,10 +75,11 @@ export function serializeExpectation(expectation: Expectation): string {
 export type RunFn = (source: string, opts: RealRunOptions) => RealRun;
 
 /**
- * Seam for Task 4 (bytecode capture): the recorder passes a hook here and this
- * module only decides WHEN it is called. Absent in Task 3.
+ * The recorder's bytecode hook (bytecode-capture.mts); this module only decides
+ * WHEN it is called. It returns the main script's tree or THROWS: a failed
+ * capture must abort the record, never drop the bytecode silently.
  */
-export type CaptureBytecode = (fixture: Fixture) => RealFunctionBytecode | undefined;
+export type CaptureBytecode = (fixture: Fixture) => RealFunctionBytecode;
 
 export const DEFAULT_NONDETERMINISTIC_RUNS = 25;
 
@@ -125,9 +126,6 @@ export function buildExpectation(
 
   const wantsBytecode =
     fixture.kind === "program" && (fixture.meta.expect === "run" || outcomes.some((o) => o.exitCode === 0));
-  if (captureBytecode && wantsBytecode) {
-    const bytecode = captureBytecode(fixture);
-    if (bytecode !== undefined) expectation.bytecode = bytecode;
-  }
+  if (captureBytecode && wantsBytecode) expectation.bytecode = captureBytecode(fixture);
   return expectation;
 }
