@@ -2,6 +2,7 @@ import { parse } from "@babel/parser";
 import type { Program } from "estree";
 import type { Diagnostic } from "@/core/shared/diagnostics";
 import { err, ok, type Result } from "@/core/shared/result";
+import { hasUseStrictDirective } from "./ast";
 
 // Parse a script to ESTree (@babel/parser with the `estree` plugin). The user's
 // source is only parsed here, never executed.
@@ -48,15 +49,6 @@ function toDiagnostic(error: BabelError, source: string): Diagnostic {
   return { code: "E_SYNTAX", message, range: errorRange(source, start), hint };
 }
 
-function hasUseStrictDirective(program: Program): boolean {
-  for (const statement of program.body) {
-    const directive = (statement as { directive?: unknown }).directive;
-    if (statement.type !== "ExpressionStatement" || typeof directive !== "string") return false;
-    if (directive === "use strict") return true;
-  }
-  return false;
-}
-
 export function parseScript(js: string): Result<ParsedProgram, Diagnostic[]> {
   if (js.charCodeAt(0) === 0xfeff) {
     return err([
@@ -89,5 +81,5 @@ export function parseScript(js: string): Result<ParsedProgram, Diagnostic[]> {
   }
 
   const ast = file.program as unknown as Program;
-  return ok({ ast, strict: hasUseStrictDirective(ast), source: js });
+  return ok({ ast, strict: hasUseStrictDirective(ast.body), source: js });
 }
