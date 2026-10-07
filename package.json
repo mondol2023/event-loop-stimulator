@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "conformance": "vitest run --dir tests/conformance",
+    "docs:subset": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/subset-docs.mts",
     "conformance:record": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/conformance/record.mts",
     "seed": "tsx --conditions=react-server --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed.mts"
   },
