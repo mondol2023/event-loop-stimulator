@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "fixture": "empty-script",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 2,
+      "parameterCount": 6,
+      "registerCount": 0,
+      "frameSize": 0
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 1,
+        "position": {
+          "at": 88,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [],
+    "handlerTable": [],
+    "children": {}
+  }
+}

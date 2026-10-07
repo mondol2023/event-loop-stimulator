@@ -1,0 +1,143 @@
+{
+  "array-holes-inspect": {
+    "status": "pending"
+  },
+  "array-length-truncate": {
+    "status": "pending"
+  },
+  "array-methods": {
+    "status": "pending"
+  },
+  "async-await-order": {
+    "status": "pending"
+  },
+  "await-thenable-two-extra-ticks": {
+    "status": "pending"
+  },
+  "closure-counter": {
+    "status": "pending"
+  },
+  "closure-in-loop-let": {
+    "status": "pending"
+  },
+  "console-error-warn": {
+    "status": "pending"
+  },
+  "const-assign-error": {
+    "status": "pending"
+  },
+  "control-flow-loops": {
+    "status": "pending"
+  },
+  "default-params": {
+    "status": "pending"
+  },
+  "drain-after-each-callback": {
+    "status": "pending"
+  },
+  "empty-script": {
+    "status": "exact"
+  },
+  "error-in-timer-uncaught": {
+    "status": "pending"
+  },
+  "finally-passthrough": {
+    "status": "pending"
+  },
+  "inspect-nesting-and-wrapping": {
+    "status": "pending"
+  },
+  "interval-clear": {
+    "status": "pending"
+  },
+  "let-tdz-uncaught": {
+    "status": "pending"
+  },
+  "logical-nullish-optional": {
+    "status": "pending"
+  },
+  "loose-equality-coercions": {
+    "status": "pending"
+  },
+  "nexttick-vs-promise": {
+    "status": "pending"
+  },
+  "number-to-string": {
+    "status": "pending"
+  },
+  "object-delete-and-methods": {
+    "status": "pending"
+  },
+  "object-key-order": {
+    "status": "pending"
+  },
+  "promise-any-aggregate-error": {
+    "status": "pending"
+  },
+  "promise-combinators": {
+    "status": "pending"
+  },
+  "promise-resolve-same-promise": {
+    "status": "pending"
+  },
+  "promise-vs-timeout": {
+    "status": "pending"
+  },
+  "queuemicrotask-order": {
+    "status": "pending"
+  },
+  "recursion-factorial": {
+    "status": "pending"
+  },
+  "rejection-handled-late": {
+    "status": "pending"
+  },
+  "return-vs-return-await": {
+    "status": "pending"
+  },
+  "strict-mode-this": {
+    "status": "pending"
+  },
+  "strings-and-templates": {
+    "status": "pending"
+  },
+  "throw-non-error": {
+    "status": "pending"
+  },
+  "timeout-vs-immediate-main": {
+    "status": "pending"
+  },
+  "timer-delay-coercion": {
+    "status": "pending"
+  },
+  "timer-overflow-warning": {
+    "status": "pending"
+  },
+  "timers-same-expiry-order": {
+    "status": "pending"
+  },
+  "top-level-this-and-params": {
+    "status": "pending"
+  },
+  "try-catch-finally-order": {
+    "status": "pending"
+  },
+  "ts-strip-basic": {
+    "status": "pending"
+  },
+  "typeof-undeclared": {
+    "status": "pending"
+  },
+  "uncaught-reference-error": {
+    "status": "pending"
+  },
+  "uncaught-type-error": {
+    "status": "pending"
+  },
+  "unhandled-rejection": {
+    "status": "pending"
+  },
+  "var-hoisting": {
+    "status": "pending"
+  }
+}
