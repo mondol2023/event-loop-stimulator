@@ -1,4 +1,12 @@
-import type { Class, Function as EsFunction, Identifier, Node, Statement } from "estree";
+import type {
+  ArrowFunctionExpression,
+  Class,
+  FunctionDeclaration,
+  FunctionExpression,
+  Identifier,
+  Node,
+  Statement,
+} from "estree";
 import type { SourceRange } from "@/core/shared/diagnostics";
 import { childNodes, hasUseStrictDirective, rangeOf } from "../ast";
 import type { ParsedProgram } from "../parse";
@@ -25,6 +33,9 @@ const WRAPPER_PARAMETERS = ["exports", "require", "module", "__filename", "__dir
 
 const UNALLOCATED: Allocation = { kind: "register", index: -1 };
 const NO_RANGE: SourceRange = { start: 0, end: 0 };
+
+// estree's own union is named `Function`, which the repo-wide lint ban on the Function constructor also matches.
+type EsFunction = FunctionDeclaration | FunctionExpression | ArrowFunctionExpression;
 
 type PendingReference = {
   readonly node: Identifier;
