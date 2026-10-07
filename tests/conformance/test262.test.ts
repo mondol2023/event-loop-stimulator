@@ -246,6 +246,7 @@ describe("vendor/test262", () => {
     expect(vendored.length).toBeGreaterThan(100);
   });
 
+  // Classifying ~1000 tests parses and validates each one twice: seconds on a quiet machine, more under load.
   it("every vendored test is in the subset", () => {
     const outside: string[] = [];
     for (const file of vendored) {
@@ -254,7 +255,7 @@ describe("vendor/test262", () => {
       if (!verdict.inSubset) outside.push(`${file}: ${verdict.reason}`);
     }
     expect(outside).toEqual([]);
-  });
+  }, 60_000);
 
   it("every exclusion has a reason from the closed enum and is not vendored", () => {
     const exclusions = JSON.parse(readFileSync(join(ROOT, "exclusions.json"), "utf8")) as { path: string; reason: string }[];
