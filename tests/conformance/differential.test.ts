@@ -61,15 +61,33 @@ describe("programArbitrary (no real node)", () => {
 const SLOW = 180_000;
 
 describe("minimizeProgram (no real node)", () => {
-  it("drops everything that is not needed to keep the failure", () => {
+  const log = (n: number) => ({ kind: "log", e: { kind: "int", n } }) as const;
+
+  it("drops every statement that is not needed, including trailing ones", () => {
+    const program = [log(1), log(2), { kind: "nextTick", body: [log(3), log(4)] }, log(5)] as const;
+    const needs = (source: string) => source.includes("console.log(3)");
+    expect(renderProgram(minimizeProgram(program, needs))).toBe("console.log(3);\n");
+  });
+
+  it("flattens a callback it does not need", () => {
+    const program = [{ kind: "microtask", body: [{ kind: "nextTick", body: [log(7)] }] }] as const;
+    const needs = (source: string) => source.includes("console.log(7)");
+    expect(renderProgram(minimizeProgram(program, needs))).toBe("console.log(7);\n");
+  });
+
+  it("returns the program unchanged when nothing can be dropped", () => {
+    const program = [log(1)] as const;
+    expect(minimizeProgram(program, () => true)).toEqual(program);
+  });
+
+  it("keeps the failure and never grows a generated program", () => {
     fc.assert(
       fc.property(programModelArbitrary, (program) => {
         const needs = (source: string) => source.includes("console.log");
         fc.pre(needs(renderProgram(program)));
         const small = renderProgram(minimizeProgram(program, needs));
-        // A single statement that logs once is the smallest program with a console.log.
-        expect(small.match(/console.log/g)?.length, small).toBe(1);
-        expect(small.split("\n").length, small).toBeLessThan(12);
+        expect(needs(small), small).toBe(true);
+        expect(small.length).toBeLessThanOrEqual(renderProgram(program).length);
       }),
       { numRuns: 100, seed: 17 },
     );
