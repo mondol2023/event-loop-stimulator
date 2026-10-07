@@ -1,1 +1,2 @@
 tests/conformance/** text eol=lf
+vendor/test262/** -text
