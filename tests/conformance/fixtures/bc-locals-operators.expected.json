@@ -1,0 +1,815 @@
+{
+  "schema": 1,
+  "fixture": "bc-locals-operators",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 254,
+      "parameterCount": 6,
+      "registerCount": 33,
+      "frameSize": 264
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 193,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 2,
+        "text": "Star0"
+      },
+      {
+        "offset": 3,
+        "position": {
+          "at": 200,
+          "kind": "S"
+        },
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 5,
+        "text": "Star1"
+      },
+      {
+        "offset": 6,
+        "position": {
+          "at": 216,
+          "kind": "S"
+        },
+        "text": "LdaSmi.ExtraWide [100000]"
+      },
+      {
+        "offset": 12,
+        "text": "Star3"
+      },
+      {
+        "offset": 13,
+        "position": {
+          "at": 230,
+          "kind": "S"
+        },
+        "text": "LdaSmi [-5]"
+      },
+      {
+        "offset": 15,
+        "text": "Star4"
+      },
+      {
+        "offset": 16,
+        "position": {
+          "at": 241,
+          "kind": "S"
+        },
+        "text": "LdaConstant [0]"
+      },
+      {
+        "offset": 18,
+        "text": "Star5"
+      },
+      {
+        "offset": 19,
+        "position": {
+          "at": 253,
+          "kind": "S"
+        },
+        "text": "LdaConstant [1]"
+      },
+      {
+        "offset": 21,
+        "text": "Star6"
+      },
+      {
+        "offset": 22,
+        "position": {
+          "at": 268,
+          "kind": "S"
+        },
+        "text": "LdaTrue"
+      },
+      {
+        "offset": 23,
+        "text": "Star7"
+      },
+      {
+        "offset": 24,
+        "position": {
+          "at": 281,
+          "kind": "S"
+        },
+        "text": "LdaNull"
+      },
+      {
+        "offset": 25,
+        "text": "Star8"
+      },
+      {
+        "offset": 26,
+        "position": {
+          "at": 297,
+          "kind": "S"
+        },
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 27,
+        "text": "Star9"
+      },
+      {
+        "offset": 28,
+        "position": {
+          "at": 318,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 30,
+        "position": {
+          "at": 320,
+          "kind": "E"
+        },
+        "text": "Add r0, [0]"
+      },
+      {
+        "offset": 33,
+        "text": "Star r31"
+      },
+      {
+        "offset": 35,
+        "text": "Ldar r3"
+      },
+      {
+        "offset": 37,
+        "position": {
+          "at": 324,
+          "kind": "E"
+        },
+        "text": "Add r31, [1]"
+      },
+      {
+        "offset": 40,
+        "text": "Star10"
+      },
+      {
+        "offset": 41,
+        "position": {
+          "at": 343,
+          "kind": "S"
+        },
+        "text": "Ldar r3"
+      },
+      {
+        "offset": 43,
+        "position": {
+          "at": 350,
+          "kind": "E"
+        },
+        "text": "Add r1, [3]"
+      },
+      {
+        "offset": 46,
+        "position": {
+          "at": 345,
+          "kind": "E"
+        },
+        "text": "Add r0, [2]"
+      },
+      {
+        "offset": 49,
+        "text": "Star11"
+      },
+      {
+        "offset": 50,
+        "position": {
+          "at": 369,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 52,
+        "position": {
+          "at": 371,
+          "kind": "E"
+        },
+        "text": "SubSmi [1], [4]"
+      },
+      {
+        "offset": 55,
+        "text": "Star12"
+      },
+      {
+        "offset": 56,
+        "position": {
+          "at": 383,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 58,
+        "position": {
+          "at": 385,
+          "kind": "E"
+        },
+        "text": "MulSmi [3], [5]"
+      },
+      {
+        "offset": 61,
+        "text": "Star13"
+      },
+      {
+        "offset": 62,
+        "position": {
+          "at": 397,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 64,
+        "position": {
+          "at": 399,
+          "kind": "E"
+        },
+        "text": "DivSmi [2], [6]"
+      },
+      {
+        "offset": 67,
+        "text": "Star14"
+      },
+      {
+        "offset": 68,
+        "position": {
+          "at": 411,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 70,
+        "position": {
+          "at": 413,
+          "kind": "E"
+        },
+        "text": "ModSmi [2], [7]"
+      },
+      {
+        "offset": 73,
+        "text": "Star15"
+      },
+      {
+        "offset": 74,
+        "position": {
+          "at": 426,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 76,
+        "position": {
+          "at": 428,
+          "kind": "E"
+        },
+        "text": "ExpSmi [2], [8]"
+      },
+      {
+        "offset": 79,
+        "text": "Star r16"
+      },
+      {
+        "offset": 81,
+        "position": {
+          "at": 445,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 83,
+        "position": {
+          "at": 448,
+          "kind": "E"
+        },
+        "text": "BitwiseOrSmi [4], [10]"
+      },
+      {
+        "offset": 86,
+        "text": "Star r31"
+      },
+      {
+        "offset": 88,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 90,
+        "position": {
+          "at": 458,
+          "kind": "E"
+        },
+        "text": "BitwiseXorSmi [1], [11]"
+      },
+      {
+        "offset": 93,
+        "position": {
+          "at": 453,
+          "kind": "E"
+        },
+        "text": "BitwiseAnd r31, [9]"
+      },
+      {
+        "offset": 96,
+        "text": "Star r17"
+      },
+      {
+        "offset": 98,
+        "position": {
+          "at": 474,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 100,
+        "position": {
+          "at": 476,
+          "kind": "E"
+        },
+        "text": "ShiftLeftSmi [2], [14]"
+      },
+      {
+        "offset": 103,
+        "position": {
+          "at": 481,
+          "kind": "E"
+        },
+        "text": "ShiftRightSmi [1], [13]"
+      },
+      {
+        "offset": 106,
+        "position": {
+          "at": 486,
+          "kind": "E"
+        },
+        "text": "ShiftRightLogicalSmi [1], [12]"
+      },
+      {
+        "offset": 109,
+        "text": "Star r18"
+      },
+      {
+        "offset": 111,
+        "position": {
+          "at": 504,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 113,
+        "position": {
+          "at": 504,
+          "kind": "E"
+        },
+        "text": "BitwiseNot [15]"
+      },
+      {
+        "offset": 115,
+        "text": "Star r19"
+      },
+      {
+        "offset": 117,
+        "position": {
+          "at": 519,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 119,
+        "position": {
+          "at": 521,
+          "kind": "E"
+        },
+        "text": "TestLessThan r0, [16]"
+      },
+      {
+        "offset": 122,
+        "text": "Star r20"
+      },
+      {
+        "offset": 124,
+        "position": {
+          "at": 533,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 126,
+        "position": {
+          "at": 535,
+          "kind": "E"
+        },
+        "text": "TestGreaterThan r0, [17]"
+      },
+      {
+        "offset": 129,
+        "text": "Star r21"
+      },
+      {
+        "offset": 131,
+        "position": {
+          "at": 549,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 133,
+        "position": {
+          "at": 551,
+          "kind": "E"
+        },
+        "text": "TestLessThanOrEqual r0, [18]"
+      },
+      {
+        "offset": 136,
+        "text": "Star r22"
+      },
+      {
+        "offset": 138,
+        "position": {
+          "at": 567,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 140,
+        "position": {
+          "at": 569,
+          "kind": "E"
+        },
+        "text": "TestGreaterThanOrEqual r0, [19]"
+      },
+      {
+        "offset": 143,
+        "text": "Star r23"
+      },
+      {
+        "offset": 145,
+        "position": {
+          "at": 586,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 147,
+        "position": {
+          "at": 588,
+          "kind": "E"
+        },
+        "text": "TestEqualStrict r0, [20]"
+      },
+      {
+        "offset": 150,
+        "text": "Star r24"
+      },
+      {
+        "offset": 152,
+        "position": {
+          "at": 607,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 154,
+        "position": {
+          "at": 609,
+          "kind": "E"
+        },
+        "text": "TestEqualStrict r0, [21]"
+      },
+      {
+        "offset": 157,
+        "text": "LogicalNot"
+      },
+      {
+        "offset": 158,
+        "text": "Star r25"
+      },
+      {
+        "offset": 160,
+        "position": {
+          "at": 624,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 162,
+        "position": {
+          "at": 626,
+          "kind": "E"
+        },
+        "text": "TestEqual r0, [22]"
+      },
+      {
+        "offset": 165,
+        "text": "Star r26"
+      },
+      {
+        "offset": 167,
+        "position": {
+          "at": 643,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 169,
+        "position": {
+          "at": 645,
+          "kind": "E"
+        },
+        "text": "TestEqual r0, [23]"
+      },
+      {
+        "offset": 172,
+        "text": "LogicalNot"
+      },
+      {
+        "offset": 173,
+        "text": "Star r27"
+      },
+      {
+        "offset": 175,
+        "position": {
+          "at": 665,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 177,
+        "text": "ToBooleanLogicalNot"
+      },
+      {
+        "offset": 178,
+        "text": "Star r28"
+      },
+      {
+        "offset": 180,
+        "position": {
+          "at": 677,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 182,
+        "position": {
+          "at": 677,
+          "kind": "E"
+        },
+        "text": "Negate [24]"
+      },
+      {
+        "offset": 184,
+        "text": "Star r29"
+      },
+      {
+        "offset": 186,
+        "position": {
+          "at": 688,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 188,
+        "position": {
+          "at": 688,
+          "kind": "E"
+        },
+        "text": "ToNumber [25]"
+      },
+      {
+        "offset": 190,
+        "text": "Star r30"
+      },
+      {
+        "offset": 192,
+        "position": {
+          "at": 692,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 194,
+        "text": "AddSmi [1], [26]"
+      },
+      {
+        "offset": 197,
+        "text": "Star0"
+      },
+      {
+        "offset": 198,
+        "position": {
+          "at": 700,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 200,
+        "position": {
+          "at": 705,
+          "kind": "E"
+        },
+        "text": "Sub r1, [27]"
+      },
+      {
+        "offset": 203,
+        "text": "Mov r1, r31"
+      },
+      {
+        "offset": 206,
+        "text": "Star1"
+      },
+      {
+        "offset": 207,
+        "position": {
+          "at": 708,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 209,
+        "position": {
+          "at": 713,
+          "kind": "E"
+        },
+        "text": "Mul r0, [28]"
+      },
+      {
+        "offset": 212,
+        "text": "Mov r0, r31"
+      },
+      {
+        "offset": 215,
+        "text": "Star0"
+      },
+      {
+        "offset": 216,
+        "position": {
+          "at": 716,
+          "kind": "S"
+        },
+        "text": "Inc [29]"
+      },
+      {
+        "offset": 218,
+        "text": "Star0"
+      },
+      {
+        "offset": 219,
+        "position": {
+          "at": 721,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 221,
+        "text": "Dec [30]"
+      },
+      {
+        "offset": 223,
+        "text": "Star1"
+      },
+      {
+        "offset": 224,
+        "position": {
+          "at": 726,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 226,
+        "text": "ToNumeric [32]"
+      },
+      {
+        "offset": 228,
+        "text": "Star r31"
+      },
+      {
+        "offset": 230,
+        "text": "Inc [32]"
+      },
+      {
+        "offset": 232,
+        "text": "Star0"
+      },
+      {
+        "offset": 233,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 235,
+        "position": {
+          "at": 731,
+          "kind": "E"
+        },
+        "text": "ToNumeric [33]"
+      },
+      {
+        "offset": 237,
+        "text": "Star r32"
+      },
+      {
+        "offset": 239,
+        "text": "Dec [33]"
+      },
+      {
+        "offset": 241,
+        "text": "Star1"
+      },
+      {
+        "offset": 242,
+        "text": "Ldar r32"
+      },
+      {
+        "offset": 244,
+        "position": {
+          "at": 734,
+          "kind": "E"
+        },
+        "text": "Add r31, [31]"
+      },
+      {
+        "offset": 247,
+        "text": "Star2"
+      },
+      {
+        "offset": 248,
+        "position": {
+          "at": 741,
+          "kind": "S"
+        },
+        "text": "LdaSmi [3]"
+      },
+      {
+        "offset": 250,
+        "text": "Star1"
+      },
+      {
+        "offset": 251,
+        "text": "Star0"
+      },
+      {
+        "offset": 252,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 253,
+        "position": {
+          "at": 751,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<HeapNumber 0.5>",
+      "<String[4]: #text>"
+    ],
+    "handlerTable": [],
+    "children": {}
+  }
+}

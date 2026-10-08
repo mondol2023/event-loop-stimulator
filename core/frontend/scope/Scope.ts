@@ -30,7 +30,9 @@ export type Allocation =
   | { readonly kind: "register"; readonly index: number }
   | { readonly kind: "context"; readonly index: number }
   | { readonly kind: "parameter"; readonly index: number }
-  | { readonly kind: "closure" };
+  | { readonly kind: "closure" }
+  /** No code names the variable (no reference, no initializer): V8 gives it no storage at all. */
+  | { readonly kind: "unused" };
 
 export type Variable = {
   readonly name: string;
@@ -41,6 +43,8 @@ export type Variable = {
   allocation: Allocation;
   /** True when a function other than the declaring one references it (V8 context allocation). */
   captured: boolean;
+  /** True when a reference resolves to it or its declaration initializes it; only such variables get storage. */
+  used: boolean;
   /** Position of the argument for a `param`, kept even when the variable moves to the context. */
   parameterIndex?: number;
   /** A `var` that exists only because of Annex B.3.3 block-function hoisting (sloppy code). */

@@ -170,16 +170,37 @@ describe("BytecodeArrayBuilder: registers", () => {
     expect(b.allocateRegister()).toBe(1);
   });
 
-  it("reports the high-water mark as the register count and eight bytes per register as the frame size", () => {
+  it("reports the highest register an instruction names as the register count, eight bytes each in the frame", () => {
     const b = new BytecodeArrayBuilder({ parameterCount: 2 });
     b.allocateRegister();
     const mark = b.registerTop;
     b.allocateRegister();
-    b.allocateRegister();
+    const last = b.allocateRegister();
     b.releaseRegisters(mark);
     b.allocateRegister();
+    b.emit("Star", local(last));
     const { header } = b.build();
     expect(header).toMatchObject({ parameterCount: 2, registerCount: 3, frameSize: 24 });
+  });
+
+  it("does not count a temporary that the register optimizer left out of the instructions", () => {
+    // V8 gives `a + (b + c)` with three locals and one local result no frame beyond the four locals.
+    const b = new BytecodeArrayBuilder({ parameterCount: 6, localCount: 4, optimizeRegisters: true });
+    const t = b.allocateRegister();
+    b.emit("Ldar", local(0));
+    b.emit("Star", local(t));
+    b.emit("Ldar", local(1));
+    b.emit("Add", local(t), 0);
+    expect(b.build().header).toMatchObject({ registerCount: 4, frameSize: 32 });
+  });
+
+  it("counts every register of a list operand", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const callee = b.allocateRegister();
+    const first = b.allocateRegisterList(3);
+    b.allocateRegisterList(5); // taken, never named
+    b.emit("CallUndefinedReceiver", local(callee), local(first), 3, 0);
+    expect(b.build().header).toMatchObject({ registerCount: 4 });
   });
 
   it("reports no registers for a function that needs none", () => {
@@ -381,7 +402,9 @@ describe("BytecodeArrayBuilder: what the writer leaves out", () => {
 describe("BytecodeArrayBuilder: fixed registers", () => {
   it("starts temporaries after the locals and counts the locals in the frame", () => {
     const b = new BytecodeArrayBuilder({ parameterCount: 6, localCount: 18 });
-    expect(b.allocateRegister()).toBe(18);
+    const t = b.allocateRegister();
+    expect(t).toBe(18);
+    b.emit("Star", local(t));
     expect(b.build().header).toMatchObject({ registerCount: 19, frameSize: 152 });
   });
 

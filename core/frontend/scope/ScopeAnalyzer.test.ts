@@ -402,3 +402,31 @@ describe("lookup maps", () => {
     expect(tree.scopeOf.get(fnScope(tree, "f").node)).toBe(fnScope(tree, "f"));
   });
 });
+
+describe("allocation: variables nothing uses", () => {
+  // V8 gives a stack slot only to a variable some code names: a reference, or the initialization
+  // `var x = 1` / `let x;` makes. (Read off `--print-bytecode`: the unused ones take no register.)
+  it("gives no register to a bare var, an unreferenced function or a never-named variable", () => {
+    const tree = analyze("var u; var a = 1; function g() {} var b = 2;");
+    expect(variable(tree.root, "u").allocation).toEqual({ kind: "unused" });
+    expect(variable(tree.root, "g").allocation).toEqual({ kind: "unused" });
+    expect(variable(tree.root, "a").allocation).toEqual({ kind: "register", index: 0 });
+    expect(variable(tree.root, "b").allocation).toEqual({ kind: "register", index: 1 });
+    expect(tree.root.stackSlots).toBe(2);
+  });
+
+  it("allocates a bare declaration once it is assigned or read, and let x; always", () => {
+    const tree = analyze("var r; r = 2; var q; q; let x; var p; var p = 3;");
+    expect(variable(tree.root, "r").allocation).toEqual({ kind: "register", index: 0 });
+    expect(variable(tree.root, "q").allocation).toEqual({ kind: "register", index: 1 });
+    expect(variable(tree.root, "x").allocation).toEqual({ kind: "register", index: 2 });
+    expect(variable(tree.root, "p").allocation).toEqual({ kind: "register", index: 3 });
+  });
+
+  it("allocates the variable of a for-in or for-of loop and a called function", () => {
+    const tree = analyze("var o; for (var k in o) {} function f() {} f();");
+    expect(variable(tree.root, "o").allocation).toEqual({ kind: "register", index: 0 });
+    expect(variable(tree.root, "k").allocation).toEqual({ kind: "register", index: 1 });
+    expect(variable(tree.root, "f").allocation).toEqual({ kind: "register", index: 2 });
+  });
+});

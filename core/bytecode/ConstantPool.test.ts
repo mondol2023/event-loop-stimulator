@@ -140,3 +140,41 @@ describe("formatHeapNumber", () => {
     expect(formatHeapNumber(NaN)).toBe("nan");
   });
 });
+
+describe("ConstantPool string printing", () => {
+  const printed = (value: string, folded = false): string => {
+    const pool = new ConstantPool();
+    pool.add(folded ? { kind: "string", value, folded } : { kind: "string", value });
+    return pool.printEntries()[0] as string;
+  };
+
+  // Every expectation is what the pinned Node printed for a string constant of that text.
+  it("escapes control characters and Latin-1 text as V8 prints them", () => {
+    expect(printed("tab\there")).toBe("<String[8]: #tab\\x09here>");
+    expect(printed("a\nb")).toBe("<String[3]: #a\\nb>");
+    expect(printed("é")).toBe("<String[1]: #\\xe9>");
+    expect(printed("\0\x01\x7f")).toBe("<String[3]: #\\x00\\x01\\x7f>");
+    expect(printed("")).toBe("<String[0]: #>");
+  });
+
+  it("marks a two-byte string with u# and escapes every non-ASCII unit with four digits", () => {
+    expect(printed("\u{1F600}")).toBe("<String[2]: u#\\xd83d\\xde00>");
+    expect(printed("日本")).toBe("<String[2]: u#\\x65e5\\x672c>");
+  });
+
+  it("prints a concatenation V8 folded as a quoted cons string", () => {
+    expect(printed("xy", true)).toBe('<String[2]: "xy">');
+  });
+
+  it("does not deduplicate two folded strings", () => {
+    const pool = new ConstantPool();
+    const first = pool.add({ kind: "string", value: "xy", folded: true });
+    expect(pool.add({ kind: "string", value: "xy", folded: true })).not.toBe(first);
+  });
+
+  it("prints a BigInt in decimal", () => {
+    const pool = new ConstantPool();
+    pool.add({ kind: "bigint", text: "0x10" });
+    expect(pool.printEntries()).toEqual(["<BigInt 16>"]);
+  });
+});

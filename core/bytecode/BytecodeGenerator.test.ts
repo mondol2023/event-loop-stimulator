@@ -46,12 +46,12 @@ describe("generateBytecode: the wrapper function", () => {
 
 describe("generateBytecode: what it cannot compile yet", () => {
   it("answers with E_NOT_YET_SUPPORTED naming the construct and its range", () => {
-    const result = generate("let a = 1;");
+    const result = generate("class A {}");
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toHaveLength(1);
     expect(result.error[0]).toMatchObject({ code: "E_NOT_YET_SUPPORTED", range: { start: 0, end: 10 } });
-    expect(result.error[0]?.message).toContain("VariableDeclaration");
+    expect(result.error[0]?.message).toContain("ClassDeclaration");
     expect(result.error[0]?.hint.length).toBeGreaterThan(0);
   });
 

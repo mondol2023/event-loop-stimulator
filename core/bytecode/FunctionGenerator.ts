@@ -1,11 +1,11 @@
 import type {
   AssignmentExpression,
   BinaryExpression,
+  ConditionalExpression,
   Expression,
   Identifier,
   LogicalExpression,
   Node,
-  Pattern,
   Statement,
   TemplateLiteral,
   UnaryExpression,
@@ -13,7 +13,7 @@ import type {
   VariableDeclaration,
 } from "estree";
 import type { ReferenceInfo, ScopeTree, Variable } from "@/core/frontend/scope/Scope";
-import { BytecodeArrayBuilder, type Label } from "./BytecodeArrayBuilder";
+import { BytecodeArrayBuilder } from "./BytecodeArrayBuilder";
 import { BytecodeLabels } from "./BytecodeLabels";
 import { type Opcode, THIS, argument, local } from "./bytecodes";
 import { type LiteralValue, isSmi, literalOf, toBooleanOf } from "./literals";
@@ -47,6 +47,8 @@ class ResultScope {
 
   constructor(readonly kind: ResultKind) {}
 }
+
+type Entered = { readonly previous: ResultScope; readonly scope: ResultScope; readonly top: number };
 
 const ARITHMETIC: Readonly<Record<string, Opcode>> = {
   "+": "Add",
@@ -89,10 +91,22 @@ const COMPARISON: Readonly<Record<string, Opcode>> = {
   instanceof: "TestInstanceOf",
 };
 
+/** The literal `typeof x` is compared with, as the operand of `TestTypeOf`. */
+const TYPEOF_FLAGS: Readonly<Record<string, number>> = {
+  number: 0,
+  string: 1,
+  symbol: 2,
+  boolean: 3,
+  bigint: 4,
+  undefined: 5,
+  function: 6,
+  object: 7,
+};
+
 /** `a * 2` and `2 * a` are the same to the generator; `+` is not commutative for it (strings). */
 const COMMUTATIVE_WITH_SMI_LEFT: ReadonlySet<string> = new Set(["|", "&", "^", "*"]);
 
-type Lhs = { readonly kind: "variable"; readonly identifier: Identifier };
+type Chain = { readonly operator: string; readonly operands: readonly Expression[]; readonly positions: readonly number[] };
 
 export type FunctionGeneratorOptions = {
   readonly source: string;
@@ -139,12 +153,11 @@ export class FunctionGenerator {
   }
 
   private visitStatement(node: Statement): void {
-    const b = this.builder;
     switch (node.type) {
       case "EmptyStatement":
         return;
       case "ExpressionStatement":
-        b.setStatementPosition(startOf(node));
+        this.builder.setStatementPosition(startOf(node));
         this.visitForEffect(node.expression);
         return;
       case "VariableDeclaration":
@@ -159,39 +172,33 @@ export class FunctionGenerator {
     for (const declarator of node.declarations) {
       const target = declarator.id;
       if (target.type !== "Identifier") throw new NotYetSupported(target);
-      let init: Expression | null | undefined = declarator.init;
+      const init = declarator.init;
       let position: number;
-      if (init) {
-        position = startOf(init);
-      } else if (node.kind === "let") {
-        // `let x;` initializes x to undefined, at the position of the name.
-        position = startOf(target);
-      } else {
-        continue;
-      }
-      this.builder.setStatementPosition(position);
+      if (init) position = startOf(init);
+      else if (node.kind === "let") position = startOf(target); // `let x;` assigns undefined at the name
+      else continue;
       const top = this.builder.registerTop;
-      const scope = this.enter("effect");
+      this.builder.setStatementPosition(position);
+      const entered = this.enter("effect");
       if (init) this.visitForAccumulatorValue(init);
       else this.builder.emit("LdaUndefined");
-      init = undefined;
       this.builder.setExpressionPosition(position);
-      this.assignToVariable({ kind: "variable", identifier: target }, "init");
-      this.leave(scope);
+      this.assignToVariable(target, "init");
+      this.leave(entered);
       this.builder.releaseRegisters(top);
     }
   }
 
   // Result scopes.
 
-  private enter(kind: ResultKind): { readonly previous: ResultScope; readonly scope: ResultScope; readonly top: number } {
+  private enter(kind: ResultKind): Entered {
     const previous = this.result;
     const scope = new ResultScope(kind);
     this.result = scope;
     return { previous, scope, top: this.builder.registerTop };
   }
 
-  private leave(entered: { readonly previous: ResultScope; readonly top: number }): void {
+  private leave(entered: Entered): void {
     this.result = entered.previous;
     this.builder.releaseRegisters(entered.top);
   }
@@ -257,6 +264,14 @@ export class FunctionGenerator {
     }
   }
 
+  private jumpIfTrue(hint: TypeHint, labels: BytecodeLabels): void {
+    this.builder.jump(hint === "boolean" ? "JumpIfTrue" : "JumpIfToBooleanTrue", labels.new());
+  }
+
+  private jumpIfFalse(hint: TypeHint, labels: BytecodeLabels): void {
+    this.builder.jump(hint === "boolean" ? "JumpIfFalse" : "JumpIfToBooleanFalse", labels.new());
+  }
+
   private setResultIsBoolean(): void {
     this.result.typeHint = "boolean";
   }
@@ -265,18 +280,17 @@ export class FunctionGenerator {
     this.result.typeHint = "string";
   }
 
+  private newLabels(): BytecodeLabels {
+    return new BytecodeLabels(this.builder);
+  }
+
   // Expressions.
 
   private visitExpression(node: Expression): void {
     // V8's parser has already folded literals by the time the generator runs.
-    const literal = node.type === "Literal" ? undefined : literalOf(node);
+    const literal = literalOf(node);
     if (literal) return this.visitLiteralValue(literal);
     switch (node.type) {
-      case "Literal": {
-        const value = literalOf(node);
-        if (!value) throw new NotYetSupported(node);
-        return this.visitLiteralValue(value);
-      }
       case "Identifier":
         this.builder.setExpressionPosition(startOf(node));
         return this.loadIdentifier(node, false);
@@ -309,7 +323,12 @@ export class FunctionGenerator {
     const b = this.builder;
     switch (literal.kind) {
       case "number":
-        this.loadNumber(literal.value);
+        if (isSmi(literal.value)) {
+          if (literal.value === 0) b.emit("LdaZero");
+          else b.emit("LdaSmi", literal.value);
+        } else {
+          b.emit("LdaConstant", b.constantPool.add({ kind: "number", value: literal.value }));
+        }
         return;
       case "string":
         b.emit("LdaConstant", this.stringConstant(literal.value, literal.folded));
@@ -328,18 +347,8 @@ export class FunctionGenerator {
     }
   }
 
-  private loadNumber(value: number): void {
-    const b = this.builder;
-    if (isSmi(value)) {
-      if (value === 0) b.emit("LdaZero");
-      else b.emit("LdaSmi", value);
-    } else {
-      b.emit("LdaConstant", b.constantPool.add({ kind: "number", value }));
-    }
-  }
-
   private stringConstant(value: string, folded = false): number {
-    return this.builder.constantPool.add({ kind: "string", value, folded });
+    return this.builder.constantPool.add(folded ? { kind: "string", value, folded } : { kind: "string", value });
   }
 
   // Variables.
@@ -348,12 +357,6 @@ export class FunctionGenerator {
     const reference = this.scopes.referenceOf.get(identifier);
     if (!reference) throw new NotYetSupported(identifier);
     return reference;
-  }
-
-  private variableOf(identifier: Identifier): Variable | "global" {
-    const declared = this.scopes.declarationOf.get(identifier);
-    if (declared) return declared;
-    return this.referenceOf(identifier).resolved;
   }
 
   private cachedSlot(key: string, kind: "global-load" | "global-store"): number {
@@ -395,17 +398,18 @@ export class FunctionGenerator {
     }
   }
 
-  /** V8's BuildVariableAssignment: the accumulator is stored into the variable. */
-  private assignToVariable(lhs: Lhs, op: "init" | "assign"): void {
-    const reference = this.scopes.referenceOf.get(lhs.identifier);
-    const variable = this.variableOf(lhs.identifier);
+  /** V8's BuildVariableAssignment: the accumulator is stored into the variable `identifier` names. */
+  private assignToVariable(identifier: Identifier, op: "init" | "assign"): void {
+    const reference = this.scopes.referenceOf.get(identifier);
+    const variable = this.scopes.declarationOf.get(identifier) ?? reference?.resolved;
+    if (!variable) throw new NotYetSupported(identifier);
     if (variable === "global") {
-      const slot = this.cachedSlot(`store:${lhs.identifier.name}`, "global-store");
-      this.builder.emit("StaGlobal", this.stringConstant(lhs.identifier.name), slot);
+      const slot = this.cachedSlot(`store:${identifier.name}`, "global-store");
+      this.builder.emit("StaGlobal", this.stringConstant(identifier.name), slot);
       return;
     }
-    if (reference?.needsTdzCheck) throw new NotYetSupported(lhs.identifier);
-    if (variable.kind === "const" && op !== "init") throw new NotYetSupported(lhs.identifier);
+    if (reference?.needsTdzCheck) throw new NotYetSupported(identifier);
+    if (variable.kind === "const" && op !== "init") throw new NotYetSupported(identifier);
     const allocation = variable.allocation;
     switch (allocation.kind) {
       case "register":
@@ -415,34 +419,19 @@ export class FunctionGenerator {
         this.builder.emit("Star", argument(allocation.index));
         return;
       default:
-        throw new NotYetSupported(lhs.identifier);
+        throw new NotYetSupported(identifier);
     }
   }
 
-  // Operators.
+  // Unary operators.
 
   private visitUnary(node: UnaryExpression): void {
     const b = this.builder;
-    const position = this.unaryPosition(node);
     switch (node.operator) {
-      case "!": {
-        if (this.result.kind === "effect") {
-          this.visitForEffect(node.argument);
-        } else if (this.result.kind === "test") {
-          const scope = this.result;
-          [scope.thenLabels, scope.elseLabels] = [scope.elseLabels, scope.thenLabels];
-          scope.fallthrough = scope.fallthrough === "then" ? "else" : scope.fallthrough === "else" ? "then" : "none";
-          this.visitInSameTestScope(node.argument);
-        } else {
-          const hint = this.visitForAccumulatorValue(node.argument);
-          b.emit(hint === "boolean" ? "LogicalNot" : "ToBooleanLogicalNot");
-          this.setResultIsBoolean();
-        }
-        return;
-      }
+      case "!":
+        return this.visitNot(node.argument);
       case "typeof": {
-        if (node.argument.type === "Identifier") this.loadIdentifierForTypeof(node.argument);
-        else this.visitForAccumulatorValue(node.argument);
+        this.visitForTypeOfValue(node.argument);
         b.emit("TypeOf", b.feedback.addSlot("binary-op"));
         this.setResultIsString();
         return;
@@ -455,7 +444,7 @@ export class FunctionGenerator {
       case "-":
       case "~": {
         this.visitForAccumulatorValue(node.argument);
-        b.setExpressionPosition(position);
+        b.setExpressionPosition(startOf(node));
         const opcode = node.operator === "+" ? "ToNumber" : node.operator === "-" ? "Negate" : "BitwiseNot";
         b.emit(opcode, b.feedback.addSlot("binary-op"));
         return;
@@ -465,30 +454,49 @@ export class FunctionGenerator {
     }
   }
 
-  private loadIdentifierForTypeof(identifier: Identifier): void {
-    const entered = this.enter("value");
-    this.loadIdentifier(identifier, true);
-    this.leave(entered);
+  /** `!operand`; in a test it only swaps the targets and what falls through. */
+  private visitNot(operand: Expression): void {
+    const b = this.builder;
+    if (this.result.kind === "effect") {
+      this.visitForEffect(operand);
+    } else if (this.result.kind === "test") {
+      const scope = this.result;
+      [scope.thenLabels, scope.elseLabels] = [scope.elseLabels, scope.thenLabels];
+      scope.fallthrough = scope.fallthrough === "then" ? "else" : scope.fallthrough === "else" ? "then" : "none";
+      this.visitInSameTestScope(operand);
+    } else {
+      const hint = this.visitForAccumulatorValue(operand);
+      b.emit(hint === "boolean" ? "LogicalNot" : "ToBooleanLogicalNot");
+      this.setResultIsBoolean();
+    }
   }
 
-  private unaryPosition(node: UnaryExpression): number {
-    return startOf(node);
+  /** The operand of `typeof`: an unresolved name must not throw. */
+  private visitForTypeOfValue(operand: Expression): void {
+    if (operand.type === "Identifier") {
+      const entered = this.enter("value");
+      this.loadIdentifier(operand, true);
+      this.leave(entered);
+    } else {
+      this.visitForAccumulatorValue(operand);
+    }
   }
 
-  private isSmiLiteral(node: Expression): number | undefined {
-    const literal = literalOf(node);
-    return literal?.kind === "number" && isSmi(literal.value) ? literal.value : undefined;
-  }
+  // Binary operators.
 
   private visitBinary(node: BinaryExpression): void {
     if (node.left.type === "PrivateIdentifier") throw new NotYetSupported(node);
     const operator = node.operator;
     if (operator in COMPARISON) return this.visitCompare(node);
-    if (operator === "!=" || operator === "!==") return this.visitNegatedCompare(node);
+    if (operator === "!=" || operator === "!==") {
+      // V8's parser reads `a != b` as `!(a == b)`.
+      const equal: BinaryExpression = { ...node, operator: operator === "!=" ? "==" : "===" };
+      return this.visitNot(equal);
+    }
     if (!(operator in ARITHMETIC)) throw new NotYetSupported(node);
-    const chain = this.collectChain(node, node.operator);
+    const chain = this.collectChain(node);
     if (chain.operands.length > 2) return this.visitNaryArithmetic(chain);
-    this.visitArithmetic(node, node.left, node.right, operator, this.operatorAt(node.left));
+    this.visitArithmetic(node.left, node.right, operator, this.operatorAt(node.left));
   }
 
   private operatorAt(left: Node): number {
@@ -496,10 +504,8 @@ export class FunctionGenerator {
   }
 
   /** `a op b op c ...` as one operation, the way V8's parser collapses same-operator chains. */
-  private collectChain(
-    node: BinaryExpression | LogicalExpression,
-    operator: string,
-  ): { readonly operands: Expression[]; readonly positions: number[] } {
+  private collectChain(node: BinaryExpression | LogicalExpression): Chain {
+    const operator = node.operator;
     const operands: Expression[] = [];
     const positions: number[] = [];
     let current: Expression = node;
@@ -508,8 +514,8 @@ export class FunctionGenerator {
         (current.type === "BinaryExpression" || current.type === "LogicalExpression") &&
         current.operator === operator &&
         operator !== "**" &&
-        literalOf(current) === undefined &&
-        current.left.type !== "PrivateIdentifier"
+        current.left.type !== "PrivateIdentifier" &&
+        literalOf(current) === undefined
       ) {
         operands.unshift(current.right);
         positions.unshift(this.operatorAt(current.left));
@@ -519,26 +525,27 @@ export class FunctionGenerator {
         break;
       }
     }
-    return { operands, positions };
+    return { operator, operands, positions };
   }
 
-  private visitArithmetic(node: BinaryExpression, left: Expression, right: Expression, operator: string, position: number): void {
+  private smiLiteralOf(node: Expression): number | undefined {
+    const literal = literalOf(node);
+    return literal?.kind === "number" && isSmi(literal.value) ? literal.value : undefined;
+  }
+
+  private visitArithmetic(left: Expression, right: Expression, operator: string, position: number): void {
     const b = this.builder;
     const slot = b.feedback.addSlot("binary-op");
-    const rightSmi = this.isSmiLiteral(right);
-    const leftSmi = COMMUTATIVE_WITH_SMI_LEFT.has(operator) ? this.isSmiLiteral(left) : undefined;
+    const rightSmi = this.smiLiteralOf(right);
+    const leftSmi = COMMUTATIVE_WITH_SMI_LEFT.has(operator) ? this.smiLiteralOf(left) : undefined;
     if (rightSmi !== undefined || leftSmi !== undefined) {
       const subexpression = rightSmi !== undefined ? left : right;
-      const literal = (rightSmi ?? leftSmi) as number;
       const hint = this.visitForAccumulatorValue(subexpression);
       b.setExpressionPosition(position);
-      b.emit(SMI_ARITHMETIC[operator] as Opcode, literal, slot);
+      b.emit(SMI_ARITHMETIC[operator] as Opcode, (rightSmi ?? leftSmi) as number, slot);
       if (operator === "+" && hint === "string") this.setResultIsString();
       return;
     }
-    const entered = this.enter("value");
-    void entered;
-    this.leave(entered);
     const leftHint = this.visitForAccumulatorValue(left);
     const register = b.allocateRegister();
     b.emit("Star", local(register));
@@ -546,78 +553,375 @@ export class FunctionGenerator {
     b.setExpressionPosition(position);
     b.emit(ARITHMETIC[operator] as Opcode, local(register), slot);
     if (operator === "+" && (leftHint === "string" || rightHint === "string")) this.setResultIsString();
-    void node;
   }
 
-  private visitNaryArithmetic(chain: { readonly operands: Expression[]; readonly positions: number[] }, operator?: string): void {
+  private visitNaryArithmetic(chain: Chain): void {
     const b = this.builder;
-    const op = operator ?? this.chainOperator(chain);
-    const first = chain.operands[0] as Expression;
-    let hint = this.visitForAccumulatorValue(first);
+    const operator = chain.operator;
+    let hint = this.visitForAccumulatorValue(chain.operands[0] as Expression);
     for (let i = 1; i < chain.operands.length; i++) {
       const top = b.registerTop;
       const operand = chain.operands[i] as Expression;
       const position = chain.positions[i - 1] as number;
-      const smi = this.isSmiLiteral(operand);
+      const smi = this.smiLiteralOf(operand);
       if (smi !== undefined) {
         b.setExpressionPosition(position);
-        b.emit(SMI_ARITHMETIC[op] as Opcode, smi, b.feedback.addSlot("binary-op"));
+        b.emit(SMI_ARITHMETIC[operator] as Opcode, smi, b.feedback.addSlot("binary-op"));
       } else {
         const register = b.allocateRegister();
         b.emit("Star", local(register));
         const operandHint = this.visitForAccumulatorValue(operand);
         b.setExpressionPosition(position);
-        b.emit(ARITHMETIC[op] as Opcode, local(register), b.feedback.addSlot("binary-op"));
+        b.emit(ARITHMETIC[operator] as Opcode, local(register), b.feedback.addSlot("binary-op"));
         if (operandHint === "string") hint = "string";
       }
       b.releaseRegisters(top);
     }
-    if (op === "+" && hint === "string") this.setResultIsString();
+    if (operator === "+" && hint === "string") this.setResultIsString();
   }
 
-  private chainOperator(chain: { readonly operands: Expression[] }): string {
-    const last = chain.operands[1];
-    void last;
-    return this.currentChainOperator;
+  // Comparisons.
+
+  private isUndefinedLiteral(node: Expression): boolean {
+    if (node.type === "Identifier") return node.name === "undefined" && this.scopes.referenceOf.get(node)?.resolved === "global";
+    return node.type === "UnaryExpression" && node.operator === "void" && literalOf(node.argument) !== undefined;
   }
 
-  private currentChainOperator = "+";
+  private isNullLiteral(node: Expression): boolean {
+    return literalOf(node)?.kind === "null";
+  }
 
   private visitCompare(node: BinaryExpression): void {
-    throw new NotYetSupported(node);
+    if (node.left.type === "PrivateIdentifier") throw new NotYetSupported(node);
+    const b = this.builder;
+    const operator = node.operator;
+    const position = this.operatorAt(node.left);
+    const equality = operator === "==" || operator === "===";
+    const left = node.left;
+    const right = node.right;
+
+    const typeofSide = equality ? this.typeofComparison(left, right) : undefined;
+    if (typeofSide) {
+      this.visitForTypeOfValue(typeofSide.operand);
+      b.setExpressionPosition(position);
+      const flag = TYPEOF_FLAGS[typeofSide.literal];
+      if (flag === undefined) b.emit("LdaFalse");
+      else b.emit("TestTypeOf", flag);
+    } else if (equality && (this.isUndefinedLiteral(left) || this.isUndefinedLiteral(right))) {
+      this.visitForAccumulatorValue(this.isUndefinedLiteral(right) ? left : right);
+      b.setExpressionPosition(position);
+      this.buildLiteralCompareNil(operator, "undefined");
+    } else if (equality && (this.isNullLiteral(left) || this.isNullLiteral(right))) {
+      this.visitForAccumulatorValue(this.isNullLiteral(right) ? left : right);
+      b.setExpressionPosition(position);
+      this.buildLiteralCompareNil(operator, "null");
+    } else {
+      const lhs = this.visitForRegisterValue(left);
+      this.visitForAccumulatorValue(right);
+      b.setExpressionPosition(position);
+      const slot = b.feedback.addSlot(operator === "in" ? "has-keyed" : operator === "instanceof" ? "instance-of" : "compare");
+      b.emit(COMPARISON[operator] as Opcode, local(lhs), slot);
+    }
+    this.setResultIsBoolean();
   }
 
-  private visitNegatedCompare(node: BinaryExpression): void {
-    throw new NotYetSupported(node);
+  /** `typeof x == "string"` or `"string" == typeof x`. */
+  private typeofComparison(left: Expression, right: Expression): { operand: Expression; literal: string } | undefined {
+    const isTypeof = (e: Expression): e is UnaryExpression => e.type === "UnaryExpression" && e.operator === "typeof";
+    const text = (e: Expression): string | undefined => {
+      const literal = literalOf(e);
+      return literal?.kind === "string" && e.type === "Literal" ? literal.value : undefined;
+    };
+    if (isTypeof(left) && text(right) !== undefined) return { operand: left.argument, literal: text(right) as string };
+    if (isTypeof(right) && text(left) !== undefined) return { operand: right.argument, literal: text(left) as string };
+    return undefined;
   }
+
+  private buildLiteralCompareNil(operator: string, nil: "undefined" | "null"): void {
+    const b = this.builder;
+    const strict = operator === "===";
+    if (this.result.kind === "test") {
+      const scope = this.result;
+      const jumpIfNil = (labels: BytecodeLabels): void => {
+        if (strict) b.jump(nil === "undefined" ? "JumpIfUndefined" : "JumpIfNull", labels.new());
+        else {
+          b.emit("TestUndetectable");
+          b.jump("JumpIfTrue", labels.new());
+        }
+      };
+      const jumpIfNotNil = (labels: BytecodeLabels): void => {
+        if (strict) b.jump(nil === "undefined" ? "JumpIfNotUndefined" : "JumpIfNotNull", labels.new());
+        else {
+          b.emit("TestUndetectable");
+          b.jump("JumpIfFalse", labels.new());
+        }
+      };
+      switch (scope.fallthrough) {
+        case "then":
+          jumpIfNotNil(scope.elseLabels);
+          break;
+        case "else":
+          jumpIfNil(scope.thenLabels);
+          break;
+        case "none":
+          jumpIfNil(scope.thenLabels);
+          b.jump("Jump", scope.elseLabels.new());
+          break;
+      }
+      scope.consumed = true;
+    } else if (!strict) {
+      b.emit("TestUndetectable");
+    } else {
+      b.emit(nil === "undefined" ? "TestUndefined" : "TestNull");
+    }
+  }
+
+  // Logical operators.
 
   private visitLogical(node: LogicalExpression): void {
-    throw new NotYetSupported(node);
+    const chain = this.collectChain(node);
+    const operands = chain.operands;
+    const operator = node.operator;
+    const first = operands[0] as Expression;
+    if (this.result.kind === "test") {
+      const scope = this.result;
+      if (operator === "||" && toBooleanOf(first) === true) {
+        this.builder.jump("Jump", scope.thenLabels.new());
+      } else if (operator === "&&" && toBooleanOf(first) === false) {
+        this.builder.jump("Jump", scope.elseLabels.new());
+      } else if (operator === "||" && toBooleanOf(first) === false && operands.every((e) => toBooleanOf(e) === false)) {
+        this.builder.jump("Jump", scope.elseLabels.new());
+      } else if (operator === "&&" && operands.every((e) => toBooleanOf(e) === true)) {
+        this.builder.jump("Jump", scope.thenLabels.new());
+      } else {
+        this.visitLogicalTest(operator, operands);
+      }
+      scope.consumed = true;
+      return;
+    }
+    const end = this.newLabels();
+    for (let i = 0; i < operands.length - 1; i++) {
+      if (this.visitLogicalSubExpression(operator, operands[i] as Expression, end)) return;
+    }
+    this.visitForAccumulatorValue(operands[operands.length - 1] as Expression);
+    end.bind();
   }
 
-  private visitConditional(node: Expression): void {
-    throw new NotYetSupported(node);
+  /** One non-final operand of `||`, `&&` or `??` in a value context; true when it settles the result. */
+  private visitLogicalSubExpression(operator: string, operand: Expression, end: BytecodeLabels): boolean {
+    const b = this.builder;
+    if (operator === "||") {
+      if (toBooleanOf(operand) === true) {
+        this.visitForAccumulatorValue(operand);
+        end.bind();
+        return true;
+      }
+      if (toBooleanOf(operand) !== false) {
+        const hint = this.visitForAccumulatorValue(operand);
+        this.jumpIfTrue(hint, end);
+      }
+    } else if (operator === "&&") {
+      if (toBooleanOf(operand) === false) {
+        this.visitForAccumulatorValue(operand);
+        end.bind();
+        return true;
+      }
+      if (toBooleanOf(operand) !== true) {
+        const hint = this.visitForAccumulatorValue(operand);
+        this.jumpIfFalse(hint, end);
+      }
+    } else {
+      const literal = literalOf(operand);
+      if (literal && literal.kind !== "null") {
+        this.visitForAccumulatorValue(operand);
+        end.bind();
+        return true;
+      }
+      if (!literal && !this.isUndefinedLiteral(operand)) {
+        this.visitForAccumulatorValue(operand);
+        const isNullish = this.newLabels();
+        b.jump("JumpIfUndefinedOrNull", isNullish.new());
+        b.jump("Jump", end.new());
+        isNullish.bind();
+      }
+    }
+    return false;
+  }
+
+  /** `a || b || c` and friends in a test: each operand but the last tests and falls through to the next. */
+  private visitLogicalTest(operator: string, operands: readonly Expression[]): void {
+    const scope = this.result;
+    for (let i = 0; i < operands.length - 1; i++) {
+      const next = this.newLabels();
+      const operand = operands[i] as Expression;
+      if (operator === "||") this.visitForTest(operand, scope.thenLabels, next, "else");
+      else if (operator === "&&") this.visitForTest(operand, next, scope.elseLabels, "then");
+      else this.visitForNullishTest(operand, scope.thenLabels, next, scope.elseLabels);
+      next.bind();
+    }
+    this.visitInSameTestScope(operands[operands.length - 1] as Expression);
+  }
+
+  private visitForNullishTest(operand: Expression, thenLabels: BytecodeLabels, next: BytecodeLabels, elseLabels: BytecodeLabels): void {
+    const hint = this.visitForAccumulatorValue(operand);
+    if (hint !== "boolean") this.builder.jump("JumpIfUndefinedOrNull", next.new());
+    const scope = new ResultScope("test");
+    scope.thenLabels = thenLabels;
+    scope.elseLabels = elseLabels;
+    scope.fallthrough = "none";
+    scope.typeHint = hint;
+    this.buildTest(scope);
+  }
+
+  private visitConditional(node: ConditionalExpression): void {
+    const thenLabels = this.newLabels();
+    const elseLabels = this.newLabels();
+    const endLabels = this.newLabels();
+    const condition = toBooleanOf(node.test);
+    if (condition === true) {
+      thenLabels.bind();
+      this.visitForAccumulatorValue(node.consequent);
+    } else if (condition === false) {
+      elseLabels.bind();
+      this.visitForAccumulatorValue(node.alternate);
+    } else {
+      this.visitForTest(node.test, thenLabels, elseLabels, "then");
+      thenLabels.bind();
+      this.visitForAccumulatorValue(node.consequent);
+      this.builder.jump("Jump", endLabels.new());
+      elseLabels.bind();
+      this.visitForAccumulatorValue(node.alternate);
+    }
+    if (!elseLabels.bound) elseLabels.bind();
+    endLabels.bind();
   }
 
   private visitSequence(expressions: readonly Expression[]): void {
-    throw new NotYetSupported(expressions[0] as Node);
+    for (let i = 0; i < expressions.length; i++) {
+      const expression = expressions[i] as Expression;
+      // Each operand after the first starts a new step for the debugger.
+      if (i > 0) this.builder.setStatementPosition(this.positionOf(expression));
+      if (i < expressions.length - 1) this.visitForEffect(expression);
+      else this.visitExpression(expression);
+    }
   }
 
+  /** V8's `Expression::position()`: where an operator-like node sits, else where it starts. */
+  private positionOf(node: Expression): number {
+    switch (node.type) {
+      case "BinaryExpression":
+      case "LogicalExpression":
+        return literalOf(node) ? startOf(node) : this.operatorAt(node.left);
+      case "AssignmentExpression":
+        return this.operatorAt(node.left);
+      case "UpdateExpression":
+        return node.prefix ? startOf(node.argument) : operatorPosition(this.source, endOf(node.argument));
+      default:
+        return startOf(node);
+    }
+  }
+
+  // Assignment.
+
   private visitAssignment(node: AssignmentExpression): void {
-    throw new NotYetSupported(node);
+    const target = node.left;
+    if (target.type !== "Identifier") throw new NotYetSupported(target);
+    const b = this.builder;
+    const position = this.operatorAt(target);
+    const operator = node.operator;
+    if (operator === "=") {
+      this.visitForAccumulatorValue(node.right);
+      b.setExpressionPosition(position);
+      this.assignToVariable(target, "assign");
+      return;
+    }
+    if (operator === "&&=" || operator === "||=" || operator === "??=") {
+      const end = this.newLabels();
+      // V8 reserves the compound assignment's binary-op slot even though no instruction uses it.
+      b.feedback.addSlot("binary-op");
+      this.loadIdentifier(target, false);
+      if (operator === "||=") this.jumpIfTrue("any", end);
+      else if (operator === "&&=") this.jumpIfFalse("any", end);
+      else {
+        const isNullish = this.newLabels();
+        b.jump("JumpIfUndefinedOrNull", isNullish.new());
+        b.jump("Jump", end.new());
+        isNullish.bind();
+      }
+      this.visitForAccumulatorValue(node.right);
+      b.setExpressionPosition(position);
+      this.assignToVariable(target, "assign");
+      end.bind();
+      return;
+    }
+    const binary = operator.slice(0, -1);
+    if (!(binary in ARITHMETIC)) throw new NotYetSupported(node);
+    this.loadIdentifier(target, false);
+    const slot = b.feedback.addSlot("binary-op");
+    const smi = this.smiLiteralOf(node.right);
+    if (smi !== undefined) {
+      b.emit(SMI_ARITHMETIC[binary] as Opcode, smi, slot);
+    } else {
+      const old = b.allocateRegister();
+      b.emit("Star", local(old));
+      this.visitForAccumulatorValue(node.right);
+      b.emit(ARITHMETIC[binary] as Opcode, local(old), slot);
+    }
+    b.setExpressionPosition(position);
+    this.assignToVariable(target, "assign");
   }
 
   private visitUpdate(node: UpdateExpression): void {
-    throw new NotYetSupported(node);
+    const target = node.argument;
+    if (target.type !== "Identifier") throw new NotYetSupported(target);
+    const b = this.builder;
+    const postfixValue = !node.prefix && this.result.kind !== "effect";
+    this.loadIdentifier(target, false);
+    const slot = b.feedback.addSlot("binary-op");
+    let old = -1;
+    if (postfixValue) {
+      old = b.allocateRegister();
+      b.emit("ToNumeric", slot);
+      b.emit("Star", local(old));
+    }
+    b.emit(node.operator === "++" ? "Inc" : "Dec", slot);
+    b.setExpressionPosition(node.prefix ? startOf(node) : operatorPosition(this.source, endOf(target)));
+    this.assignToVariable(target, "assign");
+    if (postfixValue) b.emit("Ldar", local(old));
   }
+
+  // Template literals.
 
   private visitTemplateLiteral(node: TemplateLiteral): void {
-    throw new NotYetSupported(node);
+    const b = this.builder;
+    const parts = node.quasis.map((quasi) => quasi.value.cooked ?? "");
+    const slot = b.feedback.addSlot("binary-op");
+    const lastPart = b.allocateRegister();
+    let lastPartValid = false;
+    b.setExpressionPosition(startOf(node));
+    for (let i = 0; i < node.expressions.length; i++) {
+      if (i !== 0) {
+        b.emit("Star", local(lastPart));
+        lastPartValid = true;
+      }
+      const part = parts[i] as string;
+      if (part !== "") {
+        b.emit("LdaConstant", this.stringConstant(part));
+        if (lastPartValid) b.emit("Add", local(lastPart), slot);
+        b.emit("Star", local(lastPart));
+        lastPartValid = true;
+      }
+      const hint = this.visitForAccumulatorValue(node.expressions[i] as Expression);
+      if (hint !== "string") b.emit("ToString");
+      if (lastPartValid) b.emit("Add", local(lastPart), slot);
+      lastPartValid = false;
+    }
+    const last = parts[parts.length - 1] as string;
+    if (last !== "") {
+      b.emit("Star", local(lastPart));
+      b.emit("LdaConstant", this.stringConstant(last));
+      b.emit("Add", local(lastPart), slot);
+    }
+    this.setResultIsString();
   }
-
-  protected newLabels(): BytecodeLabels {
-    return new BytecodeLabels(this.builder);
-  }
-
-  protected unused(_pattern: Pattern, _label: Label): void {}
 }

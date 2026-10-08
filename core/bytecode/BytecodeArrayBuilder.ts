@@ -3,6 +3,7 @@ import {
   type Opcode,
   type Operand,
   type OperandScale,
+  type OperandType,
   BYTECODES,
   bytecodeInfo,
   isJump,
@@ -86,8 +87,8 @@ export class BytecodeArrayBuilder {
   private readonly parameterCount: number;
   private readonly pending: Pending[] = [];
   private readonly optimizer: RegisterOptimizer | undefined;
+  private readonly fixedRegisters: number;
   private top: number;
-  private highWater: number;
   private latest: SourceInfo | undefined;
   // The writer's view of the basic block it is in.
   private exitSeen = false;
@@ -96,8 +97,8 @@ export class BytecodeArrayBuilder {
   constructor(options: BuilderOptions) {
     this.parameterCount = options.parameterCount;
     const locals = options.localCount ?? 0;
+    this.fixedRegisters = locals;
     this.top = locals;
-    this.highWater = locals;
     if (options.optimizeRegisters) {
       this.optimizer = new RegisterOptimizer({ fixedRegisters: locals, parameterCount: options.parameterCount }, (node) => this.write(node));
     }
@@ -119,7 +120,6 @@ export class BytecodeArrayBuilder {
   allocateRegisterList(count: number): number {
     const first = this.top;
     this.top += count;
-    if (this.top > this.highWater) this.highWater = this.top;
     for (let i = 0; i < count; i++) this.optimizer?.registerAllocated(local(first + i));
     return first;
   }
@@ -273,7 +273,9 @@ export class BytecodeArrayBuilder {
       if (p.info) positions.add(offsets[i] ?? 0, p.info.position, p.info.kind);
     });
 
-    const registerCount = this.highWater;
+    // The frame holds the locals and the highest temporary an instruction still names: V8 sizes it
+    // from what the register optimizer let through, not from what the allocator handed out.
+    const registerCount = Math.max(this.fixedRegisters, highestRegisterUsed(this.pending) + 1);
     const header = { length: array.length, parameterCount: this.parameterCount, registerCount, frameSize: registerCount * REGISTER_SIZE };
     return { array, positions, header };
   }
@@ -301,6 +303,34 @@ export class BytecodeArrayBuilder {
       if (!changed) return offsets;
     }
   }
+}
+
+/** The highest local register any operand of `instructions` names, or -1. */
+function highestRegisterUsed(instructions: readonly Pending[]): number {
+  let highest = -1;
+  const note = (operand: Operand | undefined, extra: number): void => {
+    if (typeof operand !== "number" || operand > -7) return;
+    // A list or pair names registers going down in operand value, up in index.
+    highest = Math.max(highest, -7 - operand + extra);
+  };
+  for (const p of instructions) {
+    if (isShortStar(p.opcode)) {
+      highest = Math.max(highest, Number(p.opcode.slice(4)));
+      continue;
+    }
+    const types = bytecodeInfo(p.opcode).operands;
+    for (let i = 0; i < types.length; i++) {
+      const type = types[i] as OperandType;
+      if (type === "Reg" || type === "RegOut" || type === "RegInOut") note(p.operands[i], 0);
+      else if (type === "RegList" || type === "RegOutList") {
+        const count = Number(p.operands[i + 1]);
+        if (count > 0) note(p.operands[i], count - 1);
+        i++;
+      } else if (type === "RegPair" || type === "RegOutPair") note(p.operands[i], 1);
+      else if (type === "RegOutTriple") note(p.operands[i], 2);
+    }
+  }
+  return highest;
 }
 
 /** `Star r3` is written as the one-byte `Star3`. */

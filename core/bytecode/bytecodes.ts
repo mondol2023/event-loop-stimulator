@@ -391,7 +391,7 @@ export function isJump(opcode: Opcode): boolean {
 // Opcodes that can neither throw nor run user code. A pending expression position waits for the
 // first opcode that is not one of these (V8's `Bytecodes::IsWithoutExternalSideEffects`), which is
 // why `Star` and `Ldar` never carry an `E>` in the listings. `JumpLoop` is excluded: it is where
-// the interrupt and stack checks happen.
+// the interrupt and stack checks happen; so are the conditional jumps that convert with ToBoolean.
 const NO_EXTERNAL_SIDE_EFFECTS: ReadonlySet<Opcode> = new Set<Opcode>([
   "LdaZero",
   "LdaSmi",
@@ -410,8 +410,12 @@ const NO_EXTERNAL_SIDE_EFFECTS: ReadonlySet<Opcode> = new Set<Opcode>([
   "PopContext",
   "PushContext",
   "Star",
+  "TestUndetectable",
+  "TestNull",
+  "TestUndefined",
+  "TestTypeOf",
 ]);
 
 export function isWithoutExternalSideEffects(opcode: Opcode): boolean {
-  return NO_EXTERNAL_SIDE_EFFECTS.has(opcode) || isShortStar(opcode) || (isJump(opcode) && opcode !== "JumpLoop");
+  return NO_EXTERNAL_SIDE_EFFECTS.has(opcode) || isShortStar(opcode) || (isJump(opcode) && opcode !== "JumpLoop" && !opcode.startsWith("JumpIfToBoolean"));
 }

@@ -14,6 +14,12 @@
   "await-thenable-two-extra-ticks": {
     "status": "pending"
   },
+  "bc-locals-operators": {
+    "status": "exact"
+  },
+  "bc-logical-globals": {
+    "status": "exact"
+  },
   "closure-counter": {
     "status": "pending"
   },

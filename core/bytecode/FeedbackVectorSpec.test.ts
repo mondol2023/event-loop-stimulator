@@ -34,6 +34,6 @@ describe("FeedbackVectorSpec", () => {
   });
 
   it("exposes the table it counts with", () => {
-    expect(FEEDBACK_SLOT_SIZE).toMatchObject({ load: 2, store: 2, call: 2, "global-load": 2, "global-store": 2, "binary-op": 1, compare: 1 });
+    expect(FEEDBACK_SLOT_SIZE).toMatchObject({ load: 2, store: 2, call: 2, "global-load": 2, "global-store": 2, "binary-op": 1, compare: 1, "has-keyed": 2, "instance-of": 1 });
   });
 });

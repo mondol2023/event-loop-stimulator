@@ -131,10 +131,10 @@ describe("opcode classes", () => {
   });
 
   it("knows which opcodes have no external side effects", () => {
-    for (const name of ["Ldar", "Star", "Star3", "LdaZero", "LdaSmi", "LdaConstant", "Mov", "Jump", "JumpIfTrue"] as const) {
+    for (const name of ["Ldar", "Star", "Star3", "LdaZero", "LdaSmi", "LdaConstant", "Mov", "Jump", "JumpIfTrue", "TestUndefined", "TestNull", "TestUndetectable", "TestTypeOf"] as const) {
       expect(isWithoutExternalSideEffects(name), name).toBe(true);
     }
-    for (const name of ["Add", "CallProperty0", "GetNamedProperty", "LdaGlobal", "StaCurrentContextSlot", "Return", "JumpLoop"] as const) {
+    for (const name of ["Add", "CallProperty0", "GetNamedProperty", "LdaGlobal", "StaCurrentContextSlot", "Return", "JumpLoop", "JumpIfToBooleanTrue", "JumpIfToBooleanFalse", "JumpIfToBooleanTrueConstant"] as const) {
       expect(isWithoutExternalSideEffects(name), name).toBe(false);
     }
   });

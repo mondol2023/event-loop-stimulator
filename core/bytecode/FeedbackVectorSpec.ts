@@ -10,6 +10,11 @@ export const FEEDBACK_SLOT_SIZE = {
   "global-store": 2,
   "binary-op": 1,
   compare: 1,
+  "has-keyed": 2,
+  "instance-of": 1,
+  "for-in": 1,
+  "jump-loop": 1,
+  "clone-object": 1,
   literal: 1,
   "closure-cell": 1,
 } as const;

@@ -5,8 +5,11 @@ import type { FunctionId } from "@/core/shared/ids";
 // infos, scope infos and boilerplate descriptions are not, because each one is a distinct heap object.
 
 export type ConstantEntry =
-  | { readonly kind: "string"; readonly value: string }
+  /** `folded` is a concatenation the parser made: a cons string, which V8 neither internalizes nor deduplicates. */
+  | { readonly kind: "string"; readonly value: string; readonly folded?: boolean }
   | { readonly kind: "number"; readonly value: number }
+  /** `text` is the literal as written, without the `n`; it may be hexadecimal, octal or binary. */
+  | { readonly kind: "bigint"; readonly text: string }
   /** A function the bytecode can create a closure for; `functionId` finds its own bytecode. */
   | { readonly kind: "sfi"; readonly name: string; readonly functionId: FunctionId }
   /** An object or array literal description, printed as `<{text}>`. */
@@ -49,7 +52,7 @@ export class ConstantPool {
 }
 
 function dedupeKey(entry: ConstantEntry): string | undefined {
-  if (entry.kind === "string") return `s:${entry.value}`;
+  if (entry.kind === "string") return entry.folded ? undefined : `s:${entry.value}`;
   if (entry.kind === "number") return `n:${Object.is(entry.value, -0) ? "-0" : String(entry.value)}`;
   return undefined;
 }
@@ -57,9 +60,9 @@ function dedupeKey(entry: ConstantEntry): string | undefined {
 function printEntry(entry: ConstantEntry): string {
   switch (entry.kind) {
     case "string":
-      // Control characters and non-ASCII text are escaped by V8 here; that arrives with the
-      // strings-and-templates fixture, which is the first to need it.
-      return `<String[${entry.value.length}]: #${entry.value}>`;
+      return printString(entry);
+    case "bigint":
+      return `<BigInt ${BigInt(entry.text).toString()}>`;
     case "number":
       return `<HeapNumber ${formatHeapNumber(entry.value)}>`;
     case "sfi":
@@ -124,4 +127,26 @@ function roundToSignificant(value: number): { digits: string; exponent: number }
     }
   }
   return { digits: head, exponent };
+}
+
+/**
+ * A string constant as V8 prints it: `#text` for an internalized string (`u#` when it has two-byte
+ * characters), `"text"` for a cons string. Printable ASCII is literal; newline, carriage return and
+ * backslash are escaped, and every other code unit is `\x` and its hex digits, two at least.
+ */
+function printString(entry: { readonly value: string; readonly folded?: boolean }): string {
+  const text = entry.value;
+  let body = "";
+  let twoByte = false;
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code > 0xff) twoByte = true;
+    if (code === 10) body += "\\n";
+    else if (code === 13) body += "\\r";
+    else if (code === 92) body += "\\\\";
+    else if (code >= 32 && code <= 126) body += text.charAt(i);
+    else body += `\\x${code.toString(16).padStart(2, "0")}`;
+  }
+  if (entry.folded) return `<String[${text.length}]: "${body}">`;
+  return `<String[${text.length}]: ${twoByte ? "u" : ""}#${body}>`;
 }

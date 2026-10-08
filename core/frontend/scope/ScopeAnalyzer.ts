@@ -180,6 +180,7 @@ class Analyzer {
       scope: options.scope,
       allocation: UNALLOCATED,
       captured: false,
+      used: options.kind === "param" || options.kind === "function-name" || options.kind === "catch",
       annexB: false,
       tdz: options.tdz,
       initializedAt: options.initializedAt,
@@ -189,6 +190,16 @@ class Analyzer {
     names.set(name, variable);
     if (id) this.declarations.set(id, variable);
     return variable;
+  }
+
+  private inLoopHead: Node | undefined;
+
+  /** Marks every variable the binding pattern `pattern` declares as used. */
+  private markUsed(pattern: Node): void {
+    for (const identifier of boundIdentifiers(pattern)) {
+      const variable = this.declarations.get(identifier);
+      if (variable) variable.used = true;
+    }
   }
 
   /** Declares every identifier a binding pattern introduces; defaults and computed keys are visited as expressions. */
@@ -318,6 +329,9 @@ class Analyzer {
             tdz: lexical,
             initializedAt: rangeOf(declarator).end,
           });
+          // `var x = 1` and `let x;` assign through a reference of their own; a bare `var x;` does not.
+          // A loop head's declaration is assigned by the loop.
+          if (declarator.init || node.kind === "let" || this.inLoopHead === node) this.markUsed(declarator.id);
           if (declarator.init) this.visit(declarator.init);
         }
         return;
@@ -381,8 +395,11 @@ class Analyzer {
       case "ForInStatement":
       case "ForOfStatement":
         this.withScope(node.left.type === "VariableDeclaration" && node.left.kind !== "var", "block", node, () => {
-          if (node.left.type === "VariableDeclaration") this.visit(node.left);
-          else this.visitTarget(node.left, "write");
+          if (node.left.type === "VariableDeclaration") {
+            this.inLoopHead = node.left;
+            this.visit(node.left);
+            this.inLoopHead = undefined;
+          } else this.visitTarget(node.left, "write");
           this.visit(node.right);
           this.visit(node.body);
         });
@@ -501,6 +518,7 @@ class Analyzer {
       const range = rangeOf(ref.node);
       let needsTdzCheck = false;
       if (resolved) {
+        resolved.used = true;
         const crossesClosure = closureOf(ref.scope) !== closureOf(resolved.scope);
         if (crossesClosure) resolved.captured = true;
         needsTdzCheck = resolved.tdz && (crossesClosure || range.start < resolved.initializedAt);
@@ -529,7 +547,9 @@ class Analyzer {
 
   private allocateScope(scope: Scope, registers: { next: number }): void {
     for (const variable of scope.variables) {
-      if (variable.captured) {
+      if (!variable.used) {
+        variable.allocation = { kind: "unused" };
+      } else if (variable.captured) {
         variable.allocation = { kind: "context", index: scope.contextSlots++ };
       } else if (variable.kind === "function-name") {
         variable.allocation = { kind: "closure" };
@@ -548,6 +568,23 @@ class Analyzer {
       if (child.kind === "function") this.allocateFunction(child);
       else this.allocateScope(child, registers);
     }
+  }
+}
+
+function boundIdentifiers(pattern: Node): Identifier[] {
+  switch (pattern.type) {
+    case "Identifier":
+      return [pattern];
+    case "ObjectPattern":
+      return pattern.properties.flatMap((p) => boundIdentifiers(p.type === "RestElement" ? p.argument : p.value));
+    case "ArrayPattern":
+      return pattern.elements.flatMap((e) => (e ? boundIdentifiers(e) : []));
+    case "AssignmentPattern":
+      return boundIdentifiers(pattern.left);
+    case "RestElement":
+      return boundIdentifiers(pattern.argument);
+    default:
+      return [];
   }
 }
 
