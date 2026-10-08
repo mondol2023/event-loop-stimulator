@@ -8,6 +8,8 @@ export type ConstantEntry =
   /** `folded` is a concatenation the parser made: a cons string, which V8 neither internalizes nor deduplicates. */
   | { readonly kind: "string"; readonly value: string; readonly folded?: boolean }
   | { readonly kind: "number"; readonly value: number }
+  /** A small integer stored as a Smi: the distance of a jump too far for its operand. */
+  | { readonly kind: "smi"; readonly value: number }
   /** `text` is the literal as written, without the `n`; it may be hexadecimal, octal or binary. */
   | { readonly kind: "bigint"; readonly text: string }
   /** A function the bytecode can create a closure for; `functionId` finds its own bytecode. */
@@ -45,6 +47,34 @@ export class ConstantPool {
     return at;
   }
 
+  // Reserved entries (V8's ConstantArrayBuilder::CreateReservedEntry). Every forward jump reserves
+  // one when it is written, because its distance is unknown; the entry is committed as a Smi only
+  // if the distance turns out too long for the operand, and handed back otherwise. A reservation
+  // takes the smallest operand size with an index to spare, so the jump's operand is wide enough
+  // for whatever index it later receives. Where V8 would push later ordinary entries into the next
+  // index slice to keep a reservation's index free, they are appended here: a pool that crosses 256
+  // entries while a jump is pending is the one case this does not reproduce.
+  private reserved = 0;
+
+  /** The operand scale (1, 2 or 4 bytes) of a new reservation. */
+  reserve(): 1 | 2 | 4 {
+    const taken = this.list.length + this.reserved;
+    this.reserved++;
+    return taken < 0x100 ? 1 : taken < 0x10000 ? 2 : 4;
+  }
+
+  /** Gives a reservation back unused. */
+  discard(): void {
+    if (this.reserved === 0) throw new Error("no reserved constant-pool entry to discard");
+    this.reserved--;
+  }
+
+  /** Turns a reservation into a Smi entry (an equal one is reused) and returns its index. */
+  commit(value: number): number {
+    this.discard();
+    return this.add({ kind: "smi", value });
+  }
+
   /** Each entry in the normalized form the recorded listings use (addresses are stripped). */
   printEntries(): string[] {
     return this.list.map(printEntry);
@@ -54,6 +84,7 @@ export class ConstantPool {
 function dedupeKey(entry: ConstantEntry): string | undefined {
   if (entry.kind === "string") return entry.folded ? undefined : `s:${entry.value}`;
   if (entry.kind === "number") return `n:${Object.is(entry.value, -0) ? "-0" : String(entry.value)}`;
+  if (entry.kind === "smi") return `i:${entry.value}`;
   return undefined;
 }
 
@@ -61,6 +92,8 @@ function printEntry(entry: ConstantEntry): string {
   switch (entry.kind) {
     case "string":
       return printString(entry);
+    case "smi":
+      return String(entry.value);
     case "bigint":
       return `<BigInt ${BigInt(entry.text).toString()}>`;
     case "number":

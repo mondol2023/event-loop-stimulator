@@ -32,6 +32,8 @@ export class Label {
   index: number | undefined;
   /** True once a jump that was actually written targets it. A label nothing jumps to is never bound. */
   referenced = false;
+  /** The jumps written to this label, in order. */
+  readonly jumps: Pending[] = [];
 }
 
 export type BytecodeHeader = {
@@ -58,7 +60,15 @@ export type BuilderOptions = {
   readonly optimizeRegisters?: boolean;
 };
 
-type Pending = OptimizerNode & { scale: OperandScale };
+type Pending = { -readonly [K in keyof OptimizerNode]: OptimizerNode[K] } & {
+  scale: OperandScale;
+  /** Index in the pending list, kept for jumps. */
+  at?: number;
+  /** A forward jump's constant-pool reservation, until its label is bound and decides its form. */
+  reservation?: OperandScale;
+  /** The jump has been rewritten to its `...Constant` form: its operand is a pool index. */
+  viaConstant?: boolean;
+};
 
 /** Accumulator loads that have no effect, so that the next load can make them unnecessary. */
 const ACCUMULATOR_LOADS_WITHOUT_EFFECTS: ReadonlySet<Opcode> = new Set<Opcode>([
@@ -172,6 +182,33 @@ export class BytecodeArrayBuilder {
     this.optimizer?.flush();
     label.index = this.pending.length;
     this.startBasicBlock();
+    this.resolveForwardJumps(label);
+  }
+
+  /** Like V8's PatchJump: a distance that fits is inlined; a longer one goes to the pool and the jump becomes its `...Constant` form. */
+  private resolveForwardJumps(label: Label): void {
+    const open = label.jumps.filter((p) => p.reservation !== undefined);
+    if (open.length === 0) return;
+    const offsets = this.settle(this.pending.map((p) => shortStar(p)), true);
+    const target = offsets[label.index as number] ?? 0;
+    for (const jump of open) {
+      const prefix = jump.scale === 1 ? 0 : 1;
+      const distance = target - ((offsets[jump.at as number] ?? 0) + prefix);
+      const rest = jump.operands.slice(1);
+      if (requiredScale(jump.opcode, [distance, ...rest]) <= jump.scale) {
+        this.constantPool.discard();
+        jump.operands = [distance, ...rest];
+      } else {
+        const opcode = `${jump.opcode}Constant`;
+        if (!(opcode in BYTECODES)) throw new Error(`${jump.opcode} has no constant-pool form`);
+        const operands = [this.constantPool.commit(distance), ...rest];
+        jump.opcode = opcode as Opcode;
+        jump.operands = operands;
+        jump.scale = Math.max(jump.scale, requiredScale(jump.opcode, operands)) as OperandScale;
+        jump.viaConstant = true;
+      }
+      delete jump.reservation;
+    }
   }
 
   /** Binds the head of a loop; the `JumpLoop` that closes the loop refers back to it. */
@@ -191,9 +228,13 @@ export class BytecodeArrayBuilder {
     this.pushJump(opcode, label, "forward", rest);
   }
 
-  /** The backward jump at the end of a loop body; `label` must already be bound to the loop header. */
-  jumpLoop(label: Label, depth: number, feedbackSlot: number): void {
+  /**
+   * The backward jump at the end of a loop body; `label` must already be bound to the loop header.
+   * `position` is forced as an expression position (the implicit stack check), over a waiting statement one.
+   */
+  jumpLoop(label: Label, depth: number, feedbackSlot: number, position?: number): void {
     if (label.index === undefined) throw new Error("JumpLoop needs a label that is already bound");
+    if (position !== undefined) this.latest = { position, kind: "expression" };
     this.pushJump("JumpLoop", label, "backward", [depth, feedbackSlot]);
   }
 
@@ -234,8 +275,17 @@ export class BytecodeArrayBuilder {
     if (this.exitSeen) return;
     if (LEAVES_BLOCK.has(node.opcode)) this.exitSeen = true;
     this.elideLastLoad(node);
-    const pending: Pending = { ...node, scale: requiredScale(node.opcode, node.operands) };
-    if (node.jump) (node.jump.label as Label).referenced = true;
+    const pending: Pending = { ...node, scale: requiredScale(node.opcode, node.operands), at: this.pending.length };
+    if (node.jump) {
+      const label = node.jump.label as Label;
+      label.referenced = true;
+      label.jumps.push(pending);
+      // The distance is unknown until the label is bound, so reserve a pool entry (as V8 does).
+      if (node.jump.direction === "forward") {
+        pending.reservation = this.constantPool.reserve();
+        pending.scale = Math.max(pending.scale, pending.reservation) as OperandScale;
+      }
+    }
     this.pending.push(pending);
     this.last = pending;
   }
@@ -284,12 +334,14 @@ export class BytecodeArrayBuilder {
    * Fixes the offset operand of every jump, widening jumps that do not fit, until the layout stops
    * changing. Scales only grow, so this ends. Returns the offset of each instruction plus the end.
    */
-  private settle(instructions: Pending[]): number[] {
+  private settle(instructions: Pending[], partial = false): number[] {
     for (;;) {
       const offsets = layout(instructions);
       let changed = false;
       instructions.forEach((p, i) => {
         if (!p.jump) return;
+        // A pool index is not a distance; an undecided forward jump has its size fixed already.
+        if (p.viaConstant || (partial && p.reservation !== undefined)) return;
         const prefix = p.scale === 1 ? 0 : 1;
         const from = (offsets[i] ?? 0) + prefix;
         const target = targetOffset(p.jump.label as Label, offsets);

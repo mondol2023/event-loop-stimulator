@@ -1,0 +1,320 @@
+{
+  "schema": 1,
+  "fixture": "bc-if-else",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 79,
+      "parameterCount": 6,
+      "registerCount": 3,
+      "frameSize": 24
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 103,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 2,
+        "text": "Star0"
+      },
+      {
+        "offset": 3,
+        "position": {
+          "at": 110,
+          "kind": "S"
+        },
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 5,
+        "text": "Star1"
+      },
+      {
+        "offset": 6,
+        "position": {
+          "at": 117,
+          "kind": "S"
+        },
+        "text": "LdaZero"
+      },
+      {
+        "offset": 7,
+        "text": "Star2"
+      },
+      {
+        "offset": 8,
+        "position": {
+          "at": 120,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 10,
+        "text": "JumpIfToBooleanFalse [7] (@17)"
+      },
+      {
+        "offset": 12,
+        "position": {
+          "at": 129,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 14,
+        "text": "Star2"
+      },
+      {
+        "offset": 15,
+        "text": "Jump [5] (@20)"
+      },
+      {
+        "offset": 17,
+        "position": {
+          "at": 145,
+          "kind": "S"
+        },
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 19,
+        "text": "Star2"
+      },
+      {
+        "offset": 20,
+        "position": {
+          "at": 154,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 22,
+        "text": "JumpIfToBooleanFalse [11] (@33)"
+      },
+      {
+        "offset": 24,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 26,
+        "position": {
+          "at": 163,
+          "kind": "E"
+        },
+        "text": "JumpIfToBooleanFalse [7] (@33)"
+      },
+      {
+        "offset": 28,
+        "position": {
+          "at": 166,
+          "kind": "S"
+        },
+        "text": "LdaSmi [4]"
+      },
+      {
+        "offset": 30,
+        "text": "Star2"
+      },
+      {
+        "offset": 31,
+        "text": "Jump [13] (@44)"
+      },
+      {
+        "offset": 33,
+        "position": {
+          "at": 178,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 35,
+        "text": "JumpIfToBooleanTrue [6] (@41)"
+      },
+      {
+        "offset": 37,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 39,
+        "position": {
+          "at": 187,
+          "kind": "E"
+        },
+        "text": "JumpIfToBooleanFalse [5] (@44)"
+      },
+      {
+        "offset": 41,
+        "position": {
+          "at": 190,
+          "kind": "S"
+        },
+        "text": "LdaSmi [5]"
+      },
+      {
+        "offset": 43,
+        "text": "Star2"
+      },
+      {
+        "offset": 44,
+        "position": {
+          "at": 209,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 46,
+        "text": "Star2"
+      },
+      {
+        "offset": 47,
+        "position": {
+          "at": 247,
+          "kind": "S"
+        },
+        "text": "LdaSmi [3]"
+      },
+      {
+        "offset": 49,
+        "text": "Star2"
+      },
+      {
+        "offset": 50,
+        "position": {
+          "at": 256,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 52,
+        "position": {
+          "at": 262,
+          "kind": "E"
+        },
+        "text": "TestGreaterThan r0, [0]"
+      },
+      {
+        "offset": 55,
+        "text": "JumpIfFalse [5] (@60)"
+      },
+      {
+        "offset": 57,
+        "position": {
+          "at": 267,
+          "kind": "S"
+        },
+        "text": "LdaSmi [6]"
+      },
+      {
+        "offset": 59,
+        "text": "Star2"
+      },
+      {
+        "offset": 60,
+        "position": {
+          "at": 274,
+          "kind": "S"
+        },
+        "text": "Ldar r2"
+      },
+      {
+        "offset": 62,
+        "text": "JumpIfToBooleanFalse [4] (@66)"
+      },
+      {
+        "offset": 64,
+        "position": {
+          "at": 281,
+          "kind": "S"
+        },
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 65,
+        "position": {
+          "at": 288,
+          "kind": "S"
+        },
+        "text": "Return"
+      },
+      {
+        "offset": 66,
+        "position": {
+          "at": 289,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 68,
+        "text": "JumpIfToBooleanFalse [8] (@76)"
+      },
+      {
+        "offset": 70,
+        "position": {
+          "at": 298,
+          "kind": "S"
+        },
+        "text": "Ldar r2"
+      },
+      {
+        "offset": 72,
+        "position": {
+          "at": 307,
+          "kind": "E"
+        },
+        "text": "AddSmi [1], [1]"
+      },
+      {
+        "offset": 75,
+        "position": {
+          "at": 311,
+          "kind": "S"
+        },
+        "text": "Return"
+      },
+      {
+        "offset": 76,
+        "position": {
+          "at": 321,
+          "kind": "S"
+        },
+        "text": "LdaSmi [7]"
+      },
+      {
+        "offset": 78,
+        "position": {
+          "at": 321,
+          "kind": "E"
+        },
+        "text": "Throw"
+      }
+    ],
+    "constantPool": [],
+    "handlerTable": [],
+    "children": {}
+  }
+}

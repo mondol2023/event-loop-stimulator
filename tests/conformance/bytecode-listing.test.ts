@@ -131,7 +131,9 @@ describe("recorded listings against core/bytecode", () => {
         // Jumps: the target is the offset operand applied from the opcode byte, forward or back.
         if (instruction.jumpTarget !== undefined) {
           const from = instruction.offset + (instruction.scale === 1 ? 0 : 1);
-          const delta = instruction.operands[0] as number;
+          const operand = instruction.operands[0] as number;
+          // A `...Constant` jump names a pool entry holding the distance.
+          const delta = instruction.opcode.endsWith("Constant") ? Number(fn.constantPool[operand]) : operand;
           const expected = instruction.opcode === "JumpLoop" ? from - delta : from + delta;
           expect(instruction.jumpTarget, `${where}: jump target`).toBe(expected);
         }

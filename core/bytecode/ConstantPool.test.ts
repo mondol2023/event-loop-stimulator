@@ -70,6 +70,34 @@ describe("ConstantPool", () => {
     expect(pool.printEntries()).toEqual(["<String[1]: #a>"]);
   });
 
+  it("prints a Smi entry (a far jump's distance) as a plain integer and keeps it apart from a number", () => {
+    const pool = new ConstantPool();
+    expect(pool.add({ kind: "smi", value: 322 })).toBe(0);
+    expect(pool.add({ kind: "number", value: 322 })).toBe(1);
+    expect(pool.add({ kind: "smi", value: 322 })).toBe(0);
+    expect(pool.printEntries()).toEqual(["322", "<HeapNumber 322.0>"]);
+  });
+
+  it("reserves an entry per forward jump: 8-bit while the first 256 indexes have room, then 16-bit", () => {
+    // ConstantArrayBuilder::CreateReservedEntry takes the smallest index slice with room left.
+    const pool = new ConstantPool();
+    expect(pool.reserve()).toBe(1);
+    for (let i = 0; i < 255; i++) pool.add({ kind: "number", value: i + 0.5 });
+    expect(pool.reserve()).toBe(2); // 255 entries and 1 reservation fill the 256 indexes an 8-bit operand reaches
+    pool.discard();
+    pool.discard();
+    expect(pool.reserve()).toBe(1); // 255 entries leave room for exactly one more
+  });
+
+  it("commits a reservation as a Smi, sharing an equal one that is already there", () => {
+    const pool = new ConstantPool();
+    pool.reserve();
+    pool.reserve();
+    expect(pool.commit(322)).toBe(0);
+    expect(pool.commit(322)).toBe(0);
+    expect(pool.printEntries()).toEqual(["322"]);
+  });
+
   it("reads an entry back by index", () => {
     const pool = new ConstantPool();
     pool.add({ kind: "string", value: "x" });

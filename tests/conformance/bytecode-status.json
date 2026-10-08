@@ -14,10 +14,25 @@
   "await-thenable-two-extra-ticks": {
     "status": "pending"
   },
+  "bc-break-continue": {
+    "status": "exact"
+  },
+  "bc-far-jumps": {
+    "status": "exact"
+  },
+  "bc-if-else": {
+    "status": "exact"
+  },
   "bc-locals-operators": {
     "status": "exact"
   },
   "bc-logical-globals": {
+    "status": "exact"
+  },
+  "bc-loop-merge": {
+    "status": "exact"
+  },
+  "bc-loops": {
     "status": "exact"
   },
   "closure-counter": {

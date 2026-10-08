@@ -108,23 +108,95 @@ describe("BytecodeArrayBuilder: jumps", () => {
     expect(built.array.length).toBe(2);
   });
 
-  it("widens a forward jump that cannot reach its label in one byte, and moves everything after it", () => {
-    // V8 reaches far forward jumps with JumpConstant; whether that is what the pinned V8 prints
-    // for this distance is checked against a micro-fixture with the control-flow family.
+  // V8's BytecodeArrayWriter reserves a constant-pool entry for every forward jump it writes. When
+  // the label is bound, a distance that fits the operand goes into the instruction and the
+  // reservation is given back; a longer one is committed to the pool as a Smi and the jump becomes
+  // its `Constant` form (the bc-far-jumps fixture prints `JumpIfFalseConstant [1]`).
+  function farJump(stars: number): BytecodeArrayBuilder {
     const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    b.constantPool.add({ kind: "string", value: "s" });
     const end = b.newLabel();
     b.emit("LdaTrue");
     b.jump("JumpIfFalse", end);
-    for (let i = 0; i < 260; i++) b.emit("Star0");
+    for (let i = 0; i < stars; i++) b.emit("Star0");
+    b.bind(end);
+    b.constantPool.add({ kind: "string", value: "t" });
+    b.emit("Return");
+    return b;
+  }
+
+  it("reaches a far forward label through a pool entry committed when the label is bound", () => {
+    const b = farJump(260);
+    const built = b.build();
+    const [, jump, first, ...rest] = built.array.instructions;
+    expect(formatInstruction(jump!)).toBe("JumpIfFalseConstant [1] (@263)");
+    expect(jump).toMatchObject({ offset: 1, size: 2, jumpTarget: 263 });
+    expect(first?.offset).toBe(3);
+    expect(rest.at(-1)).toMatchObject({ offset: 263, opcode: "Return" });
+    expect(built.array.length).toBe(264);
+    // The distance is the entry; it lands before anything added after the bind.
+    expect(b.constantPool.printEntries()).toEqual(["<String[1]: #s>", "262", "<String[1]: #t>"]);
+  });
+
+  it("keeps a forward distance of 255 in the instruction and gives the reservation back", () => {
+    const b = farJump(253);
+    expect(texts(b)).toContain("JumpIfFalse [255] (@256)");
+    expect(b.constantPool.printEntries()).toEqual(["<String[1]: #s>", "<String[1]: #t>"]);
+  });
+
+  it("goes through the pool from a distance of 256", () => {
+    expect(texts(farJump(254))).toContain("JumpIfFalseConstant [1] (@257)");
+  });
+
+  it("shares one pool entry between far jumps of the same distance", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    for (let block = 0; block < 2; block++) {
+      const end = b.newLabel();
+      b.emit("LdaTrue");
+      b.jump("JumpIfToBooleanFalse", end);
+      for (let i = 0; i < 260; i++) b.emit("Star0");
+      b.bind(end);
+    }
+    const jumps = b.build().array.instructions.filter((i) => i.opcode.startsWith("Jump"));
+    expect(jumps.map(formatInstruction)).toEqual(["JumpIfToBooleanFalseConstant [0] (@263)", "JumpIfToBooleanFalseConstant [0] (@526)"]);
+    expect(b.constantPool.printEntries()).toEqual(["262"]);
+  });
+
+  it("measures a far jump over a wide backward jump at the size that jump finally has", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const end = b.newLabel();
+    const top = b.newLabel();
+    b.emit("LdaTrue");
+    b.jump("JumpIfFalse", end);
+    b.bindLoopHeader(top);
+    for (let i = 0; i < 256; i++) b.emit("Star0");
+    b.jumpLoop(top, 0, 0); // 256 bytes back: JumpLoop.Wide, 8 bytes, and the jump over it grows with it
     b.bind(end);
     b.emit("Return");
     const built = b.build();
-    const [, jump, first, ...rest] = built.array.instructions;
-    expect(formatInstruction(jump!)).toBe("JumpIfFalse.Wide [263] (@265)");
-    expect(jump).toMatchObject({ offset: 1, size: 4, jumpTarget: 265 });
-    expect(first?.offset).toBe(5);
-    expect(rest.at(-1)).toMatchObject({ offset: 265, opcode: "Return" });
-    expect(built.array.length).toBe(266);
+    expect(formatInstruction(built.array.instructions[1]!)).toBe("JumpIfFalseConstant [0] (@267)");
+    expect(formatInstruction(built.array.instructions.at(-2)!)).toBe("JumpLoop.Wide [257], [0], [0] (@3)");
+    expect(b.constantPool.printEntries()).toEqual(["266"]);
+  });
+
+  it("writes a forward jump Wide once the pool's first 256 indexes are spoken for", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    for (let i = 0; i < 256; i++) b.constantPool.add({ kind: "number", value: i + 0.5 });
+    const end = b.newLabel();
+    b.emit("LdaTrue");
+    b.jump("JumpIfFalse", end);
+    b.emit("Star0");
+    b.emit("Star1");
+    b.bind(end);
+    b.emit("Return");
+    expect(texts(b)).toEqual(["LdaTrue", "JumpIfFalse.Wide [5] (@7)", "Star0", "Star1", "Return"]);
+  });
+
+  it("does not reserve anything for a jump written in dead code", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    b.emit("Return");
+    b.jump("Jump", b.newLabel());
+    expect(texts(b)).toEqual(["Return"]);
   });
 
   it("widens a backward jump the same way", () => {
@@ -268,7 +340,7 @@ describe("BytecodeArrayBuilder: source positions", () => {
     b.bind(end);
     b.setStatementPosition(7);
     b.emit("Return");
-    expect(b.build().positions.entries).toEqual([{ offset: 265, position: 7, kind: "statement" }]);
+    expect(b.build().positions.entries).toEqual([{ offset: 263, position: 7, kind: "statement" }]);
   });
 
   it("drops a position left over after the last instruction", () => {

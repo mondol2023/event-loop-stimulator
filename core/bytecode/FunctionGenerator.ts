@@ -3,17 +3,22 @@ import type {
   BinaryExpression,
   ConditionalExpression,
   Expression,
+  ForStatement,
   Identifier,
+  IfStatement,
   LogicalExpression,
   Node,
+  ReturnStatement,
   Statement,
   TemplateLiteral,
+  ThrowStatement,
   UnaryExpression,
   UpdateExpression,
   VariableDeclaration,
+  WhileStatement,
 } from "estree";
 import type { ReferenceInfo, ScopeTree, Variable } from "@/core/frontend/scope/Scope";
-import { BytecodeArrayBuilder } from "./BytecodeArrayBuilder";
+import { BytecodeArrayBuilder, type Label } from "./BytecodeArrayBuilder";
 import { BytecodeLabels } from "./BytecodeLabels";
 import { type Opcode, THIS, argument, local } from "./bytecodes";
 import { type LiteralValue, isSmi, literalOf, toBooleanOf } from "./literals";
@@ -47,6 +52,18 @@ class ResultScope {
 
   constructor(readonly kind: ResultKind) {}
 }
+
+/** A loop being compiled; `header` is where its `JumpLoop` returns to. */
+type Loop = {
+  readonly header: Label;
+  readonly breakLabels: BytecodeLabels;
+  readonly continueLabels: BytecodeLabels;
+  /** Bound just before the loop's closing jump; an inner loop with the same header jumps here. */
+  readonly backEdge: BytecodeLabels;
+};
+
+/** `BytecodeArray::kMaxOsrUrgency - 1`: the deepest loop level a `JumpLoop` reports. */
+const MAX_OSR_DEPTH = 5;
 
 type Entered = { readonly previous: ResultScope; readonly scope: ResultScope; readonly top: number };
 
@@ -121,6 +138,7 @@ export class FunctionGenerator {
   private readonly scopes: ScopeTree;
   private result: ResultScope = new ResultScope("effect");
   private readonly slotCache = new Map<string, number>();
+  private readonly loops: Loop[] = [];
 
   constructor(options: FunctionGeneratorOptions) {
     this.source = options.source;
@@ -163,9 +181,158 @@ export class FunctionGenerator {
       case "VariableDeclaration":
         this.visitVariableDeclaration(node);
         return;
+      case "BlockStatement":
+        this.visitStatements(node.body);
+        return;
+      case "IfStatement":
+        return this.visitIf(node);
+      case "WhileStatement":
+        return this.visitWhile(node);
+      case "ForStatement":
+        return this.visitFor(node);
+      case "BreakStatement":
+        this.builder.setStatementPosition(startOf(node));
+        this.builder.jump("Jump", this.innermostLoop().breakLabels.new());
+        return;
+      case "ContinueStatement":
+        this.builder.setStatementPosition(startOf(node));
+        this.builder.jump("Jump", this.innermostLoop().continueLabels.new());
+        return;
+      case "ReturnStatement":
+        return this.visitReturn(node);
+      case "ThrowStatement":
+        return this.visitThrow(node);
       default:
         throw new NotYetSupported(node);
     }
+  }
+
+  private visitIf(node: IfStatement): void {
+    const b = this.builder;
+    const thenLabels = this.newLabels();
+    const elseLabels = this.newLabels();
+    const endLabels = this.newLabels();
+    b.setStatementPosition(startOf(node));
+    const condition = toBooleanOf(node.test);
+    if (condition === true) {
+      thenLabels.bind();
+      this.visitStatement(node.consequent);
+    } else if (condition === false) {
+      elseLabels.bind();
+      if (node.alternate) this.visitStatement(node.alternate);
+    } else {
+      this.visitForTest(node.test, thenLabels, elseLabels, "then");
+      thenLabels.bind();
+      this.visitStatement(node.consequent);
+      if (node.alternate) {
+        b.jump("Jump", endLabels.new());
+        elseLabels.bind();
+        this.visitStatement(node.alternate);
+      }
+    }
+    if (!elseLabels.bound) elseLabels.bind();
+    endLabels.bind();
+  }
+
+  private visitReturn(node: ReturnStatement): void {
+    const b = this.builder;
+    b.setStatementPosition(startOf(node));
+    if (node.argument) this.visitForAccumulatorValue(node.argument);
+    else b.emit("LdaUndefined");
+    b.setStatementPosition(endOf(node));
+    b.emit("Return");
+  }
+
+  private visitThrow(node: ThrowStatement): void {
+    const b = this.builder;
+    b.setStatementPosition(startOf(node));
+    this.visitForAccumulatorValue(node.argument);
+    b.setExpressionPosition(startOf(node));
+    b.emit("Throw");
+  }
+
+  // Loops and jump targets.
+
+  private beginLoop(): Loop {
+    const loop: Loop = { header: this.builder.newLabel(), continueLabels: this.newLabels(), backEdge: this.newLabels(), breakLabels: this.newLabels() };
+    this.loops.push(loop);
+    return loop;
+  }
+
+  private endLoop(loop: Loop): void {
+    this.loops.pop();
+    loop.breakLabels.bind();
+  }
+
+  private innermostLoop(): Loop {
+    const loop = this.loops.at(-1);
+    if (!loop) throw new Error("break or continue outside a loop");
+    return loop;
+  }
+
+  /** The loop that directly encloses the one being compiled. */
+  private parentLoop(): Loop | undefined {
+    return this.loops.at(-2);
+  }
+
+  /** V8's LoopBuilder::JumpToHeader. */
+  private jumpToHeader(loop: Loop, position: number): void {
+    const b = this.builder;
+    const parent = this.parentLoop();
+    loop.backEdge.bind();
+    if (parent && parent.header.index === loop.header.index) {
+      // Both loops start at the same offset, so one JumpLoop (the parent's) serves them both.
+      b.jump("Jump", parent.backEdge.new());
+      return;
+    }
+    const depth = Math.min(this.loops.length - 1, MAX_OSR_DEPTH);
+    b.jumpLoop(loop.header, depth, b.feedback.addSlot("jump-loop"), position);
+  }
+
+  /** Tests the loop condition at the top of an iteration, unless there is none or it is always true. */
+  private visitLoopTest(test: Expression | null | undefined, loop: Loop): void {
+    if (!test || toBooleanOf(test) === true) return;
+    const body = this.newLabels();
+    this.builder.setStatementPosition(this.positionOf(test));
+    this.visitForTest(test, body, loop.breakLabels, "then");
+    body.bind();
+  }
+
+  private visitIterationBody(body: Statement, loop: Loop): void {
+    this.visitStatement(body);
+    loop.continueLabels.bind();
+  }
+
+  private visitWhile(node: WhileStatement): void {
+    const loop = this.beginLoop();
+    if (toBooleanOf(node.test) !== false) {
+      this.builder.bindLoopHeader(loop.header);
+      this.visitLoopTest(node.test, loop);
+      this.visitIterationBody(node.body, loop);
+      this.jumpToHeader(loop, startOf(node));
+    }
+    this.endLoop(loop);
+  }
+
+  private visitFor(node: ForStatement): void {
+    const init = node.init;
+    if (init?.type === "VariableDeclaration") this.visitVariableDeclaration(init);
+    else if (init) {
+      this.builder.setStatementPosition(startOf(init));
+      this.visitForEffect(init);
+    }
+    const loop = this.beginLoop();
+    if (!node.test || toBooleanOf(node.test) !== false) {
+      this.builder.bindLoopHeader(loop.header);
+      this.visitLoopTest(node.test, loop);
+      this.visitIterationBody(node.body, loop);
+      if (node.update) {
+        this.builder.setStatementPosition(this.positionOf(node.update));
+        this.visitForEffect(node.update);
+      }
+      this.jumpToHeader(loop, startOf(node));
+    }
+    this.endLoop(loop);
   }
 
   private visitVariableDeclaration(node: VariableDeclaration): void {

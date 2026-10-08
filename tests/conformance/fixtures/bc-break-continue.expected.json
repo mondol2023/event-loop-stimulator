@@ -1,0 +1,372 @@
+{
+  "schema": 1,
+  "fixture": "bc-break-continue",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 105,
+      "parameterCount": 6,
+      "registerCount": 5,
+      "frameSize": 40
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 55,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 2,
+        "text": "Star0"
+      },
+      {
+        "offset": 3,
+        "position": {
+          "at": 62,
+          "kind": "S"
+        },
+        "text": "LdaSmi [20]"
+      },
+      {
+        "offset": 5,
+        "text": "Star1"
+      },
+      {
+        "offset": 6,
+        "position": {
+          "at": 70,
+          "kind": "S"
+        },
+        "text": "LdaZero"
+      },
+      {
+        "offset": 7,
+        "text": "Star2"
+      },
+      {
+        "offset": 8,
+        "position": {
+          "at": 82,
+          "kind": "S"
+        },
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 10,
+        "position": {
+          "at": 82,
+          "kind": "E"
+        },
+        "text": "TestLessThan r0, [0]"
+      },
+      {
+        "offset": 13,
+        "text": "JumpIfFalse [30] (@43)"
+      },
+      {
+        "offset": 15,
+        "position": {
+          "at": 89,
+          "kind": "S"
+        },
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 17,
+        "position": {
+          "at": 95,
+          "kind": "E"
+        },
+        "text": "AddSmi [1], [1]"
+      },
+      {
+        "offset": 20,
+        "text": "Star0"
+      },
+      {
+        "offset": 21,
+        "position": {
+          "at": 100,
+          "kind": "S"
+        },
+        "text": "LdaSmi [5]"
+      },
+      {
+        "offset": 23,
+        "position": {
+          "at": 106,
+          "kind": "E"
+        },
+        "text": "TestEqual r0, [2]"
+      },
+      {
+        "offset": 26,
+        "text": "JumpIfFalse [4] (@30)"
+      },
+      {
+        "offset": 28,
+        "position": {
+          "at": 112,
+          "kind": "S"
+        },
+        "text": "Jump [11] (@39)"
+      },
+      {
+        "offset": 30,
+        "position": {
+          "at": 122,
+          "kind": "S"
+        },
+        "text": "LdaSmi [9]"
+      },
+      {
+        "offset": 32,
+        "position": {
+          "at": 128,
+          "kind": "E"
+        },
+        "text": "TestEqual r0, [3]"
+      },
+      {
+        "offset": 35,
+        "text": "JumpIfFalse [4] (@39)"
+      },
+      {
+        "offset": 37,
+        "position": {
+          "at": 134,
+          "kind": "S"
+        },
+        "text": "Jump [6] (@43)"
+      },
+      {
+        "offset": 39,
+        "position": {
+          "at": 73,
+          "kind": "E"
+        },
+        "text": "JumpLoop [31], [0], [4] (@8)"
+      },
+      {
+        "offset": 43,
+        "position": {
+          "at": 156,
+          "kind": "S"
+        },
+        "text": "LdaZero"
+      },
+      {
+        "offset": 44,
+        "text": "Star3"
+      },
+      {
+        "offset": 45,
+        "position": {
+          "at": 161,
+          "kind": "S"
+        },
+        "text": "LdaSmi [3]"
+      },
+      {
+        "offset": 47,
+        "position": {
+          "at": 161,
+          "kind": "E"
+        },
+        "text": "TestLessThan r3, [5]"
+      },
+      {
+        "offset": 50,
+        "text": "JumpIfFalse [53] (@103)"
+      },
+      {
+        "offset": 52,
+        "position": {
+          "at": 186,
+          "kind": "S"
+        },
+        "text": "LdaZero"
+      },
+      {
+        "offset": 53,
+        "text": "Star4"
+      },
+      {
+        "offset": 54,
+        "position": {
+          "at": 191,
+          "kind": "S"
+        },
+        "text": "LdaSmi [3]"
+      },
+      {
+        "offset": 56,
+        "position": {
+          "at": 191,
+          "kind": "E"
+        },
+        "text": "TestLessThan r4, [6]"
+      },
+      {
+        "offset": 59,
+        "text": "JumpIfFalse [35] (@94)"
+      },
+      {
+        "offset": 61,
+        "position": {
+          "at": 203,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 63,
+        "position": {
+          "at": 209,
+          "kind": "E"
+        },
+        "text": "TestEqual r4, [7]"
+      },
+      {
+        "offset": 66,
+        "text": "JumpIfFalse [4] (@70)"
+      },
+      {
+        "offset": 68,
+        "position": {
+          "at": 215,
+          "kind": "S"
+        },
+        "text": "Jump [17] (@85)"
+      },
+      {
+        "offset": 70,
+        "position": {
+          "at": 225,
+          "kind": "S"
+        },
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 72,
+        "position": {
+          "at": 231,
+          "kind": "E"
+        },
+        "text": "TestEqual r3, [8]"
+      },
+      {
+        "offset": 75,
+        "text": "JumpIfFalse [4] (@79)"
+      },
+      {
+        "offset": 77,
+        "position": {
+          "at": 237,
+          "kind": "S"
+        },
+        "text": "Jump [17] (@94)"
+      },
+      {
+        "offset": 79,
+        "position": {
+          "at": 244,
+          "kind": "S"
+        },
+        "text": "Ldar r2"
+      },
+      {
+        "offset": 81,
+        "position": {
+          "at": 250,
+          "kind": "E"
+        },
+        "text": "AddSmi [1], [9]"
+      },
+      {
+        "offset": 84,
+        "text": "Star2"
+      },
+      {
+        "offset": 85,
+        "position": {
+          "at": 197,
+          "kind": "S"
+        },
+        "text": "Ldar r4"
+      },
+      {
+        "offset": 87,
+        "text": "Inc [10]"
+      },
+      {
+        "offset": 89,
+        "text": "Star4"
+      },
+      {
+        "offset": 90,
+        "position": {
+          "at": 173,
+          "kind": "E"
+        },
+        "text": "JumpLoop [36], [1], [11] (@54)"
+      },
+      {
+        "offset": 94,
+        "position": {
+          "at": 167,
+          "kind": "S"
+        },
+        "text": "Ldar r3"
+      },
+      {
+        "offset": 96,
+        "text": "Inc [12]"
+      },
+      {
+        "offset": 98,
+        "text": "Star3"
+      },
+      {
+        "offset": 99,
+        "position": {
+          "at": 143,
+          "kind": "E"
+        },
+        "text": "JumpLoop [54], [0], [13] (@45)"
+      },
+      {
+        "offset": 103,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 104,
+        "position": {
+          "at": 258,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [],
+    "handlerTable": [],
+    "children": {}
+  }
+}

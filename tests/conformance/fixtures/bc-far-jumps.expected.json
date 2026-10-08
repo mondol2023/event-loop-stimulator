@@ -1,0 +1,4063 @@
+{
+  "schema": 1,
+  "fixture": "bc-far-jumps",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 1574,
+      "parameterCount": 6,
+      "registerCount": 4,
+      "frameSize": 32
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 112,
+          "kind": "S"
+        },
+        "text": "LdaZero"
+      },
+      {
+        "offset": 1,
+        "text": "Star0"
+      },
+      {
+        "offset": 2,
+        "position": {
+          "at": 119,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 4,
+        "text": "Star1"
+      },
+      {
+        "offset": 5,
+        "position": {
+          "at": 126,
+          "kind": "S"
+        },
+        "text": "LdaZero"
+      },
+      {
+        "offset": 6,
+        "text": "Star2"
+      },
+      {
+        "offset": 7,
+        "position": {
+          "at": 139,
+          "kind": "S"
+        },
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 9,
+        "position": {
+          "at": 139,
+          "kind": "E"
+        },
+        "text": "TestLessThan r2, [0]"
+      },
+      {
+        "offset": 12,
+        "text": "JumpIfFalseConstant [0] (@798)"
+      },
+      {
+        "offset": 14,
+        "position": {
+          "at": 149,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [300]"
+      },
+      {
+        "offset": 18,
+        "text": "Star3"
+      },
+      {
+        "offset": 19,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 21,
+        "position": {
+          "at": 157,
+          "kind": "E"
+        },
+        "text": "Add r3, [1]"
+      },
+      {
+        "offset": 24,
+        "text": "Star0"
+      },
+      {
+        "offset": 25,
+        "position": {
+          "at": 165,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [301]"
+      },
+      {
+        "offset": 29,
+        "text": "Star3"
+      },
+      {
+        "offset": 30,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 32,
+        "position": {
+          "at": 173,
+          "kind": "E"
+        },
+        "text": "Add r3, [2]"
+      },
+      {
+        "offset": 35,
+        "text": "Star0"
+      },
+      {
+        "offset": 36,
+        "position": {
+          "at": 181,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [302]"
+      },
+      {
+        "offset": 40,
+        "text": "Star3"
+      },
+      {
+        "offset": 41,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 43,
+        "position": {
+          "at": 189,
+          "kind": "E"
+        },
+        "text": "Add r3, [3]"
+      },
+      {
+        "offset": 46,
+        "text": "Star0"
+      },
+      {
+        "offset": 47,
+        "position": {
+          "at": 197,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [303]"
+      },
+      {
+        "offset": 51,
+        "text": "Star3"
+      },
+      {
+        "offset": 52,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 54,
+        "position": {
+          "at": 205,
+          "kind": "E"
+        },
+        "text": "Add r3, [4]"
+      },
+      {
+        "offset": 57,
+        "text": "Star0"
+      },
+      {
+        "offset": 58,
+        "position": {
+          "at": 213,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [304]"
+      },
+      {
+        "offset": 62,
+        "text": "Star3"
+      },
+      {
+        "offset": 63,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 65,
+        "position": {
+          "at": 221,
+          "kind": "E"
+        },
+        "text": "Add r3, [5]"
+      },
+      {
+        "offset": 68,
+        "text": "Star0"
+      },
+      {
+        "offset": 69,
+        "position": {
+          "at": 229,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [305]"
+      },
+      {
+        "offset": 73,
+        "text": "Star3"
+      },
+      {
+        "offset": 74,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 76,
+        "position": {
+          "at": 237,
+          "kind": "E"
+        },
+        "text": "Add r3, [6]"
+      },
+      {
+        "offset": 79,
+        "text": "Star0"
+      },
+      {
+        "offset": 80,
+        "position": {
+          "at": 245,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [306]"
+      },
+      {
+        "offset": 84,
+        "text": "Star3"
+      },
+      {
+        "offset": 85,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 87,
+        "position": {
+          "at": 253,
+          "kind": "E"
+        },
+        "text": "Add r3, [7]"
+      },
+      {
+        "offset": 90,
+        "text": "Star0"
+      },
+      {
+        "offset": 91,
+        "position": {
+          "at": 261,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [307]"
+      },
+      {
+        "offset": 95,
+        "text": "Star3"
+      },
+      {
+        "offset": 96,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 98,
+        "position": {
+          "at": 269,
+          "kind": "E"
+        },
+        "text": "Add r3, [8]"
+      },
+      {
+        "offset": 101,
+        "text": "Star0"
+      },
+      {
+        "offset": 102,
+        "position": {
+          "at": 277,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [308]"
+      },
+      {
+        "offset": 106,
+        "text": "Star3"
+      },
+      {
+        "offset": 107,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 109,
+        "position": {
+          "at": 285,
+          "kind": "E"
+        },
+        "text": "Add r3, [9]"
+      },
+      {
+        "offset": 112,
+        "text": "Star0"
+      },
+      {
+        "offset": 113,
+        "position": {
+          "at": 293,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [309]"
+      },
+      {
+        "offset": 117,
+        "text": "Star3"
+      },
+      {
+        "offset": 118,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 120,
+        "position": {
+          "at": 301,
+          "kind": "E"
+        },
+        "text": "Add r3, [10]"
+      },
+      {
+        "offset": 123,
+        "text": "Star0"
+      },
+      {
+        "offset": 124,
+        "position": {
+          "at": 309,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [310]"
+      },
+      {
+        "offset": 128,
+        "text": "Star3"
+      },
+      {
+        "offset": 129,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 131,
+        "position": {
+          "at": 317,
+          "kind": "E"
+        },
+        "text": "Add r3, [11]"
+      },
+      {
+        "offset": 134,
+        "text": "Star0"
+      },
+      {
+        "offset": 135,
+        "position": {
+          "at": 325,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [311]"
+      },
+      {
+        "offset": 139,
+        "text": "Star3"
+      },
+      {
+        "offset": 140,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 142,
+        "position": {
+          "at": 333,
+          "kind": "E"
+        },
+        "text": "Add r3, [12]"
+      },
+      {
+        "offset": 145,
+        "text": "Star0"
+      },
+      {
+        "offset": 146,
+        "position": {
+          "at": 341,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [312]"
+      },
+      {
+        "offset": 150,
+        "text": "Star3"
+      },
+      {
+        "offset": 151,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 153,
+        "position": {
+          "at": 349,
+          "kind": "E"
+        },
+        "text": "Add r3, [13]"
+      },
+      {
+        "offset": 156,
+        "text": "Star0"
+      },
+      {
+        "offset": 157,
+        "position": {
+          "at": 357,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [313]"
+      },
+      {
+        "offset": 161,
+        "text": "Star3"
+      },
+      {
+        "offset": 162,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 164,
+        "position": {
+          "at": 365,
+          "kind": "E"
+        },
+        "text": "Add r3, [14]"
+      },
+      {
+        "offset": 167,
+        "text": "Star0"
+      },
+      {
+        "offset": 168,
+        "position": {
+          "at": 373,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [314]"
+      },
+      {
+        "offset": 172,
+        "text": "Star3"
+      },
+      {
+        "offset": 173,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 175,
+        "position": {
+          "at": 381,
+          "kind": "E"
+        },
+        "text": "Add r3, [15]"
+      },
+      {
+        "offset": 178,
+        "text": "Star0"
+      },
+      {
+        "offset": 179,
+        "position": {
+          "at": 389,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [315]"
+      },
+      {
+        "offset": 183,
+        "text": "Star3"
+      },
+      {
+        "offset": 184,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 186,
+        "position": {
+          "at": 397,
+          "kind": "E"
+        },
+        "text": "Add r3, [16]"
+      },
+      {
+        "offset": 189,
+        "text": "Star0"
+      },
+      {
+        "offset": 190,
+        "position": {
+          "at": 405,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [316]"
+      },
+      {
+        "offset": 194,
+        "text": "Star3"
+      },
+      {
+        "offset": 195,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 197,
+        "position": {
+          "at": 413,
+          "kind": "E"
+        },
+        "text": "Add r3, [17]"
+      },
+      {
+        "offset": 200,
+        "text": "Star0"
+      },
+      {
+        "offset": 201,
+        "position": {
+          "at": 421,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [317]"
+      },
+      {
+        "offset": 205,
+        "text": "Star3"
+      },
+      {
+        "offset": 206,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 208,
+        "position": {
+          "at": 429,
+          "kind": "E"
+        },
+        "text": "Add r3, [18]"
+      },
+      {
+        "offset": 211,
+        "text": "Star0"
+      },
+      {
+        "offset": 212,
+        "position": {
+          "at": 437,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [318]"
+      },
+      {
+        "offset": 216,
+        "text": "Star3"
+      },
+      {
+        "offset": 217,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 219,
+        "position": {
+          "at": 445,
+          "kind": "E"
+        },
+        "text": "Add r3, [19]"
+      },
+      {
+        "offset": 222,
+        "text": "Star0"
+      },
+      {
+        "offset": 223,
+        "position": {
+          "at": 453,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [319]"
+      },
+      {
+        "offset": 227,
+        "text": "Star3"
+      },
+      {
+        "offset": 228,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 230,
+        "position": {
+          "at": 461,
+          "kind": "E"
+        },
+        "text": "Add r3, [20]"
+      },
+      {
+        "offset": 233,
+        "text": "Star0"
+      },
+      {
+        "offset": 234,
+        "position": {
+          "at": 469,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [320]"
+      },
+      {
+        "offset": 238,
+        "text": "Star3"
+      },
+      {
+        "offset": 239,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 241,
+        "position": {
+          "at": 477,
+          "kind": "E"
+        },
+        "text": "Add r3, [21]"
+      },
+      {
+        "offset": 244,
+        "text": "Star0"
+      },
+      {
+        "offset": 245,
+        "position": {
+          "at": 485,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [321]"
+      },
+      {
+        "offset": 249,
+        "text": "Star3"
+      },
+      {
+        "offset": 250,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 252,
+        "position": {
+          "at": 493,
+          "kind": "E"
+        },
+        "text": "Add r3, [22]"
+      },
+      {
+        "offset": 255,
+        "text": "Star0"
+      },
+      {
+        "offset": 256,
+        "position": {
+          "at": 501,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [322]"
+      },
+      {
+        "offset": 260,
+        "text": "Star3"
+      },
+      {
+        "offset": 261,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 263,
+        "position": {
+          "at": 509,
+          "kind": "E"
+        },
+        "text": "Add r3, [23]"
+      },
+      {
+        "offset": 266,
+        "text": "Star0"
+      },
+      {
+        "offset": 267,
+        "position": {
+          "at": 517,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [323]"
+      },
+      {
+        "offset": 271,
+        "text": "Star3"
+      },
+      {
+        "offset": 272,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 274,
+        "position": {
+          "at": 525,
+          "kind": "E"
+        },
+        "text": "Add r3, [24]"
+      },
+      {
+        "offset": 277,
+        "text": "Star0"
+      },
+      {
+        "offset": 278,
+        "position": {
+          "at": 533,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [324]"
+      },
+      {
+        "offset": 282,
+        "text": "Star3"
+      },
+      {
+        "offset": 283,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 285,
+        "position": {
+          "at": 541,
+          "kind": "E"
+        },
+        "text": "Add r3, [25]"
+      },
+      {
+        "offset": 288,
+        "text": "Star0"
+      },
+      {
+        "offset": 289,
+        "position": {
+          "at": 549,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [325]"
+      },
+      {
+        "offset": 293,
+        "text": "Star3"
+      },
+      {
+        "offset": 294,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 296,
+        "position": {
+          "at": 557,
+          "kind": "E"
+        },
+        "text": "Add r3, [26]"
+      },
+      {
+        "offset": 299,
+        "text": "Star0"
+      },
+      {
+        "offset": 300,
+        "position": {
+          "at": 565,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [326]"
+      },
+      {
+        "offset": 304,
+        "text": "Star3"
+      },
+      {
+        "offset": 305,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 307,
+        "position": {
+          "at": 573,
+          "kind": "E"
+        },
+        "text": "Add r3, [27]"
+      },
+      {
+        "offset": 310,
+        "text": "Star0"
+      },
+      {
+        "offset": 311,
+        "position": {
+          "at": 581,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [327]"
+      },
+      {
+        "offset": 315,
+        "text": "Star3"
+      },
+      {
+        "offset": 316,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 318,
+        "position": {
+          "at": 589,
+          "kind": "E"
+        },
+        "text": "Add r3, [28]"
+      },
+      {
+        "offset": 321,
+        "text": "Star0"
+      },
+      {
+        "offset": 322,
+        "position": {
+          "at": 597,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [328]"
+      },
+      {
+        "offset": 326,
+        "text": "Star3"
+      },
+      {
+        "offset": 327,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 329,
+        "position": {
+          "at": 605,
+          "kind": "E"
+        },
+        "text": "Add r3, [29]"
+      },
+      {
+        "offset": 332,
+        "text": "Star0"
+      },
+      {
+        "offset": 333,
+        "position": {
+          "at": 613,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [329]"
+      },
+      {
+        "offset": 337,
+        "text": "Star3"
+      },
+      {
+        "offset": 338,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 340,
+        "position": {
+          "at": 621,
+          "kind": "E"
+        },
+        "text": "Add r3, [30]"
+      },
+      {
+        "offset": 343,
+        "text": "Star0"
+      },
+      {
+        "offset": 344,
+        "position": {
+          "at": 629,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [330]"
+      },
+      {
+        "offset": 348,
+        "text": "Star3"
+      },
+      {
+        "offset": 349,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 351,
+        "position": {
+          "at": 637,
+          "kind": "E"
+        },
+        "text": "Add r3, [31]"
+      },
+      {
+        "offset": 354,
+        "text": "Star0"
+      },
+      {
+        "offset": 355,
+        "position": {
+          "at": 645,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [331]"
+      },
+      {
+        "offset": 359,
+        "text": "Star3"
+      },
+      {
+        "offset": 360,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 362,
+        "position": {
+          "at": 653,
+          "kind": "E"
+        },
+        "text": "Add r3, [32]"
+      },
+      {
+        "offset": 365,
+        "text": "Star0"
+      },
+      {
+        "offset": 366,
+        "position": {
+          "at": 661,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [332]"
+      },
+      {
+        "offset": 370,
+        "text": "Star3"
+      },
+      {
+        "offset": 371,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 373,
+        "position": {
+          "at": 669,
+          "kind": "E"
+        },
+        "text": "Add r3, [33]"
+      },
+      {
+        "offset": 376,
+        "text": "Star0"
+      },
+      {
+        "offset": 377,
+        "position": {
+          "at": 677,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [333]"
+      },
+      {
+        "offset": 381,
+        "text": "Star3"
+      },
+      {
+        "offset": 382,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 384,
+        "position": {
+          "at": 685,
+          "kind": "E"
+        },
+        "text": "Add r3, [34]"
+      },
+      {
+        "offset": 387,
+        "text": "Star0"
+      },
+      {
+        "offset": 388,
+        "position": {
+          "at": 693,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [334]"
+      },
+      {
+        "offset": 392,
+        "text": "Star3"
+      },
+      {
+        "offset": 393,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 395,
+        "position": {
+          "at": 701,
+          "kind": "E"
+        },
+        "text": "Add r3, [35]"
+      },
+      {
+        "offset": 398,
+        "text": "Star0"
+      },
+      {
+        "offset": 399,
+        "position": {
+          "at": 709,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [335]"
+      },
+      {
+        "offset": 403,
+        "text": "Star3"
+      },
+      {
+        "offset": 404,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 406,
+        "position": {
+          "at": 717,
+          "kind": "E"
+        },
+        "text": "Add r3, [36]"
+      },
+      {
+        "offset": 409,
+        "text": "Star0"
+      },
+      {
+        "offset": 410,
+        "position": {
+          "at": 725,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [336]"
+      },
+      {
+        "offset": 414,
+        "text": "Star3"
+      },
+      {
+        "offset": 415,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 417,
+        "position": {
+          "at": 733,
+          "kind": "E"
+        },
+        "text": "Add r3, [37]"
+      },
+      {
+        "offset": 420,
+        "text": "Star0"
+      },
+      {
+        "offset": 421,
+        "position": {
+          "at": 741,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [337]"
+      },
+      {
+        "offset": 425,
+        "text": "Star3"
+      },
+      {
+        "offset": 426,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 428,
+        "position": {
+          "at": 749,
+          "kind": "E"
+        },
+        "text": "Add r3, [38]"
+      },
+      {
+        "offset": 431,
+        "text": "Star0"
+      },
+      {
+        "offset": 432,
+        "position": {
+          "at": 757,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [338]"
+      },
+      {
+        "offset": 436,
+        "text": "Star3"
+      },
+      {
+        "offset": 437,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 439,
+        "position": {
+          "at": 765,
+          "kind": "E"
+        },
+        "text": "Add r3, [39]"
+      },
+      {
+        "offset": 442,
+        "text": "Star0"
+      },
+      {
+        "offset": 443,
+        "position": {
+          "at": 773,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [339]"
+      },
+      {
+        "offset": 447,
+        "text": "Star3"
+      },
+      {
+        "offset": 448,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 450,
+        "position": {
+          "at": 781,
+          "kind": "E"
+        },
+        "text": "Add r3, [40]"
+      },
+      {
+        "offset": 453,
+        "text": "Star0"
+      },
+      {
+        "offset": 454,
+        "position": {
+          "at": 789,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [340]"
+      },
+      {
+        "offset": 458,
+        "text": "Star3"
+      },
+      {
+        "offset": 459,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 461,
+        "position": {
+          "at": 797,
+          "kind": "E"
+        },
+        "text": "Add r3, [41]"
+      },
+      {
+        "offset": 464,
+        "text": "Star0"
+      },
+      {
+        "offset": 465,
+        "position": {
+          "at": 805,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [341]"
+      },
+      {
+        "offset": 469,
+        "text": "Star3"
+      },
+      {
+        "offset": 470,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 472,
+        "position": {
+          "at": 813,
+          "kind": "E"
+        },
+        "text": "Add r3, [42]"
+      },
+      {
+        "offset": 475,
+        "text": "Star0"
+      },
+      {
+        "offset": 476,
+        "position": {
+          "at": 821,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [342]"
+      },
+      {
+        "offset": 480,
+        "text": "Star3"
+      },
+      {
+        "offset": 481,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 483,
+        "position": {
+          "at": 829,
+          "kind": "E"
+        },
+        "text": "Add r3, [43]"
+      },
+      {
+        "offset": 486,
+        "text": "Star0"
+      },
+      {
+        "offset": 487,
+        "position": {
+          "at": 837,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [343]"
+      },
+      {
+        "offset": 491,
+        "text": "Star3"
+      },
+      {
+        "offset": 492,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 494,
+        "position": {
+          "at": 845,
+          "kind": "E"
+        },
+        "text": "Add r3, [44]"
+      },
+      {
+        "offset": 497,
+        "text": "Star0"
+      },
+      {
+        "offset": 498,
+        "position": {
+          "at": 853,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [344]"
+      },
+      {
+        "offset": 502,
+        "text": "Star3"
+      },
+      {
+        "offset": 503,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 505,
+        "position": {
+          "at": 861,
+          "kind": "E"
+        },
+        "text": "Add r3, [45]"
+      },
+      {
+        "offset": 508,
+        "text": "Star0"
+      },
+      {
+        "offset": 509,
+        "position": {
+          "at": 869,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [345]"
+      },
+      {
+        "offset": 513,
+        "text": "Star3"
+      },
+      {
+        "offset": 514,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 516,
+        "position": {
+          "at": 877,
+          "kind": "E"
+        },
+        "text": "Add r3, [46]"
+      },
+      {
+        "offset": 519,
+        "text": "Star0"
+      },
+      {
+        "offset": 520,
+        "position": {
+          "at": 885,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [346]"
+      },
+      {
+        "offset": 524,
+        "text": "Star3"
+      },
+      {
+        "offset": 525,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 527,
+        "position": {
+          "at": 893,
+          "kind": "E"
+        },
+        "text": "Add r3, [47]"
+      },
+      {
+        "offset": 530,
+        "text": "Star0"
+      },
+      {
+        "offset": 531,
+        "position": {
+          "at": 901,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [347]"
+      },
+      {
+        "offset": 535,
+        "text": "Star3"
+      },
+      {
+        "offset": 536,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 538,
+        "position": {
+          "at": 909,
+          "kind": "E"
+        },
+        "text": "Add r3, [48]"
+      },
+      {
+        "offset": 541,
+        "text": "Star0"
+      },
+      {
+        "offset": 542,
+        "position": {
+          "at": 917,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [348]"
+      },
+      {
+        "offset": 546,
+        "text": "Star3"
+      },
+      {
+        "offset": 547,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 549,
+        "position": {
+          "at": 925,
+          "kind": "E"
+        },
+        "text": "Add r3, [49]"
+      },
+      {
+        "offset": 552,
+        "text": "Star0"
+      },
+      {
+        "offset": 553,
+        "position": {
+          "at": 933,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [349]"
+      },
+      {
+        "offset": 557,
+        "text": "Star3"
+      },
+      {
+        "offset": 558,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 560,
+        "position": {
+          "at": 941,
+          "kind": "E"
+        },
+        "text": "Add r3, [50]"
+      },
+      {
+        "offset": 563,
+        "text": "Star0"
+      },
+      {
+        "offset": 564,
+        "position": {
+          "at": 949,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [350]"
+      },
+      {
+        "offset": 568,
+        "text": "Star3"
+      },
+      {
+        "offset": 569,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 571,
+        "position": {
+          "at": 957,
+          "kind": "E"
+        },
+        "text": "Add r3, [51]"
+      },
+      {
+        "offset": 574,
+        "text": "Star0"
+      },
+      {
+        "offset": 575,
+        "position": {
+          "at": 965,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [351]"
+      },
+      {
+        "offset": 579,
+        "text": "Star3"
+      },
+      {
+        "offset": 580,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 582,
+        "position": {
+          "at": 973,
+          "kind": "E"
+        },
+        "text": "Add r3, [52]"
+      },
+      {
+        "offset": 585,
+        "text": "Star0"
+      },
+      {
+        "offset": 586,
+        "position": {
+          "at": 981,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [352]"
+      },
+      {
+        "offset": 590,
+        "text": "Star3"
+      },
+      {
+        "offset": 591,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 593,
+        "position": {
+          "at": 989,
+          "kind": "E"
+        },
+        "text": "Add r3, [53]"
+      },
+      {
+        "offset": 596,
+        "text": "Star0"
+      },
+      {
+        "offset": 597,
+        "position": {
+          "at": 997,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [353]"
+      },
+      {
+        "offset": 601,
+        "text": "Star3"
+      },
+      {
+        "offset": 602,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 604,
+        "position": {
+          "at": 1005,
+          "kind": "E"
+        },
+        "text": "Add r3, [54]"
+      },
+      {
+        "offset": 607,
+        "text": "Star0"
+      },
+      {
+        "offset": 608,
+        "position": {
+          "at": 1013,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [354]"
+      },
+      {
+        "offset": 612,
+        "text": "Star3"
+      },
+      {
+        "offset": 613,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 615,
+        "position": {
+          "at": 1021,
+          "kind": "E"
+        },
+        "text": "Add r3, [55]"
+      },
+      {
+        "offset": 618,
+        "text": "Star0"
+      },
+      {
+        "offset": 619,
+        "position": {
+          "at": 1029,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [355]"
+      },
+      {
+        "offset": 623,
+        "text": "Star3"
+      },
+      {
+        "offset": 624,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 626,
+        "position": {
+          "at": 1037,
+          "kind": "E"
+        },
+        "text": "Add r3, [56]"
+      },
+      {
+        "offset": 629,
+        "text": "Star0"
+      },
+      {
+        "offset": 630,
+        "position": {
+          "at": 1045,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [356]"
+      },
+      {
+        "offset": 634,
+        "text": "Star3"
+      },
+      {
+        "offset": 635,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 637,
+        "position": {
+          "at": 1053,
+          "kind": "E"
+        },
+        "text": "Add r3, [57]"
+      },
+      {
+        "offset": 640,
+        "text": "Star0"
+      },
+      {
+        "offset": 641,
+        "position": {
+          "at": 1061,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [357]"
+      },
+      {
+        "offset": 645,
+        "text": "Star3"
+      },
+      {
+        "offset": 646,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 648,
+        "position": {
+          "at": 1069,
+          "kind": "E"
+        },
+        "text": "Add r3, [58]"
+      },
+      {
+        "offset": 651,
+        "text": "Star0"
+      },
+      {
+        "offset": 652,
+        "position": {
+          "at": 1077,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [358]"
+      },
+      {
+        "offset": 656,
+        "text": "Star3"
+      },
+      {
+        "offset": 657,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 659,
+        "position": {
+          "at": 1085,
+          "kind": "E"
+        },
+        "text": "Add r3, [59]"
+      },
+      {
+        "offset": 662,
+        "text": "Star0"
+      },
+      {
+        "offset": 663,
+        "position": {
+          "at": 1093,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [359]"
+      },
+      {
+        "offset": 667,
+        "text": "Star3"
+      },
+      {
+        "offset": 668,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 670,
+        "position": {
+          "at": 1101,
+          "kind": "E"
+        },
+        "text": "Add r3, [60]"
+      },
+      {
+        "offset": 673,
+        "text": "Star0"
+      },
+      {
+        "offset": 674,
+        "position": {
+          "at": 1109,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [360]"
+      },
+      {
+        "offset": 678,
+        "text": "Star3"
+      },
+      {
+        "offset": 679,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 681,
+        "position": {
+          "at": 1117,
+          "kind": "E"
+        },
+        "text": "Add r3, [61]"
+      },
+      {
+        "offset": 684,
+        "text": "Star0"
+      },
+      {
+        "offset": 685,
+        "position": {
+          "at": 1125,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [361]"
+      },
+      {
+        "offset": 689,
+        "text": "Star3"
+      },
+      {
+        "offset": 690,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 692,
+        "position": {
+          "at": 1133,
+          "kind": "E"
+        },
+        "text": "Add r3, [62]"
+      },
+      {
+        "offset": 695,
+        "text": "Star0"
+      },
+      {
+        "offset": 696,
+        "position": {
+          "at": 1141,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [362]"
+      },
+      {
+        "offset": 700,
+        "text": "Star3"
+      },
+      {
+        "offset": 701,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 703,
+        "position": {
+          "at": 1149,
+          "kind": "E"
+        },
+        "text": "Add r3, [63]"
+      },
+      {
+        "offset": 706,
+        "text": "Star0"
+      },
+      {
+        "offset": 707,
+        "position": {
+          "at": 1157,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [363]"
+      },
+      {
+        "offset": 711,
+        "text": "Star3"
+      },
+      {
+        "offset": 712,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 714,
+        "position": {
+          "at": 1165,
+          "kind": "E"
+        },
+        "text": "Add r3, [64]"
+      },
+      {
+        "offset": 717,
+        "text": "Star0"
+      },
+      {
+        "offset": 718,
+        "position": {
+          "at": 1173,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [364]"
+      },
+      {
+        "offset": 722,
+        "text": "Star3"
+      },
+      {
+        "offset": 723,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 725,
+        "position": {
+          "at": 1181,
+          "kind": "E"
+        },
+        "text": "Add r3, [65]"
+      },
+      {
+        "offset": 728,
+        "text": "Star0"
+      },
+      {
+        "offset": 729,
+        "position": {
+          "at": 1189,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [365]"
+      },
+      {
+        "offset": 733,
+        "text": "Star3"
+      },
+      {
+        "offset": 734,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 736,
+        "position": {
+          "at": 1197,
+          "kind": "E"
+        },
+        "text": "Add r3, [66]"
+      },
+      {
+        "offset": 739,
+        "text": "Star0"
+      },
+      {
+        "offset": 740,
+        "position": {
+          "at": 1205,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [366]"
+      },
+      {
+        "offset": 744,
+        "text": "Star3"
+      },
+      {
+        "offset": 745,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 747,
+        "position": {
+          "at": 1213,
+          "kind": "E"
+        },
+        "text": "Add r3, [67]"
+      },
+      {
+        "offset": 750,
+        "text": "Star0"
+      },
+      {
+        "offset": 751,
+        "position": {
+          "at": 1221,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [367]"
+      },
+      {
+        "offset": 755,
+        "text": "Star3"
+      },
+      {
+        "offset": 756,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 758,
+        "position": {
+          "at": 1229,
+          "kind": "E"
+        },
+        "text": "Add r3, [68]"
+      },
+      {
+        "offset": 761,
+        "text": "Star0"
+      },
+      {
+        "offset": 762,
+        "position": {
+          "at": 1237,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [368]"
+      },
+      {
+        "offset": 766,
+        "text": "Star3"
+      },
+      {
+        "offset": 767,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 769,
+        "position": {
+          "at": 1245,
+          "kind": "E"
+        },
+        "text": "Add r3, [69]"
+      },
+      {
+        "offset": 772,
+        "text": "Star0"
+      },
+      {
+        "offset": 773,
+        "position": {
+          "at": 1253,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [369]"
+      },
+      {
+        "offset": 777,
+        "text": "Star3"
+      },
+      {
+        "offset": 778,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 780,
+        "position": {
+          "at": 1261,
+          "kind": "E"
+        },
+        "text": "Add r3, [70]"
+      },
+      {
+        "offset": 783,
+        "text": "Star0"
+      },
+      {
+        "offset": 784,
+        "position": {
+          "at": 1269,
+          "kind": "S"
+        },
+        "text": "Ldar r2"
+      },
+      {
+        "offset": 786,
+        "position": {
+          "at": 1275,
+          "kind": "E"
+        },
+        "text": "AddSmi [1], [71]"
+      },
+      {
+        "offset": 789,
+        "text": "Star2"
+      },
+      {
+        "offset": 790,
+        "position": {
+          "at": 130,
+          "kind": "E"
+        },
+        "text": "JumpLoop.Wide [784], [0], [72] (@7)"
+      },
+      {
+        "offset": 798,
+        "position": {
+          "at": 1284,
+          "kind": "S"
+        },
+        "text": "Ldar r2"
+      },
+      {
+        "offset": 800,
+        "text": "JumpIfToBooleanFalseConstant [1] (@1572)"
+      },
+      {
+        "offset": 802,
+        "position": {
+          "at": 1296,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [300]"
+      },
+      {
+        "offset": 806,
+        "text": "Star3"
+      },
+      {
+        "offset": 807,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 809,
+        "position": {
+          "at": 1304,
+          "kind": "E"
+        },
+        "text": "Add r3, [73]"
+      },
+      {
+        "offset": 812,
+        "text": "Star0"
+      },
+      {
+        "offset": 813,
+        "position": {
+          "at": 1312,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [301]"
+      },
+      {
+        "offset": 817,
+        "text": "Star3"
+      },
+      {
+        "offset": 818,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 820,
+        "position": {
+          "at": 1320,
+          "kind": "E"
+        },
+        "text": "Add r3, [74]"
+      },
+      {
+        "offset": 823,
+        "text": "Star0"
+      },
+      {
+        "offset": 824,
+        "position": {
+          "at": 1328,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [302]"
+      },
+      {
+        "offset": 828,
+        "text": "Star3"
+      },
+      {
+        "offset": 829,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 831,
+        "position": {
+          "at": 1336,
+          "kind": "E"
+        },
+        "text": "Add r3, [75]"
+      },
+      {
+        "offset": 834,
+        "text": "Star0"
+      },
+      {
+        "offset": 835,
+        "position": {
+          "at": 1344,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [303]"
+      },
+      {
+        "offset": 839,
+        "text": "Star3"
+      },
+      {
+        "offset": 840,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 842,
+        "position": {
+          "at": 1352,
+          "kind": "E"
+        },
+        "text": "Add r3, [76]"
+      },
+      {
+        "offset": 845,
+        "text": "Star0"
+      },
+      {
+        "offset": 846,
+        "position": {
+          "at": 1360,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [304]"
+      },
+      {
+        "offset": 850,
+        "text": "Star3"
+      },
+      {
+        "offset": 851,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 853,
+        "position": {
+          "at": 1368,
+          "kind": "E"
+        },
+        "text": "Add r3, [77]"
+      },
+      {
+        "offset": 856,
+        "text": "Star0"
+      },
+      {
+        "offset": 857,
+        "position": {
+          "at": 1376,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [305]"
+      },
+      {
+        "offset": 861,
+        "text": "Star3"
+      },
+      {
+        "offset": 862,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 864,
+        "position": {
+          "at": 1384,
+          "kind": "E"
+        },
+        "text": "Add r3, [78]"
+      },
+      {
+        "offset": 867,
+        "text": "Star0"
+      },
+      {
+        "offset": 868,
+        "position": {
+          "at": 1392,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [306]"
+      },
+      {
+        "offset": 872,
+        "text": "Star3"
+      },
+      {
+        "offset": 873,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 875,
+        "position": {
+          "at": 1400,
+          "kind": "E"
+        },
+        "text": "Add r3, [79]"
+      },
+      {
+        "offset": 878,
+        "text": "Star0"
+      },
+      {
+        "offset": 879,
+        "position": {
+          "at": 1408,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [307]"
+      },
+      {
+        "offset": 883,
+        "text": "Star3"
+      },
+      {
+        "offset": 884,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 886,
+        "position": {
+          "at": 1416,
+          "kind": "E"
+        },
+        "text": "Add r3, [80]"
+      },
+      {
+        "offset": 889,
+        "text": "Star0"
+      },
+      {
+        "offset": 890,
+        "position": {
+          "at": 1424,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [308]"
+      },
+      {
+        "offset": 894,
+        "text": "Star3"
+      },
+      {
+        "offset": 895,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 897,
+        "position": {
+          "at": 1432,
+          "kind": "E"
+        },
+        "text": "Add r3, [81]"
+      },
+      {
+        "offset": 900,
+        "text": "Star0"
+      },
+      {
+        "offset": 901,
+        "position": {
+          "at": 1440,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [309]"
+      },
+      {
+        "offset": 905,
+        "text": "Star3"
+      },
+      {
+        "offset": 906,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 908,
+        "position": {
+          "at": 1448,
+          "kind": "E"
+        },
+        "text": "Add r3, [82]"
+      },
+      {
+        "offset": 911,
+        "text": "Star0"
+      },
+      {
+        "offset": 912,
+        "position": {
+          "at": 1456,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [310]"
+      },
+      {
+        "offset": 916,
+        "text": "Star3"
+      },
+      {
+        "offset": 917,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 919,
+        "position": {
+          "at": 1464,
+          "kind": "E"
+        },
+        "text": "Add r3, [83]"
+      },
+      {
+        "offset": 922,
+        "text": "Star0"
+      },
+      {
+        "offset": 923,
+        "position": {
+          "at": 1472,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [311]"
+      },
+      {
+        "offset": 927,
+        "text": "Star3"
+      },
+      {
+        "offset": 928,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 930,
+        "position": {
+          "at": 1480,
+          "kind": "E"
+        },
+        "text": "Add r3, [84]"
+      },
+      {
+        "offset": 933,
+        "text": "Star0"
+      },
+      {
+        "offset": 934,
+        "position": {
+          "at": 1488,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [312]"
+      },
+      {
+        "offset": 938,
+        "text": "Star3"
+      },
+      {
+        "offset": 939,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 941,
+        "position": {
+          "at": 1496,
+          "kind": "E"
+        },
+        "text": "Add r3, [85]"
+      },
+      {
+        "offset": 944,
+        "text": "Star0"
+      },
+      {
+        "offset": 945,
+        "position": {
+          "at": 1504,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [313]"
+      },
+      {
+        "offset": 949,
+        "text": "Star3"
+      },
+      {
+        "offset": 950,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 952,
+        "position": {
+          "at": 1512,
+          "kind": "E"
+        },
+        "text": "Add r3, [86]"
+      },
+      {
+        "offset": 955,
+        "text": "Star0"
+      },
+      {
+        "offset": 956,
+        "position": {
+          "at": 1520,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [314]"
+      },
+      {
+        "offset": 960,
+        "text": "Star3"
+      },
+      {
+        "offset": 961,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 963,
+        "position": {
+          "at": 1528,
+          "kind": "E"
+        },
+        "text": "Add r3, [87]"
+      },
+      {
+        "offset": 966,
+        "text": "Star0"
+      },
+      {
+        "offset": 967,
+        "position": {
+          "at": 1536,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [315]"
+      },
+      {
+        "offset": 971,
+        "text": "Star3"
+      },
+      {
+        "offset": 972,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 974,
+        "position": {
+          "at": 1544,
+          "kind": "E"
+        },
+        "text": "Add r3, [88]"
+      },
+      {
+        "offset": 977,
+        "text": "Star0"
+      },
+      {
+        "offset": 978,
+        "position": {
+          "at": 1552,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [316]"
+      },
+      {
+        "offset": 982,
+        "text": "Star3"
+      },
+      {
+        "offset": 983,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 985,
+        "position": {
+          "at": 1560,
+          "kind": "E"
+        },
+        "text": "Add r3, [89]"
+      },
+      {
+        "offset": 988,
+        "text": "Star0"
+      },
+      {
+        "offset": 989,
+        "position": {
+          "at": 1568,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [317]"
+      },
+      {
+        "offset": 993,
+        "text": "Star3"
+      },
+      {
+        "offset": 994,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 996,
+        "position": {
+          "at": 1576,
+          "kind": "E"
+        },
+        "text": "Add r3, [90]"
+      },
+      {
+        "offset": 999,
+        "text": "Star0"
+      },
+      {
+        "offset": 1000,
+        "position": {
+          "at": 1584,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [318]"
+      },
+      {
+        "offset": 1004,
+        "text": "Star3"
+      },
+      {
+        "offset": 1005,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1007,
+        "position": {
+          "at": 1592,
+          "kind": "E"
+        },
+        "text": "Add r3, [91]"
+      },
+      {
+        "offset": 1010,
+        "text": "Star0"
+      },
+      {
+        "offset": 1011,
+        "position": {
+          "at": 1600,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [319]"
+      },
+      {
+        "offset": 1015,
+        "text": "Star3"
+      },
+      {
+        "offset": 1016,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1018,
+        "position": {
+          "at": 1608,
+          "kind": "E"
+        },
+        "text": "Add r3, [92]"
+      },
+      {
+        "offset": 1021,
+        "text": "Star0"
+      },
+      {
+        "offset": 1022,
+        "position": {
+          "at": 1616,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [320]"
+      },
+      {
+        "offset": 1026,
+        "text": "Star3"
+      },
+      {
+        "offset": 1027,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1029,
+        "position": {
+          "at": 1624,
+          "kind": "E"
+        },
+        "text": "Add r3, [93]"
+      },
+      {
+        "offset": 1032,
+        "text": "Star0"
+      },
+      {
+        "offset": 1033,
+        "position": {
+          "at": 1632,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [321]"
+      },
+      {
+        "offset": 1037,
+        "text": "Star3"
+      },
+      {
+        "offset": 1038,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1040,
+        "position": {
+          "at": 1640,
+          "kind": "E"
+        },
+        "text": "Add r3, [94]"
+      },
+      {
+        "offset": 1043,
+        "text": "Star0"
+      },
+      {
+        "offset": 1044,
+        "position": {
+          "at": 1648,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [322]"
+      },
+      {
+        "offset": 1048,
+        "text": "Star3"
+      },
+      {
+        "offset": 1049,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1051,
+        "position": {
+          "at": 1656,
+          "kind": "E"
+        },
+        "text": "Add r3, [95]"
+      },
+      {
+        "offset": 1054,
+        "text": "Star0"
+      },
+      {
+        "offset": 1055,
+        "position": {
+          "at": 1664,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [323]"
+      },
+      {
+        "offset": 1059,
+        "text": "Star3"
+      },
+      {
+        "offset": 1060,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1062,
+        "position": {
+          "at": 1672,
+          "kind": "E"
+        },
+        "text": "Add r3, [96]"
+      },
+      {
+        "offset": 1065,
+        "text": "Star0"
+      },
+      {
+        "offset": 1066,
+        "position": {
+          "at": 1680,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [324]"
+      },
+      {
+        "offset": 1070,
+        "text": "Star3"
+      },
+      {
+        "offset": 1071,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1073,
+        "position": {
+          "at": 1688,
+          "kind": "E"
+        },
+        "text": "Add r3, [97]"
+      },
+      {
+        "offset": 1076,
+        "text": "Star0"
+      },
+      {
+        "offset": 1077,
+        "position": {
+          "at": 1696,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [325]"
+      },
+      {
+        "offset": 1081,
+        "text": "Star3"
+      },
+      {
+        "offset": 1082,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1084,
+        "position": {
+          "at": 1704,
+          "kind": "E"
+        },
+        "text": "Add r3, [98]"
+      },
+      {
+        "offset": 1087,
+        "text": "Star0"
+      },
+      {
+        "offset": 1088,
+        "position": {
+          "at": 1712,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [326]"
+      },
+      {
+        "offset": 1092,
+        "text": "Star3"
+      },
+      {
+        "offset": 1093,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1095,
+        "position": {
+          "at": 1720,
+          "kind": "E"
+        },
+        "text": "Add r3, [99]"
+      },
+      {
+        "offset": 1098,
+        "text": "Star0"
+      },
+      {
+        "offset": 1099,
+        "position": {
+          "at": 1728,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [327]"
+      },
+      {
+        "offset": 1103,
+        "text": "Star3"
+      },
+      {
+        "offset": 1104,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1106,
+        "position": {
+          "at": 1736,
+          "kind": "E"
+        },
+        "text": "Add r3, [100]"
+      },
+      {
+        "offset": 1109,
+        "text": "Star0"
+      },
+      {
+        "offset": 1110,
+        "position": {
+          "at": 1744,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [328]"
+      },
+      {
+        "offset": 1114,
+        "text": "Star3"
+      },
+      {
+        "offset": 1115,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1117,
+        "position": {
+          "at": 1752,
+          "kind": "E"
+        },
+        "text": "Add r3, [101]"
+      },
+      {
+        "offset": 1120,
+        "text": "Star0"
+      },
+      {
+        "offset": 1121,
+        "position": {
+          "at": 1760,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [329]"
+      },
+      {
+        "offset": 1125,
+        "text": "Star3"
+      },
+      {
+        "offset": 1126,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1128,
+        "position": {
+          "at": 1768,
+          "kind": "E"
+        },
+        "text": "Add r3, [102]"
+      },
+      {
+        "offset": 1131,
+        "text": "Star0"
+      },
+      {
+        "offset": 1132,
+        "position": {
+          "at": 1776,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [330]"
+      },
+      {
+        "offset": 1136,
+        "text": "Star3"
+      },
+      {
+        "offset": 1137,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1139,
+        "position": {
+          "at": 1784,
+          "kind": "E"
+        },
+        "text": "Add r3, [103]"
+      },
+      {
+        "offset": 1142,
+        "text": "Star0"
+      },
+      {
+        "offset": 1143,
+        "position": {
+          "at": 1792,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [331]"
+      },
+      {
+        "offset": 1147,
+        "text": "Star3"
+      },
+      {
+        "offset": 1148,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1150,
+        "position": {
+          "at": 1800,
+          "kind": "E"
+        },
+        "text": "Add r3, [104]"
+      },
+      {
+        "offset": 1153,
+        "text": "Star0"
+      },
+      {
+        "offset": 1154,
+        "position": {
+          "at": 1808,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [332]"
+      },
+      {
+        "offset": 1158,
+        "text": "Star3"
+      },
+      {
+        "offset": 1159,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1161,
+        "position": {
+          "at": 1816,
+          "kind": "E"
+        },
+        "text": "Add r3, [105]"
+      },
+      {
+        "offset": 1164,
+        "text": "Star0"
+      },
+      {
+        "offset": 1165,
+        "position": {
+          "at": 1824,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [333]"
+      },
+      {
+        "offset": 1169,
+        "text": "Star3"
+      },
+      {
+        "offset": 1170,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1172,
+        "position": {
+          "at": 1832,
+          "kind": "E"
+        },
+        "text": "Add r3, [106]"
+      },
+      {
+        "offset": 1175,
+        "text": "Star0"
+      },
+      {
+        "offset": 1176,
+        "position": {
+          "at": 1840,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [334]"
+      },
+      {
+        "offset": 1180,
+        "text": "Star3"
+      },
+      {
+        "offset": 1181,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1183,
+        "position": {
+          "at": 1848,
+          "kind": "E"
+        },
+        "text": "Add r3, [107]"
+      },
+      {
+        "offset": 1186,
+        "text": "Star0"
+      },
+      {
+        "offset": 1187,
+        "position": {
+          "at": 1856,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [335]"
+      },
+      {
+        "offset": 1191,
+        "text": "Star3"
+      },
+      {
+        "offset": 1192,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1194,
+        "position": {
+          "at": 1864,
+          "kind": "E"
+        },
+        "text": "Add r3, [108]"
+      },
+      {
+        "offset": 1197,
+        "text": "Star0"
+      },
+      {
+        "offset": 1198,
+        "position": {
+          "at": 1872,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [336]"
+      },
+      {
+        "offset": 1202,
+        "text": "Star3"
+      },
+      {
+        "offset": 1203,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1205,
+        "position": {
+          "at": 1880,
+          "kind": "E"
+        },
+        "text": "Add r3, [109]"
+      },
+      {
+        "offset": 1208,
+        "text": "Star0"
+      },
+      {
+        "offset": 1209,
+        "position": {
+          "at": 1888,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [337]"
+      },
+      {
+        "offset": 1213,
+        "text": "Star3"
+      },
+      {
+        "offset": 1214,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1216,
+        "position": {
+          "at": 1896,
+          "kind": "E"
+        },
+        "text": "Add r3, [110]"
+      },
+      {
+        "offset": 1219,
+        "text": "Star0"
+      },
+      {
+        "offset": 1220,
+        "position": {
+          "at": 1904,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [338]"
+      },
+      {
+        "offset": 1224,
+        "text": "Star3"
+      },
+      {
+        "offset": 1225,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1227,
+        "position": {
+          "at": 1912,
+          "kind": "E"
+        },
+        "text": "Add r3, [111]"
+      },
+      {
+        "offset": 1230,
+        "text": "Star0"
+      },
+      {
+        "offset": 1231,
+        "position": {
+          "at": 1920,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [339]"
+      },
+      {
+        "offset": 1235,
+        "text": "Star3"
+      },
+      {
+        "offset": 1236,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1238,
+        "position": {
+          "at": 1928,
+          "kind": "E"
+        },
+        "text": "Add r3, [112]"
+      },
+      {
+        "offset": 1241,
+        "text": "Star0"
+      },
+      {
+        "offset": 1242,
+        "position": {
+          "at": 1936,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [340]"
+      },
+      {
+        "offset": 1246,
+        "text": "Star3"
+      },
+      {
+        "offset": 1247,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1249,
+        "position": {
+          "at": 1944,
+          "kind": "E"
+        },
+        "text": "Add r3, [113]"
+      },
+      {
+        "offset": 1252,
+        "text": "Star0"
+      },
+      {
+        "offset": 1253,
+        "position": {
+          "at": 1952,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [341]"
+      },
+      {
+        "offset": 1257,
+        "text": "Star3"
+      },
+      {
+        "offset": 1258,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1260,
+        "position": {
+          "at": 1960,
+          "kind": "E"
+        },
+        "text": "Add r3, [114]"
+      },
+      {
+        "offset": 1263,
+        "text": "Star0"
+      },
+      {
+        "offset": 1264,
+        "position": {
+          "at": 1968,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [342]"
+      },
+      {
+        "offset": 1268,
+        "text": "Star3"
+      },
+      {
+        "offset": 1269,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1271,
+        "position": {
+          "at": 1976,
+          "kind": "E"
+        },
+        "text": "Add r3, [115]"
+      },
+      {
+        "offset": 1274,
+        "text": "Star0"
+      },
+      {
+        "offset": 1275,
+        "position": {
+          "at": 1984,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [343]"
+      },
+      {
+        "offset": 1279,
+        "text": "Star3"
+      },
+      {
+        "offset": 1280,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1282,
+        "position": {
+          "at": 1992,
+          "kind": "E"
+        },
+        "text": "Add r3, [116]"
+      },
+      {
+        "offset": 1285,
+        "text": "Star0"
+      },
+      {
+        "offset": 1286,
+        "position": {
+          "at": 2000,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [344]"
+      },
+      {
+        "offset": 1290,
+        "text": "Star3"
+      },
+      {
+        "offset": 1291,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1293,
+        "position": {
+          "at": 2008,
+          "kind": "E"
+        },
+        "text": "Add r3, [117]"
+      },
+      {
+        "offset": 1296,
+        "text": "Star0"
+      },
+      {
+        "offset": 1297,
+        "position": {
+          "at": 2016,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [345]"
+      },
+      {
+        "offset": 1301,
+        "text": "Star3"
+      },
+      {
+        "offset": 1302,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1304,
+        "position": {
+          "at": 2024,
+          "kind": "E"
+        },
+        "text": "Add r3, [118]"
+      },
+      {
+        "offset": 1307,
+        "text": "Star0"
+      },
+      {
+        "offset": 1308,
+        "position": {
+          "at": 2032,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [346]"
+      },
+      {
+        "offset": 1312,
+        "text": "Star3"
+      },
+      {
+        "offset": 1313,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1315,
+        "position": {
+          "at": 2040,
+          "kind": "E"
+        },
+        "text": "Add r3, [119]"
+      },
+      {
+        "offset": 1318,
+        "text": "Star0"
+      },
+      {
+        "offset": 1319,
+        "position": {
+          "at": 2048,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [347]"
+      },
+      {
+        "offset": 1323,
+        "text": "Star3"
+      },
+      {
+        "offset": 1324,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1326,
+        "position": {
+          "at": 2056,
+          "kind": "E"
+        },
+        "text": "Add r3, [120]"
+      },
+      {
+        "offset": 1329,
+        "text": "Star0"
+      },
+      {
+        "offset": 1330,
+        "position": {
+          "at": 2064,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [348]"
+      },
+      {
+        "offset": 1334,
+        "text": "Star3"
+      },
+      {
+        "offset": 1335,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1337,
+        "position": {
+          "at": 2072,
+          "kind": "E"
+        },
+        "text": "Add r3, [121]"
+      },
+      {
+        "offset": 1340,
+        "text": "Star0"
+      },
+      {
+        "offset": 1341,
+        "position": {
+          "at": 2080,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [349]"
+      },
+      {
+        "offset": 1345,
+        "text": "Star3"
+      },
+      {
+        "offset": 1346,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1348,
+        "position": {
+          "at": 2088,
+          "kind": "E"
+        },
+        "text": "Add r3, [122]"
+      },
+      {
+        "offset": 1351,
+        "text": "Star0"
+      },
+      {
+        "offset": 1352,
+        "position": {
+          "at": 2096,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [350]"
+      },
+      {
+        "offset": 1356,
+        "text": "Star3"
+      },
+      {
+        "offset": 1357,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1359,
+        "position": {
+          "at": 2104,
+          "kind": "E"
+        },
+        "text": "Add r3, [123]"
+      },
+      {
+        "offset": 1362,
+        "text": "Star0"
+      },
+      {
+        "offset": 1363,
+        "position": {
+          "at": 2112,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [351]"
+      },
+      {
+        "offset": 1367,
+        "text": "Star3"
+      },
+      {
+        "offset": 1368,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1370,
+        "position": {
+          "at": 2120,
+          "kind": "E"
+        },
+        "text": "Add r3, [124]"
+      },
+      {
+        "offset": 1373,
+        "text": "Star0"
+      },
+      {
+        "offset": 1374,
+        "position": {
+          "at": 2128,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [352]"
+      },
+      {
+        "offset": 1378,
+        "text": "Star3"
+      },
+      {
+        "offset": 1379,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1381,
+        "position": {
+          "at": 2136,
+          "kind": "E"
+        },
+        "text": "Add r3, [125]"
+      },
+      {
+        "offset": 1384,
+        "text": "Star0"
+      },
+      {
+        "offset": 1385,
+        "position": {
+          "at": 2144,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [353]"
+      },
+      {
+        "offset": 1389,
+        "text": "Star3"
+      },
+      {
+        "offset": 1390,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1392,
+        "position": {
+          "at": 2152,
+          "kind": "E"
+        },
+        "text": "Add r3, [126]"
+      },
+      {
+        "offset": 1395,
+        "text": "Star0"
+      },
+      {
+        "offset": 1396,
+        "position": {
+          "at": 2160,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [354]"
+      },
+      {
+        "offset": 1400,
+        "text": "Star3"
+      },
+      {
+        "offset": 1401,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1403,
+        "position": {
+          "at": 2168,
+          "kind": "E"
+        },
+        "text": "Add r3, [127]"
+      },
+      {
+        "offset": 1406,
+        "text": "Star0"
+      },
+      {
+        "offset": 1407,
+        "position": {
+          "at": 2176,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [355]"
+      },
+      {
+        "offset": 1411,
+        "text": "Star3"
+      },
+      {
+        "offset": 1412,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1414,
+        "position": {
+          "at": 2184,
+          "kind": "E"
+        },
+        "text": "Add r3, [128]"
+      },
+      {
+        "offset": 1417,
+        "text": "Star0"
+      },
+      {
+        "offset": 1418,
+        "position": {
+          "at": 2192,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [356]"
+      },
+      {
+        "offset": 1422,
+        "text": "Star3"
+      },
+      {
+        "offset": 1423,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1425,
+        "position": {
+          "at": 2200,
+          "kind": "E"
+        },
+        "text": "Add r3, [129]"
+      },
+      {
+        "offset": 1428,
+        "text": "Star0"
+      },
+      {
+        "offset": 1429,
+        "position": {
+          "at": 2208,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [357]"
+      },
+      {
+        "offset": 1433,
+        "text": "Star3"
+      },
+      {
+        "offset": 1434,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1436,
+        "position": {
+          "at": 2216,
+          "kind": "E"
+        },
+        "text": "Add r3, [130]"
+      },
+      {
+        "offset": 1439,
+        "text": "Star0"
+      },
+      {
+        "offset": 1440,
+        "position": {
+          "at": 2224,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [358]"
+      },
+      {
+        "offset": 1444,
+        "text": "Star3"
+      },
+      {
+        "offset": 1445,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1447,
+        "position": {
+          "at": 2232,
+          "kind": "E"
+        },
+        "text": "Add r3, [131]"
+      },
+      {
+        "offset": 1450,
+        "text": "Star0"
+      },
+      {
+        "offset": 1451,
+        "position": {
+          "at": 2240,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [359]"
+      },
+      {
+        "offset": 1455,
+        "text": "Star3"
+      },
+      {
+        "offset": 1456,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1458,
+        "position": {
+          "at": 2248,
+          "kind": "E"
+        },
+        "text": "Add r3, [132]"
+      },
+      {
+        "offset": 1461,
+        "text": "Star0"
+      },
+      {
+        "offset": 1462,
+        "position": {
+          "at": 2256,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [360]"
+      },
+      {
+        "offset": 1466,
+        "text": "Star3"
+      },
+      {
+        "offset": 1467,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1469,
+        "position": {
+          "at": 2264,
+          "kind": "E"
+        },
+        "text": "Add r3, [133]"
+      },
+      {
+        "offset": 1472,
+        "text": "Star0"
+      },
+      {
+        "offset": 1473,
+        "position": {
+          "at": 2272,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [361]"
+      },
+      {
+        "offset": 1477,
+        "text": "Star3"
+      },
+      {
+        "offset": 1478,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1480,
+        "position": {
+          "at": 2280,
+          "kind": "E"
+        },
+        "text": "Add r3, [134]"
+      },
+      {
+        "offset": 1483,
+        "text": "Star0"
+      },
+      {
+        "offset": 1484,
+        "position": {
+          "at": 2288,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [362]"
+      },
+      {
+        "offset": 1488,
+        "text": "Star3"
+      },
+      {
+        "offset": 1489,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1491,
+        "position": {
+          "at": 2296,
+          "kind": "E"
+        },
+        "text": "Add r3, [135]"
+      },
+      {
+        "offset": 1494,
+        "text": "Star0"
+      },
+      {
+        "offset": 1495,
+        "position": {
+          "at": 2304,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [363]"
+      },
+      {
+        "offset": 1499,
+        "text": "Star3"
+      },
+      {
+        "offset": 1500,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1502,
+        "position": {
+          "at": 2312,
+          "kind": "E"
+        },
+        "text": "Add r3, [136]"
+      },
+      {
+        "offset": 1505,
+        "text": "Star0"
+      },
+      {
+        "offset": 1506,
+        "position": {
+          "at": 2320,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [364]"
+      },
+      {
+        "offset": 1510,
+        "text": "Star3"
+      },
+      {
+        "offset": 1511,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1513,
+        "position": {
+          "at": 2328,
+          "kind": "E"
+        },
+        "text": "Add r3, [137]"
+      },
+      {
+        "offset": 1516,
+        "text": "Star0"
+      },
+      {
+        "offset": 1517,
+        "position": {
+          "at": 2336,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [365]"
+      },
+      {
+        "offset": 1521,
+        "text": "Star3"
+      },
+      {
+        "offset": 1522,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1524,
+        "position": {
+          "at": 2344,
+          "kind": "E"
+        },
+        "text": "Add r3, [138]"
+      },
+      {
+        "offset": 1527,
+        "text": "Star0"
+      },
+      {
+        "offset": 1528,
+        "position": {
+          "at": 2352,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [366]"
+      },
+      {
+        "offset": 1532,
+        "text": "Star3"
+      },
+      {
+        "offset": 1533,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1535,
+        "position": {
+          "at": 2360,
+          "kind": "E"
+        },
+        "text": "Add r3, [139]"
+      },
+      {
+        "offset": 1538,
+        "text": "Star0"
+      },
+      {
+        "offset": 1539,
+        "position": {
+          "at": 2368,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [367]"
+      },
+      {
+        "offset": 1543,
+        "text": "Star3"
+      },
+      {
+        "offset": 1544,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1546,
+        "position": {
+          "at": 2376,
+          "kind": "E"
+        },
+        "text": "Add r3, [140]"
+      },
+      {
+        "offset": 1549,
+        "text": "Star0"
+      },
+      {
+        "offset": 1550,
+        "position": {
+          "at": 2384,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [368]"
+      },
+      {
+        "offset": 1554,
+        "text": "Star3"
+      },
+      {
+        "offset": 1555,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1557,
+        "position": {
+          "at": 2392,
+          "kind": "E"
+        },
+        "text": "Add r3, [141]"
+      },
+      {
+        "offset": 1560,
+        "text": "Star0"
+      },
+      {
+        "offset": 1561,
+        "position": {
+          "at": 2400,
+          "kind": "S"
+        },
+        "text": "LdaSmi.Wide [369]"
+      },
+      {
+        "offset": 1565,
+        "text": "Star3"
+      },
+      {
+        "offset": 1566,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 1568,
+        "position": {
+          "at": 2408,
+          "kind": "E"
+        },
+        "text": "Add r3, [142]"
+      },
+      {
+        "offset": 1571,
+        "text": "Star0"
+      },
+      {
+        "offset": 1572,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 1573,
+        "position": {
+          "at": 2416,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "786",
+      "772"
+    ],
+    "handlerTable": [],
+    "children": {}
+  }
+}

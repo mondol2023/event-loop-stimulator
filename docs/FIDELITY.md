@@ -103,4 +103,6 @@ Each gap names the construct, the difference from real Node/V8, and the fixture 
 
 ## Bytecode operand differences
 
-Opcode sequences match `--print-bytecode`. Operand-level differences are listed here, per fixture. There are none yet: the bytecode generator lands in Phase 2.
+Opcode sequences match `--print-bytecode`. Operand-level differences are listed here, per fixture. There are none in the recorded fixtures.
+
+One case is known and not reproduced: when a forward jump is still pending while the constant pool crosses 256 entries, V8 moves later entries to the next index slice to keep the jump's reserved index free; this generator appends them in order. A listing could differ only in a function with more than 256 constants and a jump over the crossing.

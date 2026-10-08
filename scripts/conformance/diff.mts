@@ -15,6 +15,14 @@ import { compareProgram } from "../../tests/conformance/support/compareBytecode.
 const args = process.argv.slice(2);
 const source = args[0] === "-e" ? (args[1] ?? "") : existsSync(args[0] ?? "") ? readFileSync(args[0] as string, "utf8") : (args[0] ?? "");
 
+// Declared before the early exit below, which prints V8's listing with it.
+type Line = { readonly offset: number; readonly text: string; readonly position?: { readonly at: number; readonly kind: "S" | "E" } | undefined };
+const line = (i: Line | undefined): string => {
+  if (!i) return "";
+  const pos = i.position ? `${String(i.position.at).padStart(5)} ${i.position.kind}>` : " ".repeat(8);
+  return `${pos} @${String(i.offset).padStart(4)} ${i.text}`;
+};
+
 const real = captureBytecode(source, "js");
 const parsed = parseScript(source);
 if (!parsed.ok) {
@@ -28,13 +36,6 @@ if (!generated.ok) {
   show(real, "", (line) => console.log(line));
   process.exit(0);
 }
-
-type Line = { readonly offset: number; readonly text: string; readonly position?: { readonly at: number; readonly kind: "S" | "E" } | undefined };
-const line = (i: Line | undefined): string => {
-  if (!i) return "";
-  const pos = i.position ? `${String(i.position.at).padStart(5)} ${i.position.kind}>` : " ".repeat(8);
-  return `${pos} @${String(i.offset).padStart(4)} ${i.text}`;
-};
 
 function show(fn: RealFunctionBytecode | PrintedFunction, indent: string, out: (s: string) => void): void {
   out(`${indent}[${fn.name || "<anon>"}] ${JSON.stringify(fn.header)}`);

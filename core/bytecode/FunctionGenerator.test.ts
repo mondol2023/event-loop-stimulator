@@ -352,3 +352,181 @@ describe("FunctionGenerator: literals, locals, operators and globals", () => {
     });
   });
 });
+
+describe("FunctionGenerator: control flow", () => {
+  it("if, else if and else", () => {
+    expectListing("var a = 1, b = 2, c = 0; if (a) { c = 1; } else if (b) { c = 2; } else { c = 3; }", {
+      registerCount: 3,
+      instructions: [
+        "8 S> LdaSmi [1]",
+        "Star0",
+        "15 S> LdaSmi [2]",
+        "Star1",
+        "22 S> LdaZero",
+        "Star2",
+        "25 S> Ldar r0",
+        "JumpIfToBooleanFalse [7] (@17)",
+        "34 S> LdaSmi [1]",
+        "Star2",
+        "Jump [14] (@29)",
+        "48 S> Ldar r1",
+        "JumpIfToBooleanFalse [7] (@26)",
+        "57 S> LdaSmi [2]",
+        "Star2",
+        "Jump [5] (@29)",
+        "73 S> LdaSmi [3]",
+        "Star2",
+        "LdaUndefined",
+        "80 S> Return",
+      ],
+      constantPool: [],
+    });
+  });
+
+  it("constant conditions", () => {
+    expectListing("var c = 0; if (true) { c = 1; } if (false) { c = 2; } else { c = 3; } while (false) { c = 4; }", {
+      registerCount: 1,
+      instructions: [
+        "8 S> LdaZero",
+        "Star0",
+        "23 S> LdaSmi [1]",
+        "Star0",
+        "61 S> LdaSmi [3]",
+        "Star0",
+        "LdaUndefined",
+        "93 S> Return",
+      ],
+      constantPool: [],
+    });
+  });
+
+  it("while with break and continue", () => {
+    expectListing("var a = 1; while (a < 9) { a = a + 1; if (a == 5) continue; if (a == 7) break; }", {
+      registerCount: 1,
+      instructions: [
+        "8 S> LdaSmi [1]",
+        "Star0",
+        "20 S> LdaSmi [9]",
+        "20 E> TestLessThan r0, [0]",
+        "JumpIfFalse [30] (@38)",
+        "27 S> Ldar r0",
+        "33 E> AddSmi [1], [1]",
+        "Star0",
+        "38 S> LdaSmi [5]",
+        "44 E> TestEqual r0, [2]",
+        "JumpIfFalse [4] (@25)",
+        "50 S> Jump [11] (@34)",
+        "60 S> LdaSmi [7]",
+        "66 E> TestEqual r0, [3]",
+        "JumpIfFalse [4] (@34)",
+        "72 S> Jump [6] (@38)",
+        "11 E> JumpLoop [31], [0], [4] (@3)",
+        "LdaUndefined",
+        "79 S> Return",
+      ],
+      constantPool: [],
+    });
+  });
+
+  it("for with an update, nested in a while (the inner JumpLoop reports depth 1)", () => {
+    expectListing("var a = 1, c = 0; while (a < 3) { for (var i = 0; i < 2; i++) { c = c + i; } a = a + 1; }", {
+      registerCount: 3,
+      instructions: [
+        "8 S> LdaSmi [1]",
+        "Star0",
+        "15 S> LdaZero",
+        "Star1",
+        "27 S> LdaSmi [3]",
+        "27 E> TestLessThan r0, [0]",
+        "JumpIfFalse [36] (@46)",
+        "47 S> LdaZero",
+        "Star2",
+        "52 S> LdaSmi [2]",
+        "52 E> TestLessThan r2, [1]",
+        "JumpIfFalse [17] (@36)",
+        "64 S> Ldar r2",
+        "70 E> Add r1, [2]",
+        "Star1",
+        "58 S> Ldar r2",
+        "Inc [3]",
+        "Star2",
+        "34 E> JumpLoop [18], [1], [4] (@14)",
+        "77 S> Ldar r0",
+        "83 E> AddSmi [1], [5]",
+        "Star0",
+        "18 E> JumpLoop [37], [0], [6] (@5)",
+        "LdaUndefined",
+        "88 S> Return",
+      ],
+      constantPool: [],
+    });
+  });
+
+  it("nested loops with one header share the outer JumpLoop", () => {
+    expectListing("var b = 0; for (;;) { for (;;) { b = b + 1; if (b > 3) break; } break; }", {
+      registerCount: 1,
+      instructions: [
+        "8 S> LdaZero",
+        "Star0",
+        "33 S> Ldar r0",
+        "39 E> AddSmi [1], [0]",
+        "Star0",
+        "44 S> LdaSmi [3]",
+        "50 E> TestGreaterThan r0, [1]",
+        "JumpIfFalse [4] (@17)",
+        "55 S> Jump [4] (@19)",
+        "Jump [4] (@21)",
+        "64 S> Jump [6] (@25)",
+        "11 E> JumpLoop [19], [0], [2] (@2)",
+        "LdaUndefined",
+        "71 S> Return",
+      ],
+      constantPool: [],
+    });
+  });
+
+  it("a loop that always runs, with code after it", () => {
+    expectListing("var a = 1; while (true) { a = a + 1; if (a > 5) break; } a = 0;", {
+      registerCount: 1,
+      instructions: [
+        "8 S> LdaSmi [1]",
+        "Star0",
+        "26 S> Ldar r0",
+        "32 E> AddSmi [1], [0]",
+        "Star0",
+        "37 S> LdaSmi [5]",
+        "43 E> TestGreaterThan r0, [1]",
+        "JumpIfFalse [4] (@18)",
+        "48 S> Jump [6] (@22)",
+        "11 E> JumpLoop [15], [0], [2] (@3)",
+        "57 S> LdaZero",
+        "Star0",
+        "LdaUndefined",
+        "62 S> Return",
+      ],
+      constantPool: [],
+    });
+  });
+
+  it("return and throw", () => {
+    expectListing("var a = 1; if (a) return; if (a > 2) { return a + 1; } else { throw 7; }", {
+      registerCount: 1,
+      instructions: [
+        "8 S> LdaSmi [1]",
+        "Star0",
+        "11 S> JumpIfToBooleanFalse [4] (@7)",
+        "18 S> LdaUndefined",
+        "25 S> Return",
+        "26 S> LdaSmi [2]",
+        "32 E> TestGreaterThan r0, [0]",
+        "JumpIfFalse [8] (@20)",
+        "39 S> Ldar r0",
+        "48 E> AddSmi [1], [1]",
+        "52 S> Return",
+        "62 S> LdaSmi [7]",
+        "62 E> Throw",
+      ],
+      constantPool: [],
+    });
+  });
+});
