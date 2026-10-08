@@ -25,7 +25,7 @@ import type { ReferenceInfo, Scope, ScopeTree, Variable } from "@/core/frontend/
 import type { FunctionId } from "@/core/shared/ids";
 import { BytecodeArrayBuilder, type Label } from "./BytecodeArrayBuilder";
 import { BytecodeLabels } from "./BytecodeLabels";
-import { type Opcode, THIS, argument, local } from "./bytecodes";
+import { CURRENT_CONTEXT, type Opcode, THIS, argument, local } from "./bytecodes";
 import { type LiteralValue, isSmi, literalOf, toBooleanOf } from "./literals";
 import { endOf, operatorPosition, startOf } from "./sourceText";
 
@@ -69,6 +69,12 @@ type Loop = {
 
 /** `BytecodeArray::kMaxOsrUrgency - 1`: the deepest loop level a `JumpLoop` reports. */
 const MAX_OSR_DEPTH = 5;
+
+/** V8's ContextScope: a context a function has pushed, linked to the one it replaced. */
+type ContextScope = { readonly scope: Scope; readonly outer: ContextScope | undefined; register: number };
+
+/** `Context::MIN_CONTEXT_SLOTS`: the slots every context has before its variables. */
+const MIN_CONTEXT_SLOTS = 2;
 
 type Entered = { readonly previous: ResultScope; readonly scope: ResultScope; readonly top: number };
 
@@ -159,6 +165,7 @@ export class FunctionGenerator {
   private readonly scopes: ScopeTree;
   private readonly functions: FunctionCompiler;
   private currentScope: Scope;
+  private context: ContextScope;
   /** The function declarations already created at the top of the function. */
   private readonly hoisted = new Set<Node>();
   private result: ResultScope = new ResultScope("effect");
@@ -170,6 +177,7 @@ export class FunctionGenerator {
     this.scopes = options.scopes;
     this.functions = options.functions;
     this.currentScope = options.scope;
+    this.context = { scope: options.scope, outer: undefined, register: CURRENT_CONTEXT };
     this.builder = new BytecodeArrayBuilder({
       parameterCount: options.parameterCount,
       localCount: options.localCount,
@@ -188,7 +196,7 @@ export class FunctionGenerator {
     }
     // An arrow's expression body is `return <expression>`, positioned at the expression.
     const b = this.builder;
-    b.setExpressionPosition(entry);
+    this.enterFunction(entry);
     const expression = node.body;
     b.setStatementPosition(this.positionOf(expression));
     this.visitForAccumulatorValue(expression);
@@ -203,7 +211,7 @@ export class FunctionGenerator {
   }
 
   generateBody(statements: readonly Statement[], returnPosition: number, entryPosition = 0): void {
-    this.builder.setExpressionPosition(entryPosition);
+    this.enterFunction(entryPosition);
     this.createHoistedFunctions(statements);
     this.visitStatements(statements);
     if (!this.builder.remainderOfBlockIsDead) {
@@ -211,6 +219,29 @@ export class FunctionGenerator {
       this.builder.setStatementPosition(returnPosition);
       this.builder.emit("Return");
     }
+  }
+
+  /** The function's own context, when something in it is captured; parameters it holds are copied in. */
+  private enterFunction(entryPosition: number): void {
+    const b = this.builder;
+    b.setExpressionPosition(entryPosition);
+    const scope = this.currentScope;
+    if (!scope.needsContext) return;
+    b.emit("CreateFunctionContext", b.constantPool.add({ kind: "scope-info", scope: "FUNCTION_SCOPE" }), scope.contextSlots);
+    this.pushContext(scope);
+    const parameters = scope.variables.filter((v) => v.kind === "param" && v.allocation.kind === "context");
+    for (const parameter of parameters.sort((a, c) => (a.parameterIndex ?? 0) - (c.parameterIndex ?? 0))) {
+      b.emit("Ldar", argument(parameter.parameterIndex ?? 0));
+      b.emit("StaCurrentContextSlot", this.slotOf(parameter));
+    }
+  }
+
+  /** V8's ContextScope constructor: the context in use moves to a fresh register and the new one becomes current. */
+  private pushContext(scope: Scope): void {
+    const outer = this.context;
+    outer.register = local(this.builder.allocateRegister());
+    this.builder.emit("PushContext", outer.register);
+    this.context = { scope, outer, register: CURRENT_CONTEXT };
   }
 
   /** V8's VisitDeclarations: every function declaration of the body is created before any statement runs. */
@@ -680,9 +711,39 @@ export class FunctionGenerator {
       case "parameter":
         this.builder.emit("Ldar", argument(allocation.index));
         return;
+      case "context": {
+        const { register, depth } = this.contextAccess(variable);
+        const slot = this.slotOf(variable);
+        const immutable = !variable.maybeAssigned;
+        if (register === CURRENT_CONTEXT && depth === 0) {
+          this.builder.emit(immutable ? "LdaImmutableCurrentContextSlot" : "LdaCurrentContextSlot", slot);
+        } else {
+          this.builder.emit(immutable ? "LdaImmutableContextSlot" : "LdaContextSlot", register, slot, depth);
+        }
+        return;
+      }
       default:
         throw new NotYetSupported(at);
     }
+  }
+
+  private slotOf(variable: Variable): number {
+    return variable.allocation.kind === "context" ? variable.allocation.index + MIN_CONTEXT_SLOTS : 0;
+  }
+
+  /**
+   * V8's context chain walk: the register holding the context `variable` lives in, and how many
+   * `previous` hops from it. Contexts this function pushed are in registers; beyond them the walk
+   * starts at the context the closure was created in.
+   */
+  private contextAccess(variable: Variable): { register: number; depth: number } {
+    let depth = 0;
+    for (let scope: Scope | null = this.context.scope; scope && scope !== variable.scope; scope = scope.parent) {
+      if (scope.needsContext) depth++;
+    }
+    let found: ContextScope | undefined = this.context;
+    for (let hops = depth; hops > 0 && found; hops--) found = found.outer;
+    return found ? { register: found.register, depth: 0 } : { register: this.context.register, depth };
   }
 
   /** V8's BuildVariableAssignment: the accumulator is stored into the variable `identifier` names. */
@@ -705,6 +766,13 @@ export class FunctionGenerator {
       case "parameter":
         this.builder.emit("Star", argument(allocation.index));
         return;
+      case "context": {
+        const { register, depth } = this.contextAccess(variable);
+        const slot = this.slotOf(variable);
+        if (register === CURRENT_CONTEXT && depth === 0) this.builder.emit("StaCurrentContextSlot", slot);
+        else this.builder.emit("StaContextSlot", register, slot, depth);
+        return;
+      }
       default:
         throw new NotYetSupported(identifier);
     }

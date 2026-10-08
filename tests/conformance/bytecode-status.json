@@ -20,6 +20,9 @@
   "bc-call-shapes": {
     "status": "exact"
   },
+  "bc-closures": {
+    "status": "exact"
+  },
   "bc-far-jumps": {
     "status": "exact"
   },

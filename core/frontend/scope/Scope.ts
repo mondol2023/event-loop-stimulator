@@ -43,6 +43,8 @@ export type Variable = {
   allocation: Allocation;
   /** True when a function other than the declaring one references it (V8 context allocation). */
   captured: boolean;
+  /** True when a reference writes it after the declaration (V8 `maybe_assigned`); a never-assigned context slot loads as immutable. */
+  maybeAssigned: boolean;
   /** True when a reference resolves to it or its declaration initializes it; only such variables get storage. */
   used: boolean;
   /** Position of the argument for a `param`, kept even when the variable moves to the context. */

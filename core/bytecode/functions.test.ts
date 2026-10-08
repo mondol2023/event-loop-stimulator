@@ -15,6 +15,8 @@ interface Expected {
   readonly registerCount: number;
   readonly instructions: readonly string[];
   readonly constantPool?: readonly string[];
+  /** The closures this function creates, in constant-pool order. */
+  readonly children?: readonly Expected[];
 }
 
 function compile(source: string): readonly BytecodeFunction[] {
@@ -25,7 +27,7 @@ function compile(source: string): readonly BytecodeFunction[] {
   return result.value.functions;
 }
 
-/** Checks the wrapper and then each child, in the order of the wrapper's constant-pool closures. */
+/** Checks the wrapper, then the functions it creates, depth first. */
 function expectFunctions(source: string, wrapper: Expected, ...children: Expected[]): void {
   const functions = compile(source);
   const byId = (id: number): BytecodeFunction => {
@@ -40,11 +42,11 @@ function expectFunctions(source: string, wrapper: Expected, ...children: Expecte
     if (expected.constantPool) expect(printed.constantPool).toEqual(expected.constantPool);
     if (expected.name !== undefined) expect(fn.name).toBe(expected.name);
     if (expected.parameterCount !== undefined) expect(fn.parameterCount).toBe(expected.parameterCount);
+    const nested = expected.children ?? [];
+    expect(fn.children).toHaveLength(nested.length);
+    nested.forEach((child, i) => check(byId(fn.children[i] as number), child));
   };
-  const root = byId(0);
-  check(root, wrapper);
-  expect(root.children).toHaveLength(children.length);
-  children.forEach((expected, i) => check(byId(root.children[i] as number), expected));
+  check(byId(0), { ...wrapper, children });
 }
 
 describe("functions and plain calls", () => {
@@ -119,6 +121,148 @@ describe("functions and plain calls", () => {
       { name: "declared", parameterCount: 1, registerCount: 0, instructions: ["60 S> LdaSmi [1]", "69 S> Return"] },
       { name: "one", parameterCount: 2, registerCount: 0, instructions: ["25 S> Ldar a0", "34 S> Return"] },
       { name: "", parameterCount: 1, registerCount: 0, instructions: ["LdaUndefined", "131 S> Return"] },
+    );
+  });
+});
+
+describe("function contexts", () => {
+  // The same source as tests/conformance/fixtures/bc-closures.cjs.
+  const source = `function outer() {
+  var x = 1;
+  function mid() {
+    var y = 2;
+    function inner() { return y; }
+    function inner2() { return x; }
+    return x + y + inner() + inner2();
+  }
+  function reader() { return x; }
+  return mid() + reader();
+}
+outer();
+function counter(start) {
+  var n = start;
+  var m = 1;
+  return function () { n = n + 1; return n + m; };
+}
+var c = counter(0);
+c();
+var top = 5;
+function readTop() { return top; }
+readTop();
+`;
+
+  it("keeps captured variables in a context each function pushes, read by depth from its closures", () => {
+    expectFunctions(
+      source,
+      {
+        registerCount: 7,
+        instructions: [
+          "0 E> CreateFunctionContext [0], [1]",
+          "PushContext r4",
+          "CreateClosure [1], [0], #2",
+          "Star0",
+          "CreateClosure [2], [1], #2",
+          "Star1",
+          "CreateClosure [3], [2], #2",
+          "Star3",
+          "243 S> CallUndefinedReceiver0 r0, [0]",
+          "369 S> LdaZero",
+          "Star6",
+          "369 E> CallUndefinedReceiver1 r1, r6, [2]",
+          "Star2",
+          "381 S> CallUndefinedReceiver0 r2, [4]",
+          "396 S> LdaSmi [5]",
+          "396 E> StaCurrentContextSlot [2]",
+          "434 S> CallUndefinedReceiver0 r3, [6]",
+          "LdaUndefined",
+          "444 S> Return",
+        ],
+        constantPool: ["<ScopeInfo FUNCTION_SCOPE>", "<SharedFunctionInfo outer>", "<SharedFunctionInfo counter>", "<SharedFunctionInfo readTop>"],
+      },
+      {
+        name: "outer",
+        registerCount: 4,
+        instructions: [
+          "14 E> CreateFunctionContext [0], [1]",
+          "PushContext r2",
+          "CreateClosure [1], [0], #2",
+          "Star0",
+          "CreateClosure [2], [1], #2",
+          "Star1",
+          "29 S> LdaSmi [1]",
+          "29 E> StaCurrentContextSlot [2]",
+          "223 S> CallUndefinedReceiver0 r0, [1]",
+          "Star3",
+          "231 E> CallUndefinedReceiver0 r1, [3]",
+          "229 E> Add r3, [0]",
+          "240 S> Return",
+        ],
+        constantPool: ["<ScopeInfo FUNCTION_SCOPE>", "<SharedFunctionInfo mid>", "<SharedFunctionInfo reader>"],
+        children: [
+          {
+            name: "mid",
+            registerCount: 4,
+            instructions: [
+              "46 E> CreateFunctionContext [0], [1]",
+              "PushContext r2",
+              "CreateClosure [1], [0], #2",
+              "Star0",
+              "CreateClosure [2], [1], #2",
+              "Star1",
+              "63 S> LdaSmi [2]",
+              "63 E> StaCurrentContextSlot [2]",
+              "141 S> LdaImmutableContextSlot r2, [2], [0]",
+              "Star3",
+              "LdaImmutableCurrentContextSlot [2]",
+              "150 E> Add r3, [0]",
+              "Star3",
+              "156 E> CallUndefinedReceiver0 r0, [1]",
+              "154 E> Add r3, [3]",
+              "Star3",
+              "166 E> CallUndefinedReceiver0 r1, [4]",
+              "164 E> Add r3, [6]",
+              "175 S> Return",
+            ],
+            children: [
+              { name: "inner", registerCount: 0, instructions: ["89 S> LdaImmutableCurrentContextSlot [2]", "98 S> Return"] },
+              { name: "inner2", registerCount: 0, instructions: ["125 S> LdaImmutableContextSlot <context>, [2], [1]", "134 S> Return"] },
+            ],
+          },
+          { name: "reader", registerCount: 0, instructions: ["202 S> LdaImmutableCurrentContextSlot [2]", "211 S> Return"] },
+        ],
+      },
+      {
+        name: "counter",
+        parameterCount: 2,
+        registerCount: 1,
+        instructions: [
+          "268 E> CreateFunctionContext [0], [2]",
+          "PushContext r0",
+          "288 S> Ldar a0",
+          "288 E> StaCurrentContextSlot [2]",
+          "305 S> LdaSmi [1]",
+          "305 E> StaCurrentContextSlot [3]",
+          "310 S> CreateClosure [1], [0], #2",
+          "358 S> Return",
+        ],
+        children: [
+          {
+            name: "",
+            registerCount: 1,
+            instructions: [
+              "331 S> LdaCurrentContextSlot [2]",
+              "337 E> AddSmi [1], [0]",
+              "333 E> StaCurrentContextSlot [2]",
+              "342 S> LdaCurrentContextSlot [2]",
+              "Star0",
+              "LdaImmutableCurrentContextSlot [3]",
+              "351 E> Add r0, [1]",
+              "355 S> Return",
+            ],
+          },
+        ],
+      },
+      { name: "readTop", registerCount: 0, instructions: ["420 S> LdaImmutableCurrentContextSlot [2]", "431 S> Return"] },
     );
   });
 });
