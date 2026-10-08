@@ -1,0 +1,576 @@
+{
+  "schema": 1,
+  "fixture": "bc-tdz",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 55,
+      "parameterCount": 6,
+      "registerCount": 6,
+      "frameSize": 48
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateFunctionContext [0], [2]"
+      },
+      {
+        "offset": 3,
+        "text": "PushContext r5"
+      },
+      {
+        "offset": 5,
+        "text": "CreateClosure [1], [0], #2"
+      },
+      {
+        "offset": 9,
+        "text": "Star0"
+      },
+      {
+        "offset": 10,
+        "text": "LdaTheHole"
+      },
+      {
+        "offset": 11,
+        "text": "StaCurrentContextSlot [2]"
+      },
+      {
+        "offset": 13,
+        "text": "LdaTheHole"
+      },
+      {
+        "offset": 14,
+        "text": "StaCurrentContextSlot [3]"
+      },
+      {
+        "offset": 16,
+        "text": "CreateClosure [2], [1], #2"
+      },
+      {
+        "offset": 20,
+        "text": "Star2"
+      },
+      {
+        "offset": 21,
+        "text": "CreateClosure [3], [2], #2"
+      },
+      {
+        "offset": 25,
+        "text": "Star3"
+      },
+      {
+        "offset": 26,
+        "text": "CreateClosure [4], [3], #2"
+      },
+      {
+        "offset": 30,
+        "text": "Star4"
+      },
+      {
+        "offset": 31,
+        "position": {
+          "at": 47,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 33,
+        "position": {
+          "at": 47,
+          "kind": "E"
+        },
+        "text": "StaCurrentContextSlot [2]"
+      },
+      {
+        "offset": 35,
+        "position": {
+          "at": 64,
+          "kind": "S"
+        },
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 37,
+        "position": {
+          "at": 64,
+          "kind": "E"
+        },
+        "text": "StaCurrentContextSlot [3]"
+      },
+      {
+        "offset": 39,
+        "position": {
+          "at": 71,
+          "kind": "S"
+        },
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 40,
+        "text": "Star1"
+      },
+      {
+        "offset": 41,
+        "position": {
+          "at": 122,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r0, [0]"
+      },
+      {
+        "offset": 44,
+        "position": {
+          "at": 131,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r2, [2]"
+      },
+      {
+        "offset": 47,
+        "position": {
+          "at": 263,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r3, [4]"
+      },
+      {
+        "offset": 50,
+        "position": {
+          "at": 383,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r4, [6]"
+      },
+      {
+        "offset": 53,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 54,
+        "position": {
+          "at": 400,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<ScopeInfo FUNCTION_SCOPE>",
+      "<SharedFunctionInfo early>",
+      "<SharedFunctionInfo useAll>",
+      "<SharedFunctionInfo localTdz>",
+      "<SharedFunctionInfo assignCaptured>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "1": {
+        "name": "early",
+        "header": {
+          "length": 5,
+          "parameterCount": 1,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 19,
+              "kind": "S"
+            },
+            "text": "LdaImmutableCurrentContextSlot [2]"
+          },
+          {
+            "offset": 2,
+            "text": "ThrowReferenceErrorIfHole [0]"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 32,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[5]: #later>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "2": {
+        "name": "useAll",
+        "header": {
+          "length": 13,
+          "parameterCount": 1,
+          "registerCount": 1,
+          "frameSize": 8
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 98,
+              "kind": "S"
+            },
+            "text": "LdaImmutableCurrentContextSlot [2]"
+          },
+          {
+            "offset": 2,
+            "text": "ThrowReferenceErrorIfHole [0]"
+          },
+          {
+            "offset": 4,
+            "text": "Star0"
+          },
+          {
+            "offset": 5,
+            "text": "LdaImmutableCurrentContextSlot [3]"
+          },
+          {
+            "offset": 7,
+            "position": {
+              "at": 113,
+              "kind": "E"
+            },
+            "text": "ThrowReferenceErrorIfHole [1]"
+          },
+          {
+            "offset": 9,
+            "position": {
+              "at": 111,
+              "kind": "E"
+            },
+            "text": "Add r0, [0]"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 119,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[5]: #later>",
+          "<String[5]: #fixed>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "3": {
+        "name": "localTdz",
+        "header": {
+          "length": 32,
+          "parameterCount": 1,
+          "registerCount": 5,
+          "frameSize": 40
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 158,
+              "kind": "E"
+            },
+            "text": "CreateFunctionContext [0], [1]"
+          },
+          {
+            "offset": 3,
+            "text": "PushContext r3"
+          },
+          {
+            "offset": 5,
+            "text": "CreateClosure [1], [0], #2"
+          },
+          {
+            "offset": 9,
+            "text": "Star2"
+          },
+          {
+            "offset": 10,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 11,
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 13,
+            "position": {
+              "at": 173,
+              "kind": "S"
+            },
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 15,
+            "text": "Star0"
+          },
+          {
+            "offset": 16,
+            "position": {
+              "at": 190,
+              "kind": "S"
+            },
+            "text": "AddSmi [1], [0]"
+          },
+          {
+            "offset": 19,
+            "text": "Star1"
+          },
+          {
+            "offset": 20,
+            "position": {
+              "at": 237,
+              "kind": "S"
+            },
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 22,
+            "position": {
+              "at": 249,
+              "kind": "S"
+            },
+            "text": "CallUndefinedReceiver0 r2, [2]"
+          },
+          {
+            "offset": 25,
+            "text": "Star4"
+          },
+          {
+            "offset": 26,
+            "text": "Ldar r0"
+          },
+          {
+            "offset": 28,
+            "position": {
+              "at": 256,
+              "kind": "E"
+            },
+            "text": "Add r4, [1]"
+          },
+          {
+            "offset": 31,
+            "position": {
+              "at": 260,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<ScopeInfo FUNCTION_SCOPE>",
+          "<SharedFunctionInfo read>"
+        ],
+        "handlerTable": [],
+        "children": {
+          "1": {
+            "name": "read",
+            "header": {
+              "length": 5,
+              "parameterCount": 1,
+              "registerCount": 0,
+              "frameSize": 0
+            },
+            "instructions": [
+              {
+                "offset": 0,
+                "position": {
+                  "at": 215,
+                  "kind": "S"
+                },
+                "text": "LdaImmutableCurrentContextSlot [2]"
+              },
+              {
+                "offset": 2,
+                "text": "ThrowReferenceErrorIfHole [0]"
+              },
+              {
+                "offset": 4,
+                "position": {
+                  "at": 224,
+                  "kind": "S"
+                },
+                "text": "Return"
+              }
+            ],
+            "constantPool": [
+              "<String[1]: #c>"
+            ],
+            "handlerTable": [],
+            "children": {}
+          }
+        }
+      },
+      "4": {
+        "name": "assignCaptured",
+        "header": {
+          "length": 22,
+          "parameterCount": 1,
+          "registerCount": 2,
+          "frameSize": 16
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 298,
+              "kind": "E"
+            },
+            "text": "CreateFunctionContext [0], [1]"
+          },
+          {
+            "offset": 3,
+            "text": "PushContext r1"
+          },
+          {
+            "offset": 5,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 6,
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 8,
+            "position": {
+              "at": 313,
+              "kind": "S"
+            },
+            "text": "LdaZero"
+          },
+          {
+            "offset": 9,
+            "position": {
+              "at": 313,
+              "kind": "E"
+            },
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 11,
+            "position": {
+              "at": 331,
+              "kind": "S"
+            },
+            "text": "CreateClosure [1], [0], #2"
+          },
+          {
+            "offset": 15,
+            "text": "Star0"
+          },
+          {
+            "offset": 16,
+            "position": {
+              "at": 361,
+              "kind": "S"
+            },
+            "text": "CallUndefinedReceiver0 r0, [0]"
+          },
+          {
+            "offset": 19,
+            "position": {
+              "at": 371,
+              "kind": "S"
+            },
+            "text": "LdaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 21,
+            "position": {
+              "at": 380,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<ScopeInfo FUNCTION_SCOPE>",
+          "<SharedFunctionInfo bump>"
+        ],
+        "handlerTable": [],
+        "children": {
+          "1": {
+            "name": "bump",
+            "header": {
+              "length": 11,
+              "parameterCount": 1,
+              "registerCount": 0,
+              "frameSize": 0
+            },
+            "instructions": [
+              {
+                "offset": 0,
+                "position": {
+                  "at": 345,
+                  "kind": "S"
+                },
+                "text": "LdaCurrentContextSlot [2]"
+              },
+              {
+                "offset": 2,
+                "text": "ThrowReferenceErrorIfHole [0]"
+              },
+              {
+                "offset": 4,
+                "position": {
+                  "at": 351,
+                  "kind": "E"
+                },
+                "text": "AddSmi [1], [0]"
+              },
+              {
+                "offset": 7,
+                "position": {
+                  "at": 347,
+                  "kind": "E"
+                },
+                "text": "StaCurrentContextSlot [2]"
+              },
+              {
+                "offset": 9,
+                "text": "LdaUndefined"
+              },
+              {
+                "offset": 10,
+                "position": {
+                  "at": 356,
+                  "kind": "S"
+                },
+                "text": "Return"
+              }
+            ],
+            "constantPool": [
+              "<String[1]: #n>"
+            ],
+            "handlerTable": [],
+            "children": {}
+          }
+        }
+      }
+    }
+  }
+}

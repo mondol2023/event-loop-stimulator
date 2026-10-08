@@ -181,6 +181,7 @@ class Analyzer {
       allocation: UNALLOCATED,
       captured: false,
       maybeAssigned: false,
+      needsHoleInit: false,
       used: options.kind === "param" || options.kind === "function-name" || options.kind === "catch",
       annexB: false,
       tdz: options.tdz,
@@ -522,8 +523,10 @@ class Analyzer {
         resolved.used = true;
         const crossesClosure = closureOf(ref.scope) !== closureOf(resolved.scope);
         if (crossesClosure) resolved.captured = true;
-        if (ref.access !== "read") resolved.maybeAssigned = true;
+        // A write to a const only throws, so V8 does not count it.
+        if (ref.access !== "read" && resolved.kind !== "const") resolved.maybeAssigned = true;
         needsTdzCheck = resolved.tdz && (crossesClosure || range.start < resolved.initializedAt);
+        if (needsTdzCheck) resolved.needsHoleInit = true;
       }
       references.push({
         name: ref.node.name,

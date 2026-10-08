@@ -103,6 +103,8 @@ Each gap names the construct, the difference from real Node/V8, and the fixture 
 
 ## Bytecode operand differences
 
-Opcode sequences match `--print-bytecode`. Operand-level differences are listed here, per fixture. There are none in the recorded fixtures.
+Opcode sequences match `--print-bytecode`. Operand-level differences are listed here, per fixture.
+
+- `bc-tdz-assign`, `assignFirst`: after an assignment to a not-yet-initialized binding inside a branch, V8 flushes the merge with `Ldar` of the temporary holding the value; we reload the binding. Same value, different register operand. The register optimizer's flush rule behind this is not yet understood.
 
 One case is known and not reproduced: when a forward jump is still pending while the constant pool crosses 256 entries, V8 moves later entries to the next index slice to keep the jump's reserved index free; this generator appends them in order. A listing could differ only in a function with more than 256 constants and a jump over the crossing.

@@ -23,6 +23,9 @@
   "bc-closures": {
     "status": "exact"
   },
+  "bc-const-assign": {
+    "status": "exact"
+  },
   "bc-far-jumps": {
     "status": "exact"
   },
@@ -42,6 +45,22 @@
     "status": "exact"
   },
   "bc-loops": {
+    "status": "exact"
+  },
+  "bc-tdz-assign": {
+    "status": "opcodes",
+    "exceptions": [
+      {
+        "function": "#0:assignFirst",
+        "level": "operands",
+        "reason": "After an assignment to a still-uninitialized binding in a branch, V8 flushes the merge with Ldar of the temporary (r1) where we reload the binding (r0); same value, different register operand"
+      }
+    ]
+  },
+  "bc-tdz-flow": {
+    "status": "exact"
+  },
+  "bc-tdz": {
     "status": "exact"
   },
   "closure-counter": {

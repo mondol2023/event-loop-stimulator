@@ -266,3 +266,247 @@ readTop();
     );
   });
 });
+
+describe("temporal dead zone", () => {
+  // The same source as tests/conformance/fixtures/bc-tdz.cjs.
+  const source = `function early() { return later; }
+let later = 1;
+const fixed = 2;
+let unset;
+function useAll() { return later + fixed; }
+early();
+useAll();
+function localTdz() {
+  let a = 1;
+  const b = a + 1;
+  function read() { return c; }
+  let c = b;
+  return read() + a;
+}
+localTdz();
+function assignCaptured() {
+  let n = 0;
+  const bump = function () { n = n + 1; };
+  bump();
+  return n;
+}
+assignCaptured();
+`;
+
+  it("fills a binding that can be read too early with the hole, and checks it where it is read", () => {
+    expectFunctions(
+      source,
+      {
+        registerCount: 6,
+        instructions: [
+          "0 E> CreateFunctionContext [0], [2]",
+          "PushContext r5",
+          "CreateClosure [1], [0], #2",
+          "Star0",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "LdaTheHole",
+          "StaCurrentContextSlot [3]",
+          "CreateClosure [2], [1], #2",
+          "Star2",
+          "CreateClosure [3], [2], #2",
+          "Star3",
+          "CreateClosure [4], [3], #2",
+          "Star4",
+          "47 S> LdaSmi [1]",
+          "47 E> StaCurrentContextSlot [2]",
+          "64 S> LdaSmi [2]",
+          "64 E> StaCurrentContextSlot [3]",
+          "71 S> LdaUndefined",
+          "Star1",
+          "122 S> CallUndefinedReceiver0 r0, [0]",
+          "131 S> CallUndefinedReceiver0 r2, [2]",
+          "263 S> CallUndefinedReceiver0 r3, [4]",
+          "383 S> CallUndefinedReceiver0 r4, [6]",
+          "LdaUndefined",
+          "400 S> Return",
+        ],
+      },
+      {
+        name: "early",
+        registerCount: 0,
+        instructions: ["19 S> LdaImmutableCurrentContextSlot [2]", "ThrowReferenceErrorIfHole [0]", "32 S> Return"],
+        constantPool: ["<String[5]: #later>"],
+      },
+      {
+        name: "useAll",
+        registerCount: 1,
+        instructions: [
+          "98 S> LdaImmutableCurrentContextSlot [2]",
+          "ThrowReferenceErrorIfHole [0]",
+          "Star0",
+          "LdaImmutableCurrentContextSlot [3]",
+          "113 E> ThrowReferenceErrorIfHole [1]",
+          "111 E> Add r0, [0]",
+          "119 S> Return",
+        ],
+        constantPool: ["<String[5]: #later>", "<String[5]: #fixed>"],
+      },
+      {
+        name: "localTdz",
+        registerCount: 5,
+        instructions: [
+          "158 E> CreateFunctionContext [0], [1]",
+          "PushContext r3",
+          "CreateClosure [1], [0], #2",
+          "Star2",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "173 S> LdaSmi [1]",
+          "Star0",
+          "190 S> AddSmi [1], [0]",
+          "Star1",
+          "237 S> StaCurrentContextSlot [2]",
+          "249 S> CallUndefinedReceiver0 r2, [2]",
+          "Star4",
+          "Ldar r0",
+          "256 E> Add r4, [1]",
+          "260 S> Return",
+        ],
+        children: [
+          {
+            name: "read",
+            registerCount: 0,
+            instructions: ["215 S> LdaImmutableCurrentContextSlot [2]", "ThrowReferenceErrorIfHole [0]", "224 S> Return"],
+          },
+        ],
+      },
+      {
+        name: "assignCaptured",
+        registerCount: 2,
+        instructions: [
+          "298 E> CreateFunctionContext [0], [1]",
+          "PushContext r1",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "313 S> LdaZero",
+          "313 E> StaCurrentContextSlot [2]",
+          "331 S> CreateClosure [1], [0], #2",
+          "Star0",
+          "361 S> CallUndefinedReceiver0 r0, [0]",
+          "371 S> LdaCurrentContextSlot [2]",
+          "380 S> Return",
+        ],
+        children: [
+          {
+            name: "bump",
+            registerCount: 0,
+            instructions: [
+              "345 S> LdaCurrentContextSlot [2]",
+              "ThrowReferenceErrorIfHole [0]",
+              "351 E> AddSmi [1], [0]",
+              "347 E> StaCurrentContextSlot [2]",
+              "LdaUndefined",
+              "356 S> Return",
+            ],
+          },
+        ],
+      },
+    );
+  });
+});
+
+describe("assigning to a const", () => {
+  // The same source as tests/conformance/fixtures/bc-const-assign.cjs.
+  const source = `function local(c) {
+  const v = 1;
+  if (c) { v = 2; v++; v += 1; }
+  return v;
+}
+function captured(c) {
+  const q = 1;
+  return function () {
+    if (c) { q = 3; q = 4; }
+    return q;
+  };
+}
+local(0);
+captured(0)();
+`;
+
+  it("evaluates the right-hand side, then throws through a runtime call at the operator", () => {
+    expectFunctions(
+      source,
+      {
+        registerCount: 5,
+        instructions: [
+          "0 E> CreateClosure [0], [0], #2",
+          "Star0",
+          "CreateClosure [1], [1], #2",
+          "Star1",
+          "193 S> LdaZero",
+          "Star3",
+          "193 E> CallUndefinedReceiver1 r0, r3, [0]",
+          "203 S> LdaZero",
+          "Star4",
+          "203 E> CallUndefinedReceiver1 r1, r4, [2]",
+          "Star2",
+          "214 E> CallUndefinedReceiver0 r2, [4]",
+          "LdaUndefined",
+          "217 S> Return",
+        ],
+      },
+      {
+        name: "local",
+        registerCount: 1,
+        instructions: [
+          "32 S> LdaSmi [1]",
+          "Star0",
+          "37 S> Ldar a0",
+          "JumpIfToBooleanFalse [28] (@33)",
+          "46 S> LdaSmi [2]",
+          "48 E> CallRuntime [ThrowConstAssignError], r0-r0",
+          "53 S> Ldar r0",
+          "Inc [0]",
+          "54 E> CallRuntime [ThrowConstAssignError], r0-r0",
+          "58 S> Ldar r0",
+          "AddSmi [1], [1]",
+          "60 E> CallRuntime [ThrowConstAssignError], r0-r0",
+          "70 S> Ldar r0",
+          "79 S> Return",
+        ],
+      },
+      {
+        name: "captured",
+        registerCount: 1,
+        instructions: [
+          "99 E> CreateFunctionContext [0], [2]",
+          "PushContext r0",
+          "Ldar a0",
+          "StaCurrentContextSlot [2]",
+          "LdaTheHole",
+          "StaCurrentContextSlot [3]",
+          "117 S> LdaSmi [1]",
+          "117 E> StaCurrentContextSlot [3]",
+          "122 S> CreateClosure [1], [0], #2",
+          "190 S> Return",
+        ],
+        // The hole check comes first when the binding may still be uninitialized.
+        children: [
+          {
+            registerCount: 1,
+            instructions: [
+              "147 S> LdaImmutableCurrentContextSlot [2]",
+              "JumpIfToBooleanFalse [21] (@23)",
+              "156 S> LdaSmi [3]",
+              "Star0",
+              "LdaCurrentContextSlot [3]",
+              "158 E> ThrowReferenceErrorIfHole [0]",
+              "CallRuntime [ThrowConstAssignError], r0-r0",
+              "163 S> LdaSmi [4]",
+              "165 E> CallRuntime [ThrowConstAssignError], r0-r0",
+              "176 S> LdaImmutableCurrentContextSlot [3]",
+              "ThrowReferenceErrorIfHole [0]",
+              "185 S> Return",
+            ],
+          },
+        ],
+      },
+    );
+  });
+});

@@ -35,6 +35,8 @@ describe("formatInstruction", () => {
     ["CallUndefinedReceiver r8, r15-r17, [94]", (b: BytecodeArrayBuilder) => b.emit("CallUndefinedReceiver", local(8), local(15), 3, 94)],
     ["Construct r9, r10-r10, [14]", (b: BytecodeArrayBuilder) => b.emit("Construct", local(9), local(10), 1, 14)],
     ["CallRuntime [ThrowConstAssignError], r0-r0", (b: BytecodeArrayBuilder) => b.emit("CallRuntime", "ThrowConstAssignError", local(0), 1)],
+    // V8 prints an empty list as its base register twice.
+    ["CallRuntime [ThrowConstAssignError], r0-r0", (b: BytecodeArrayBuilder) => b.emit("CallRuntime", "ThrowConstAssignError", local(0), 0)],
     ["CallRuntime [DefineClass], r5-r10", (b: BytecodeArrayBuilder) => b.emit("CallRuntime", "DefineClass", local(5), 6)],
     ["InvokeIntrinsic [_AsyncFunctionEnter], r1-r2", (b: BytecodeArrayBuilder) => b.emit("InvokeIntrinsic", "_AsyncFunctionEnter", local(1), 2)],
     ["SuspendGenerator r0, r0-r1, [0]", (b: BytecodeArrayBuilder) => b.emit("SuspendGenerator", local(0), local(0), 2, 0)],

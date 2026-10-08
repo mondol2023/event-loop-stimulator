@@ -166,6 +166,8 @@ export class FunctionGenerator {
   private readonly functions: FunctionCompiler;
   private currentScope: Scope;
   private context: ContextScope;
+  /** Bindings already checked for the hole on the straight-line path being compiled; a second check would be redundant. */
+  private checked = new Set<Variable>();
   /** The function declarations already created at the top of the function. */
   private readonly hoisted = new Set<Node>();
   private result: ResultScope = new ResultScope("effect");
@@ -212,7 +214,7 @@ export class FunctionGenerator {
 
   generateBody(statements: readonly Statement[], returnPosition: number, entryPosition = 0): void {
     this.enterFunction(entryPosition);
-    this.createHoistedFunctions(statements);
+    this.visitDeclarations(statements);
     this.visitStatements(statements);
     if (!this.builder.remainderOfBlockIsDead) {
       this.builder.emit("LdaUndefined");
@@ -244,13 +246,21 @@ export class FunctionGenerator {
     this.context = { scope, outer, register: CURRENT_CONTEXT };
   }
 
-  /** V8's VisitDeclarations: every function declaration of the body is created before any statement runs. */
-  private createHoistedFunctions(statements: readonly Statement[]): void {
+  /** V8's VisitDeclarations, in source order: functions are created and bindings that can be read too early get the hole. */
+  private visitDeclarations(statements: readonly Statement[]): void {
     for (const statement of statements) {
-      if (statement.type !== "FunctionDeclaration") continue;
-      this.hoisted.add(statement);
-      this.buildClosure(statement, statement.id.name);
-      this.assignToVariable(statement.id, "init");
+      if (statement.type === "FunctionDeclaration") {
+        this.hoisted.add(statement);
+        this.buildClosure(statement, statement.id.name);
+        this.assignToVariable(statement.id, "init");
+      } else if (statement.type === "VariableDeclaration" && statement.kind !== "var") {
+        for (const declarator of statement.declarations) {
+          const variable = declarator.id.type === "Identifier" ? this.scopes.declarationOf.get(declarator.id) : undefined;
+          if (!variable?.needsHoleInit) continue;
+          this.builder.emit("LdaTheHole");
+          this.storeVariable(variable, declarator.id);
+        }
+      }
     }
   }
 
@@ -319,13 +329,18 @@ export class FunctionGenerator {
       if (node.alternate) this.visitStatement(node.alternate);
     } else {
       this.visitForTest(node.test, thenLabels, elseLabels, "then");
-      thenLabels.bind();
-      this.visitStatement(node.consequent);
-      if (node.alternate) {
-        b.jump("Jump", endLabels.new());
-        elseLabels.bind();
-        this.visitStatement(node.alternate);
-      }
+      this.mergeBranches(
+        () => {
+          thenLabels.bind();
+          this.visitStatement(node.consequent);
+          if (node.alternate) b.jump("Jump", endLabels.new());
+        },
+        () => {
+          if (!node.alternate) return;
+          elseLabels.bind();
+          this.visitStatement(node.alternate);
+        },
+      );
     }
     if (!elseLabels.bound) elseLabels.bind();
     endLabels.bind();
@@ -405,7 +420,7 @@ export class FunctionGenerator {
     if (toBooleanOf(node.test) !== false) {
       this.builder.bindLoopHeader(loop.header);
       this.visitLoopTest(node.test, loop);
-      this.visitIterationBody(node.body, loop);
+      this.conditionally(() => this.visitIterationBody(node.body, loop));
       this.jumpToHeader(loop, startOf(node));
     }
     this.endLoop(loop);
@@ -422,11 +437,13 @@ export class FunctionGenerator {
     if (!node.test || toBooleanOf(node.test) !== false) {
       this.builder.bindLoopHeader(loop.header);
       this.visitLoopTest(node.test, loop);
-      this.visitIterationBody(node.body, loop);
-      if (node.update) {
-        this.builder.setStatementPosition(this.positionOf(node.update));
-        this.visitForEffect(node.update);
-      }
+      this.conditionally(() => {
+        this.visitIterationBody(node.body, loop);
+        if (node.update) {
+          this.builder.setStatementPosition(this.positionOf(node.update));
+          this.visitForEffect(node.update);
+        }
+      });
       this.jumpToHeader(loop, startOf(node));
     }
     this.endLoop(loop);
@@ -698,11 +715,39 @@ export class FunctionGenerator {
       this.builder.emit(insideTypeof ? "LdaGlobalInsideTypeof" : "LdaGlobal", this.stringConstant(identifier.name), slot);
       return;
     }
-    if (reference.needsTdzCheck) throw new NotYetSupported(identifier);
     this.loadVariable(variable, identifier);
+    if (reference.needsTdzCheck) this.checkForHole(variable, identifier.name);
   }
 
-  private loadVariable(variable: Variable, at: Node): void {
+  /** Code that may be skipped: what it checks is not known to be checked afterwards. */
+  private conditionally(run: () => void): void {
+    const before = new Set(this.checked);
+    run();
+    this.checked = before;
+  }
+
+  /** V8's HoleCheckElisionMergeScope: each alternative starts from the same knowledge; afterwards only what all of them checked holds. */
+  private mergeBranches(...alternatives: (() => void)[]): void {
+    const before = this.checked;
+    let merged: Set<Variable> | undefined;
+    for (const run of alternatives) {
+      this.checked = new Set(before);
+      run();
+      const done = this.checked;
+      merged = merged ? new Set([...merged].filter((v) => done.has(v))) : done;
+    }
+    this.checked = merged ?? before;
+  }
+
+  /** `ThrowReferenceErrorIfHole` for the value in the accumulator, unless the binding was checked already on this path. */
+  private checkForHole(variable: Variable, name: string): void {
+    if (this.checked.has(variable)) return;
+    this.checked.add(variable);
+    this.builder.emit("ThrowReferenceErrorIfHole", this.stringConstant(name));
+  }
+
+  /** `forceMutable` is the hole check of an assignment, which loads the slot as mutable even for a const. */
+  private loadVariable(variable: Variable, at: Node, forceMutable = false): void {
     const allocation = variable.allocation;
     switch (allocation.kind) {
       case "register":
@@ -714,7 +759,7 @@ export class FunctionGenerator {
       case "context": {
         const { register, depth } = this.contextAccess(variable);
         const slot = this.slotOf(variable);
-        const immutable = !variable.maybeAssigned;
+        const immutable = !variable.maybeAssigned && !forceMutable;
         if (register === CURRENT_CONTEXT && depth === 0) {
           this.builder.emit(immutable ? "LdaImmutableCurrentContextSlot" : "LdaCurrentContextSlot", slot);
         } else {
@@ -756,8 +801,23 @@ export class FunctionGenerator {
       this.builder.emit("StaGlobal", this.stringConstant(identifier.name), slot);
       return;
     }
-    if (reference?.needsTdzCheck) throw new NotYetSupported(identifier);
-    if (variable.kind === "const" && op !== "init") throw new NotYetSupported(identifier);
+    if (op !== "init" && reference?.needsTdzCheck && !this.checked.has(variable)) {
+      // The value waits in a register while the binding is read and checked.
+      const value = this.builder.allocateRegister();
+      this.builder.emit("Star", local(value));
+      this.loadVariable(variable, identifier, true);
+      this.checkForHole(variable, identifier.name);
+      this.builder.emit("Ldar", local(value));
+    }
+    if (op !== "init" && variable.kind === "const") {
+      this.builder.emit("CallRuntime", "ThrowConstAssignError", local(0), 0);
+      return;
+    }
+    this.storeVariable(variable, identifier);
+  }
+
+  /** Stores the accumulator into the variable's storage, with no checks. */
+  private storeVariable(variable: Variable, at: Node): void {
     const allocation = variable.allocation;
     switch (allocation.kind) {
       case "register":
@@ -774,7 +834,7 @@ export class FunctionGenerator {
         return;
       }
       default:
-        throw new NotYetSupported(identifier);
+        throw new NotYetSupported(at);
     }
   }
 
@@ -1055,11 +1115,18 @@ export class FunctionGenerator {
       return;
     }
     const end = this.newLabels();
+    // Only the first operand always runs.
+    let afterFirst: Set<Variable> | undefined;
     for (let i = 0; i < operands.length - 1; i++) {
-      if (this.visitLogicalSubExpression(operator, operands[i] as Expression, end)) return;
+      if (this.visitLogicalSubExpression(operator, operands[i] as Expression, end)) {
+        if (afterFirst) this.checked = afterFirst;
+        return;
+      }
+      afterFirst ??= new Set(this.checked);
     }
     this.visitForAccumulatorValue(operands[operands.length - 1] as Expression);
     end.bind();
+    if (afterFirst) this.checked = afterFirst;
   }
 
   /** One non-final operand of `||`, `&&` or `??` in a value context; true when it settles the result. */
@@ -1106,6 +1173,7 @@ export class FunctionGenerator {
   /** `a || b || c` and friends in a test: each operand but the last tests and falls through to the next. */
   private visitLogicalTest(operator: string, operands: readonly Expression[]): void {
     const scope = this.result;
+    let afterFirst: Set<Variable> | undefined;
     for (let i = 0; i < operands.length - 1; i++) {
       const next = this.newLabels();
       const operand = operands[i] as Expression;
@@ -1113,8 +1181,10 @@ export class FunctionGenerator {
       else if (operator === "&&") this.visitForTest(operand, next, scope.elseLabels, "then");
       else this.visitForNullishTest(operand, scope.thenLabels, next, scope.elseLabels);
       next.bind();
+      afterFirst ??= new Set(this.checked);
     }
     this.visitInSameTestScope(operands[operands.length - 1] as Expression);
+    if (afterFirst) this.checked = afterFirst;
   }
 
   private visitForNullishTest(operand: Expression, thenLabels: BytecodeLabels, next: BytecodeLabels, elseLabels: BytecodeLabels): void {
@@ -1141,11 +1211,17 @@ export class FunctionGenerator {
       this.visitForAccumulatorValue(node.alternate);
     } else {
       this.visitForTest(node.test, thenLabels, elseLabels, "then");
-      thenLabels.bind();
-      this.visitForAccumulatorValue(node.consequent);
-      this.builder.jump("Jump", endLabels.new());
-      elseLabels.bind();
-      this.visitForAccumulatorValue(node.alternate);
+      this.mergeBranches(
+        () => {
+          thenLabels.bind();
+          this.visitForAccumulatorValue(node.consequent);
+          this.builder.jump("Jump", endLabels.new());
+        },
+        () => {
+          elseLabels.bind();
+          this.visitForAccumulatorValue(node.alternate);
+        },
+      );
     }
     if (!elseLabels.bound) elseLabels.bind();
     endLabels.bind();

@@ -52,7 +52,8 @@ function single(type: OperandType, value: Operand): string {
 
 /** `rA-rB` for the `count` consecutive registers that start at `first`. */
 function registerRange(first: number, count: number): string {
-  return `${formatRegister(first)}-${formatRegister(first - (count - 1))}`;
+  // V8 prints an empty list as its base register twice.
+  return `${formatRegister(first)}-${formatRegister(count === 0 ? first : first - (count - 1))}`;
 }
 
 /** One instruction as `--print-bytecode` writes it, with a jump's absolute target as `(@N)`. */

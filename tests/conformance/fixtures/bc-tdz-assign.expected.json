@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "fixture": "bc-tdz-assign",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 13,
+      "parameterCount": 6,
+      "registerCount": 3,
+      "frameSize": 24
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star0"
+      },
+      {
+        "offset": 5,
+        "position": {
+          "at": 148,
+          "kind": "S"
+        },
+        "text": "LdaZero"
+      },
+      {
+        "offset": 6,
+        "text": "Star2"
+      },
+      {
+        "offset": 7,
+        "position": {
+          "at": 148,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r0, r2, [0]"
+      },
+      {
+        "offset": 11,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 12,
+        "position": {
+          "at": 163,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo assignFirst>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "0": {
+        "name": "assignFirst",
+        "header": {
+          "length": 22,
+          "parameterCount": 2,
+          "registerCount": 2,
+          "frameSize": 16
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 1,
+            "text": "Star0"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 103,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 4,
+            "text": "JumpIfToBooleanFalse [14] (@18)"
+          },
+          {
+            "offset": 6,
+            "position": {
+              "at": 112,
+              "kind": "S"
+            },
+            "text": "LdaSmi [2]"
+          },
+          {
+            "offset": 8,
+            "text": "Star1"
+          },
+          {
+            "offset": 9,
+            "text": "Ldar r0"
+          },
+          {
+            "offset": 11,
+            "position": {
+              "at": 114,
+              "kind": "E"
+            },
+            "text": "ThrowReferenceErrorIfHole [0]"
+          },
+          {
+            "offset": 13,
+            "text": "Mov r1, r0"
+          },
+          {
+            "offset": 16,
+            "text": "Ldar r1"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 131,
+              "kind": "S"
+            },
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 20,
+            "text": "Star0"
+          },
+          {
+            "offset": 21,
+            "position": {
+              "at": 145,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[1]: #w>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}
