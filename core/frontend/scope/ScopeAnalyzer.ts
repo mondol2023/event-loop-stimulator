@@ -71,6 +71,7 @@ function closureOf(scope: Scope): Scope {
 class Analyzer {
   private readonly scopes: Scope[] = [];
   private readonly pending: PendingReference[] = [];
+  private readonly thisUses: { readonly node: Node; readonly scope: Scope }[] = [];
   private readonly declarations = new Map<Node, Variable>();
   private readonly scopeNodes = new Map<Node, Scope>();
   private readonly byName = new Map<Scope, Map<string, Variable>>();
@@ -93,6 +94,7 @@ class Analyzer {
 
     this.hoistSloppyBlockFunctions();
     const references = this.resolve();
+    const thisOf = this.resolveThis();
     this.allocateFunction(root);
 
     return {
@@ -102,6 +104,7 @@ class Analyzer {
       referenceOf: new Map(references.map((r) => [r.node, r])),
       declarationOf: this.declarations,
       scopeOf: this.scopeNodes,
+      thisOf,
     };
   }
 
@@ -128,6 +131,7 @@ class Analyzer {
       perIteration: false,
       parameterNames,
       hasSimpleParameters,
+      thisVariable: null,
     };
     parent?.children.push(scope);
     this.scopes.push(scope);
@@ -438,6 +442,8 @@ class Analyzer {
       case "ContinueStatement":
       case "MetaProperty":
       case "ThisExpression":
+        this.thisUses.push({ node, scope: this.current });
+        return;
       case "Super":
         return;
 
@@ -542,6 +548,36 @@ class Analyzer {
     return references.sort((a, b) => a.range.start - b.range.start);
   }
 
+  /** An arrow reads the receiver of the nearest non-arrow function, which then keeps it in its context. */
+  private resolveThis(): Map<Node, Variable> {
+    const homes = new Map<Node, Scope>();
+    for (const use of this.thisUses) {
+      let home = closureOf(use.scope);
+      while (home.node.type === "ArrowFunctionExpression" && home.parent) home = closureOf(home.parent);
+      homes.set(use.node, home);
+      if (home === closureOf(use.scope) || home.thisVariable) continue;
+      const variable: Variable = {
+        name: "this",
+        kind: "this",
+        declaredAt: NO_RANGE,
+        scope: home,
+        allocation: UNALLOCATED,
+        captured: true,
+        maybeAssigned: false,
+        needsHoleInit: false,
+        used: true,
+        annexB: false,
+        tdz: false,
+        initializedAt: 0,
+      };
+      home.variables.unshift(variable);
+      home.thisVariable = variable;
+    }
+    const result = new Map<Node, Variable>();
+    for (const [node, home] of homes) if (home.thisVariable) result.set(node, home.thisVariable);
+    return result;
+  }
+
   // ---- allocation -------------------------------------------------------------------
 
   private allocateFunction(fn: Scope): void {
@@ -550,8 +586,17 @@ class Analyzer {
     fn.stackSlots = registers.next;
   }
 
+  /** V8 gives context slots to the receiver first, then to plain parameters last to first, then to the other locals. */
+  private allocationOrder(scope: Scope): readonly Variable[] {
+    if (!scope.hasSimpleParameters) return scope.variables;
+    const receiver = scope.variables.filter((v) => v.kind === "this");
+    const parameters = scope.variables.filter((v) => v.kind === "param").reverse();
+    const rest = scope.variables.filter((v) => v.kind !== "this" && v.kind !== "param");
+    return [...receiver, ...parameters, ...rest];
+  }
+
   private allocateScope(scope: Scope, registers: { next: number }): void {
-    for (const variable of scope.variables) {
+    for (const variable of this.allocationOrder(scope)) {
       if (!variable.used) {
         variable.allocation = { kind: "unused" };
       } else if (variable.captured) {

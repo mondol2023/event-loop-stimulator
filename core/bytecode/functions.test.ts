@@ -685,3 +685,180 @@ viaClosure();
     );
   });
 });
+
+describe("this", () => {
+  // The same source as tests/conformance/fixtures/bc-this.cjs.
+  const source = `// "this": the module's receiver at top level, the call's receiver in functions, captured by arrows.
+function sloppy() {
+  return this;
+}
+sloppy();
+function strictFn() {
+  "use strict";
+  return this;
+}
+strictFn();
+const topArrow = () => this;
+topArrow();
+function withArrow() {
+  const read = () => this;
+  return read();
+}
+withArrow();
+function useThis() {
+  const v = this;
+  return v;
+}
+useThis();
+const viaTop = this;
+`;
+
+  it("reads the receiver directly, or from the context when an arrow captures it", () => {
+    expectFunctions(
+      source,
+      {
+        registerCount: 7,
+        // The receiver is copied into the context of the function whose arrow reads it.
+        instructions: [
+          "0 E> CreateFunctionContext [0], [1]",
+          "PushContext r6",
+          "Ldar <this>",
+          "StaCurrentContextSlot [2]",
+          "CreateClosure [1], [0], #2",
+          "Star0",
+          "CreateClosure [2], [1], #2",
+          "Star1",
+          "CreateClosure [3], [2], #2",
+          "Star3",
+          "CreateClosure [4], [3], #2",
+          "Star4",
+          "138 S> CallUndefinedReceiver0 r0, [0]",
+          "203 S> CallUndefinedReceiver0 r1, [2]",
+          "232 S> CreateClosure [5], [4], #2",
+          "Star2",
+          "244 S> CallUndefinedReceiver0 r2, [4]",
+          "325 S> CallUndefinedReceiver0 r3, [6]",
+          "391 S> CallUndefinedReceiver0 r4, [8]",
+          "417 S> LdaImmutableCurrentContextSlot [2]",
+          "Star5",
+          "LdaUndefined",
+          "422 S> Return",
+        ],
+      },
+      { name: "sloppy", registerCount: 0, instructions: ["123 S> Ldar <this>", "135 S> Return"] },
+      { name: "strictFn", registerCount: 0, instructions: ["188 S> Ldar <this>", "200 S> Return"] },
+      {
+        name: "withArrow",
+        registerCount: 2,
+        instructions: [
+          "274 E> CreateFunctionContext [0], [1]",
+          "PushContext r1",
+          "Ldar <this>",
+          "StaCurrentContextSlot [2]",
+          "294 S> CreateClosure [1], [0], #2",
+          "Star0",
+          "315 S> CallUndefinedReceiver0 r0, [0]",
+          "322 S> Return",
+        ],
+        children: [{ name: "read", registerCount: 0, instructions: ["300 S> LdaImmutableCurrentContextSlot [2]", "304 S> Return"] }],
+      },
+      { name: "useThis", registerCount: 1, instructions: ["371 S> Mov <this>, r0", "379 S> Ldar r0", "388 S> Return"] },
+      { name: "topArrow", registerCount: 0, instructions: ["238 S> LdaImmutableCurrentContextSlot [2]", "242 S> Return"] },
+    );
+  });
+});
+
+describe("a captured receiver", () => {
+  // The same source as tests/conformance/fixtures/bc-receiver-capture.cjs; the wrapper is not examined.
+  const source = `// A captured receiver is copied into the context first, then the captured parameters last to first.
+function both(a, b) {
+  const x = 1;
+  return () => this + a + b + x;
+}
+both(1, 2)();
+function dflt(a = 1) {
+  return () => this + a;
+}
+dflt()();
+`;
+
+  it("takes the first context slot, ahead of the captured parameters, which follow last to first", () => {
+    expectFunctions(
+      source,
+      {},
+      {
+        name: "both",
+        registerCount: 1,
+        instructions: [
+          "114 E> CreateFunctionContext [0], [4]",
+          "PushContext r0",
+          "Ldar <this>",
+          "StaCurrentContextSlot [2]",
+          "Ldar a0",
+          "StaCurrentContextSlot [4]",
+          "Ldar a1",
+          "StaCurrentContextSlot [3]",
+          "LdaTheHole",
+          "StaCurrentContextSlot [5]",
+          "135 S> LdaSmi [1]",
+          "135 E> StaCurrentContextSlot [5]",
+          "140 S> CreateClosure [1], [0], #2",
+          "170 S> Return",
+        ],
+        // A chain of one operator is one operation, positioned at its first operand.
+        children: [
+          {
+            registerCount: 1,
+            instructions: [
+              "153 S> LdaImmutableCurrentContextSlot [2]",
+              "Star0",
+              "LdaImmutableCurrentContextSlot [4]",
+              "158 E> Add r0, [0]",
+              "Star0",
+              "LdaImmutableCurrentContextSlot [3]",
+              "162 E> Add r0, [1]",
+              "Star0",
+              "LdaImmutableCurrentContextSlot [5]",
+              "168 E> ThrowReferenceErrorIfHole [0]",
+              "166 E> Add r0, [2]",
+              "169 S> Return",
+            ],
+          },
+        ],
+      },
+      {
+        name: "dflt",
+        registerCount: 1,
+        instructions: [
+          "200 E> CreateFunctionContext [0], [2]",
+          "PushContext r0",
+          "Ldar <this>",
+          "StaCurrentContextSlot [2]",
+          "LdaTheHole",
+          "StaCurrentContextSlot [3]",
+          "Ldar a0",
+          "JumpIfNotUndefined [6] (@20)",
+          "LdaSmi [1]",
+          "Jump [4] (@22)",
+          "Ldar a0",
+          "StaCurrentContextSlot [3]",
+          "212 S> CreateClosure [1], [0], #2",
+          "234 S> Return",
+        ],
+        children: [
+          {
+            registerCount: 1,
+            instructions: [
+              "230 S> LdaImmutableCurrentContextSlot [2]",
+              "Star0",
+              "LdaImmutableCurrentContextSlot [3]",
+              "232 E> ThrowReferenceErrorIfHole [0]",
+              "230 E> Add r0, [0]",
+              "233 S> Return",
+            ],
+          },
+        ],
+      },
+    );
+  });
+});

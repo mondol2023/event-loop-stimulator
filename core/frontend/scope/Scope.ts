@@ -15,7 +15,7 @@ export type ScopeKind = "function" | "block" | "catch";
  * scope, which this model collapses into the function scope (shadowable by a
  * parameter or var of the same name).
  */
-export type VariableKind = "var" | "let" | "const" | "function" | "param" | "catch" | "function-name";
+export type VariableKind = "var" | "let" | "const" | "function" | "param" | "catch" | "function-name" | "this";
 
 /**
  * Where a variable lives at run time:
@@ -97,6 +97,8 @@ export type Scope = {
   readonly parameterNames: readonly string[];
   /** Function scopes only: no defaults, rest or destructuring in the parameter list. */
   readonly hasSimpleParameters: boolean;
+  /** Non-arrow function scopes only: the receiver as a variable, present iff an arrow inside reads `this` (it then lives in the context). */
+  thisVariable: Variable | null;
 };
 
 export type ScopeTree = {
@@ -112,4 +114,6 @@ export type ScopeTree = {
   readonly declarationOf: ReadonlyMap<Node, Variable>;
   /** Scope-creating node → its scope. */
   readonly scopeOf: ReadonlyMap<Node, Scope>;
+  /** `this` expression → the context variable holding the receiver; absent when it is read from the frame. */
+  readonly thisOf: ReadonlyMap<Node, Variable>;
 };

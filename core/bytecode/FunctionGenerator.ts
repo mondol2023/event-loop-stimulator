@@ -234,6 +234,10 @@ export class FunctionGenerator {
     if (!scope.needsContext) return;
     b.emit("CreateFunctionContext", b.constantPool.add({ kind: "scope-info", scope: "FUNCTION_SCOPE" }), scope.contextSlots);
     this.pushContext(scope);
+    if (scope.thisVariable) {
+      b.emit("Ldar", THIS);
+      b.emit("StaCurrentContextSlot", this.slotOf(scope.thisVariable));
+    }
     // With defaults the parameters are set by their initializers instead.
     const parameters = scope.hasSimpleParameters ? scope.variables.filter((v) => v.kind === "param" && v.allocation.kind === "context") : [];
     for (const parameter of parameters.sort((a, c) => (a.parameterIndex ?? 0) - (c.parameterIndex ?? 0))) {
@@ -255,7 +259,7 @@ export class FunctionGenerator {
       // A body binding that a closure captures needs a block context of its own, which is not built yet.
       return { target, variable, index, initializer: param.type === "AssignmentPattern" ? param.right : undefined };
     });
-    if (scope.variables.some((v) => v.kind !== "param" && v.kind !== "function-name" && v.allocation.kind === "context")) {
+    if (scope.variables.some((v) => v.kind !== "param" && v.kind !== "this" && v.kind !== "function-name" && v.allocation.kind === "context")) {
       throw new NotYetSupported(scope.node);
     }
     for (const { target, variable } of parameters) {
@@ -617,9 +621,12 @@ export class FunctionGenerator {
       case "Identifier":
         this.builder.setExpressionPosition(startOf(node));
         return this.loadIdentifier(node, false);
-      case "ThisExpression":
-        this.builder.emit("Ldar", THIS);
+      case "ThisExpression": {
+        const receiver = this.scopes.thisOf.get(node);
+        if (receiver) this.loadVariable(receiver, node);
+        else this.builder.emit("Ldar", THIS);
         return;
+      }
       case "UnaryExpression":
         return this.visitUnary(node);
       case "BinaryExpression":
@@ -1282,8 +1289,14 @@ export class FunctionGenerator {
   private positionOf(node: Expression): number {
     switch (node.type) {
       case "BinaryExpression":
-      case "LogicalExpression":
-        return literalOf(node) ? startOf(node) : this.operatorAt(node.left);
+      case "LogicalExpression": {
+        if (literalOf(node)) return startOf(node);
+        // A collapsed same-operator chain sits where its first operand does.
+        const collapsible = node.type === "LogicalExpression" || node.operator in ARITHMETIC;
+        const chain = collapsible ? this.collectChain(node) : undefined;
+        const first = chain?.operands[0];
+        return chain && first && chain.operands.length > 2 ? this.positionOf(first) : this.operatorAt(node.left);
+      }
       case "AssignmentExpression":
         return this.operatorAt(node.left);
       case "UpdateExpression":

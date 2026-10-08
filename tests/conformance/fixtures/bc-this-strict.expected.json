@@ -1,0 +1,269 @@
+{
+  "schema": 1,
+  "fixture": "bc-this-strict",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 38,
+      "parameterCount": 6,
+      "registerCount": 5,
+      "frameSize": 40
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateFunctionContext [0], [1]"
+      },
+      {
+        "offset": 3,
+        "text": "PushContext r4"
+      },
+      {
+        "offset": 5,
+        "text": "Ldar <this>"
+      },
+      {
+        "offset": 7,
+        "text": "StaCurrentContextSlot [2]"
+      },
+      {
+        "offset": 9,
+        "text": "CreateClosure [1], [0], #2"
+      },
+      {
+        "offset": 13,
+        "text": "Star0"
+      },
+      {
+        "offset": 14,
+        "text": "CreateClosure [2], [1], #2"
+      },
+      {
+        "offset": 18,
+        "text": "Star2"
+      },
+      {
+        "offset": 19,
+        "position": {
+          "at": 110,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r0, [0]"
+      },
+      {
+        "offset": 22,
+        "position": {
+          "at": 133,
+          "kind": "S"
+        },
+        "text": "CreateClosure [3], [2], #2"
+      },
+      {
+        "offset": 26,
+        "text": "Star1"
+      },
+      {
+        "offset": 27,
+        "position": {
+          "at": 145,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r1, [2]"
+      },
+      {
+        "offset": 30,
+        "position": {
+          "at": 246,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r2, [4]"
+      },
+      {
+        "offset": 33,
+        "position": {
+          "at": 268,
+          "kind": "S"
+        },
+        "text": "LdaImmutableCurrentContextSlot [2]"
+      },
+      {
+        "offset": 35,
+        "text": "Star3"
+      },
+      {
+        "offset": 36,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 37,
+        "position": {
+          "at": 273,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<ScopeInfo FUNCTION_SCOPE>",
+      "<SharedFunctionInfo plain>",
+      "<SharedFunctionInfo nested>",
+      "<SharedFunctionInfo arrow>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "1": {
+        "name": "plain",
+        "header": {
+          "length": 3,
+          "parameterCount": 1,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 95,
+              "kind": "S"
+            },
+            "text": "Ldar <this>"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 107,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "2": {
+        "name": "nested",
+        "header": {
+          "length": 9,
+          "parameterCount": 1,
+          "registerCount": 1,
+          "frameSize": 8
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 190,
+              "kind": "S"
+            },
+            "text": "CreateClosure [0], [0], #2"
+          },
+          {
+            "offset": 4,
+            "text": "Star0"
+          },
+          {
+            "offset": 5,
+            "position": {
+              "at": 235,
+              "kind": "S"
+            },
+            "text": "CallUndefinedReceiver0 r0, [0]"
+          },
+          {
+            "offset": 8,
+            "position": {
+              "at": 243,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<SharedFunctionInfo inner>"
+        ],
+        "handlerTable": [],
+        "children": {
+          "0": {
+            "name": "inner",
+            "header": {
+              "length": 3,
+              "parameterCount": 1,
+              "registerCount": 0,
+              "frameSize": 0
+            },
+            "instructions": [
+              {
+                "offset": 0,
+                "position": {
+                  "at": 208,
+                  "kind": "S"
+                },
+                "text": "Ldar <this>"
+              },
+              {
+                "offset": 2,
+                "position": {
+                  "at": 220,
+                  "kind": "S"
+                },
+                "text": "Return"
+              }
+            ],
+            "constantPool": [],
+            "handlerTable": [],
+            "children": {}
+          }
+        }
+      },
+      "3": {
+        "name": "arrow",
+        "header": {
+          "length": 3,
+          "parameterCount": 1,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 139,
+              "kind": "S"
+            },
+            "text": "LdaImmutableCurrentContextSlot [2]"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 143,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}

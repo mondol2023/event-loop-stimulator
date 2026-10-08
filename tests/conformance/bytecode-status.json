@@ -57,6 +57,9 @@
   "bc-loops": {
     "status": "exact"
   },
+  "bc-receiver-capture": {
+    "status": "exact"
+  },
   "bc-tdz-assign": {
     "status": "opcodes",
     "exceptions": [
@@ -71,6 +74,12 @@
     "status": "exact"
   },
   "bc-tdz": {
+    "status": "exact"
+  },
+  "bc-this-strict": {
+    "status": "exact"
+  },
+  "bc-this": {
     "status": "exact"
   },
   "closure-counter": {
