@@ -91,7 +91,7 @@ describe("BytecodeArrayBuilder: jumps", () => {
   it("patches a backward JumpLoop", () => {
     const b = new BytecodeArrayBuilder({ parameterCount: 1 });
     const top = b.newLabel();
-    b.bind(top);
+    b.bindLoopHeader(top);
     b.emit("LdaZero");
     b.emit("Star0");
     b.jumpLoop(top, 0, b.feedback.addSlot("binary-op"));
@@ -113,24 +113,25 @@ describe("BytecodeArrayBuilder: jumps", () => {
     // for this distance is checked against a micro-fixture with the control-flow family.
     const b = new BytecodeArrayBuilder({ parameterCount: 1 });
     const end = b.newLabel();
-    b.jump("Jump", end);
-    for (let i = 0; i < 130; i++) b.emit("LdaSmi", 1);
+    b.emit("LdaTrue");
+    b.jump("JumpIfFalse", end);
+    for (let i = 0; i < 260; i++) b.emit("Star0");
     b.bind(end);
     b.emit("Return");
     const built = b.build();
-    const [jump, first, ...rest] = built.array.instructions;
-    expect(formatInstruction(jump!)).toBe("Jump.Wide [263] (@264)");
-    expect(jump).toMatchObject({ offset: 0, size: 4, jumpTarget: 264 });
-    expect(first?.offset).toBe(4);
-    expect(rest.at(-1)).toMatchObject({ offset: 264, opcode: "Return" });
-    expect(built.array.length).toBe(265);
+    const [, jump, first, ...rest] = built.array.instructions;
+    expect(formatInstruction(jump!)).toBe("JumpIfFalse.Wide [263] (@265)");
+    expect(jump).toMatchObject({ offset: 1, size: 4, jumpTarget: 265 });
+    expect(first?.offset).toBe(5);
+    expect(rest.at(-1)).toMatchObject({ offset: 265, opcode: "Return" });
+    expect(built.array.length).toBe(266);
   });
 
   it("widens a backward jump the same way", () => {
     const b = new BytecodeArrayBuilder({ parameterCount: 1 });
     const top = b.newLabel();
-    b.bind(top);
-    for (let i = 0; i < 130; i++) b.emit("LdaSmi", 1);
+    b.bindLoopHeader(top);
+    for (let i = 0; i < 260; i++) b.emit("Star0");
     b.jumpLoop(top, 0, 0);
     const last = b.build().array.instructions.at(-1)!;
     expect(last).toMatchObject({ offset: 260, scale: 2, jumpTarget: 0 });
@@ -146,6 +147,8 @@ describe("BytecodeArrayBuilder: jumps", () => {
   it("refuses to bind a label twice", () => {
     const b = new BytecodeArrayBuilder({ parameterCount: 1 });
     const label = b.newLabel();
+    b.emit("LdaTrue");
+    b.jump("JumpIfFalse", label);
     b.bind(label);
     expect(() => b.bind(label)).toThrow(/already bound/);
   });
@@ -238,12 +241,13 @@ describe("BytecodeArrayBuilder: source positions", () => {
   it("records positions at the final offsets after a jump is widened", () => {
     const b = new BytecodeArrayBuilder({ parameterCount: 1 });
     const end = b.newLabel();
-    b.jump("Jump", end);
-    for (let i = 0; i < 130; i++) b.emit("LdaSmi", 1);
+    b.emit("LdaTrue");
+    b.jump("JumpIfFalse", end);
+    for (let i = 0; i < 260; i++) b.emit("Star0");
     b.bind(end);
     b.setStatementPosition(7);
     b.emit("Return");
-    expect(b.build().positions.entries).toEqual([{ offset: 264, position: 7, kind: "statement" }]);
+    expect(b.build().positions.entries).toEqual([{ offset: 265, position: 7, kind: "statement" }]);
   });
 
   it("drops a position left over after the last instruction", () => {
@@ -251,5 +255,137 @@ describe("BytecodeArrayBuilder: source positions", () => {
     b.emit("Return");
     b.setStatementPosition(9);
     expect(b.build().positions.entries).toEqual([]);
+  });
+});
+
+describe("BytecodeArrayBuilder: what the writer leaves out", () => {
+  it("drops everything after an instruction that leaves the block", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    b.emit("LdaZero");
+    b.emit("Return");
+    b.emit("LdaSmi", 1);
+    b.emit("Return");
+    expect(texts(b)).toEqual(["LdaZero", "Return"]);
+    expect(b.remainderOfBlockIsDead).toBe(true);
+  });
+
+  it("leaves a block after a Throw, a ReThrow and a Jump too", () => {
+    for (const exit of ["Throw", "ReThrow"] as const) {
+      const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+      b.emit(exit);
+      b.emit("LdaZero");
+      expect(texts(b)).toEqual([exit]);
+    }
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const end = b.newLabel();
+    b.jump("Jump", end);
+    b.emit("LdaZero");
+    b.bind(end);
+    b.emit("Return");
+    expect(texts(b)).toEqual(["Jump [2] (@2)", "Return"]);
+  });
+
+  it("does not bring code back to life by binding a label nothing jumps to", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    b.emit("Return");
+    b.bind(b.newLabel());
+    b.emit("LdaZero");
+    expect(texts(b)).toEqual(["Return"]);
+  });
+
+  it("does not count a jump that was dropped as dead code as a reference to its label", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const end = b.newLabel();
+    b.emit("Return");
+    b.jump("Jump", end);
+    b.bind(end);
+    b.emit("LdaZero");
+    expect(texts(b)).toEqual(["Return"]);
+  });
+
+  it("brings code back to life at a label that a live jump targets", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const end = b.newLabel();
+    b.emit("LdaTrue");
+    b.jump("JumpIfFalse", end);
+    b.emit("Return");
+    b.bind(end);
+    b.emit("LdaZero");
+    b.emit("Return");
+    expect(texts(b)).toEqual(["LdaTrue", "JumpIfFalse [3] (@4)", "Return", "LdaZero", "Return"]);
+    expect(b.remainderOfBlockIsDead).toBe(true);
+  });
+
+  it("brings code back to life at a loop header", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    b.emit("Return");
+    b.bindLoopHeader(b.newLabel());
+    b.emit("LdaZero");
+    expect(texts(b)).toEqual(["Return", "LdaZero"]);
+  });
+
+  it("elides an accumulator load that the next load overwrites", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    b.emit("LdaZero");
+    b.emit("LdaSmi", 3);
+    b.emit("Return");
+    expect(texts(b)).toEqual(["LdaSmi [3]", "Return"]);
+  });
+
+  it("moves the position of an elided load to the instruction that replaces it", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    b.setStatementPosition(8);
+    b.emit("LdaZero");
+    b.emit("LdaSmi", 3);
+    expect(b.build().positions.entries).toEqual([{ offset: 0, position: 8, kind: "statement" }]);
+  });
+
+  it("keeps both loads when both carry a position", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    b.setStatementPosition(8);
+    b.emit("LdaZero");
+    b.setStatementPosition(9);
+    b.emit("LdaSmi", 3);
+    expect(texts(b)).toEqual(["LdaZero", "LdaSmi [3]"]);
+  });
+
+  it("does not elide a load that can throw or one that something reads", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    b.emit("LdaGlobal", 0, 0);
+    b.emit("LdaSmi", 3);
+    b.emit("Add", local(0), 0);
+    b.emit("LdaZero");
+    expect(texts(b)).toEqual(["LdaGlobal [0], [0]", "LdaSmi [3]", "Add r0, [0]", "LdaZero"]);
+  });
+
+  it("does not elide a load across a label", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const mid = b.newLabel();
+    b.emit("LdaTrue");
+    b.jump("JumpIfTrue", mid);
+    b.emit("LdaZero");
+    b.bind(mid);
+    b.emit("LdaSmi", 3);
+    expect(texts(b)).toEqual(["LdaTrue", "JumpIfTrue [3] (@4)", "LdaZero", "LdaSmi [3]"]);
+  });
+
+  it("writes Star r0..r15 as the one-byte Star0..Star15", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1, localCount: 20 });
+    b.emit("Star", local(15));
+    b.emit("Star", local(16));
+    b.emit("Star", argument(0));
+    expect(texts(b)).toEqual(["Star15", "Star r16", "Star a0"]);
+  });
+});
+
+describe("BytecodeArrayBuilder: fixed registers", () => {
+  it("starts temporaries after the locals and counts the locals in the frame", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 6, localCount: 18 });
+    expect(b.allocateRegister()).toBe(18);
+    expect(b.build().header).toMatchObject({ registerCount: 19, frameSize: 152 });
+  });
+
+  it("counts locals that are never used", () => {
+    expect(new BytecodeArrayBuilder({ parameterCount: 1, localCount: 3 }).build().header).toMatchObject({ registerCount: 3, frameSize: 24 });
   });
 });
