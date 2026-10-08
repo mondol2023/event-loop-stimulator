@@ -12,8 +12,9 @@ import { printBytecodeArray } from "./printer";
 interface Expected {
   readonly name?: string;
   readonly parameterCount?: number;
-  readonly registerCount: number;
-  readonly instructions: readonly string[];
+  /** Left out for a function the test does not examine. */
+  readonly registerCount?: number;
+  readonly instructions?: readonly string[];
   readonly constantPool?: readonly string[];
   /** The closures this function creates, in constant-pool order. */
   readonly children?: readonly Expected[];
@@ -37,13 +38,15 @@ function expectFunctions(source: string, wrapper: Expected, ...children: Expecte
   };
   const check = (fn: BytecodeFunction, expected: Expected): void => {
     const printed = printBytecodeArray(toPrintable(fn));
-    expect(printed.instructions.map((i) => (i.position ? `${i.position.at} ${i.position.kind}> ${i.text}` : i.text))).toEqual(expected.instructions);
-    expect(fn.registerCount).toBe(expected.registerCount);
+    if (expected.instructions) {
+      expect(printed.instructions.map((i) => (i.position ? `${i.position.at} ${i.position.kind}> ${i.text}` : i.text))).toEqual(expected.instructions);
+    }
+    if (expected.registerCount !== undefined) expect(fn.registerCount).toBe(expected.registerCount);
     if (expected.constantPool) expect(printed.constantPool).toEqual(expected.constantPool);
     if (expected.name !== undefined) expect(fn.name).toBe(expected.name);
     if (expected.parameterCount !== undefined) expect(fn.parameterCount).toBe(expected.parameterCount);
     const nested = expected.children ?? [];
-    expect(fn.children).toHaveLength(nested.length);
+    if (expected.children) expect(fn.children).toHaveLength(nested.length);
     nested.forEach((child, i) => check(byId(fn.children[i] as number), child));
   };
   check(byId(0), { ...wrapper, children });
@@ -505,6 +508,178 @@ captured(0)();
               "185 S> Return",
             ],
           },
+        ],
+      },
+    );
+  });
+});
+
+describe("default parameters", () => {
+  // The same source as tests/conformance/fixtures/bc-defaults.cjs; the wrapper is not examined.
+  const source = `// Default parameters: evaluated on each call that passes undefined, left to right.
+function greet(name = 1, punctuation = 2) {
+  return name + punctuation;
+}
+greet();
+function area(width, height = width) {
+  return width * height;
+}
+area(4);
+let calls = 0;
+function next() {
+  calls = calls + 1;
+  return calls;
+}
+function withCounter(id = next()) {
+  return id;
+}
+withCounter();
+function early(a = b, b = 1) {
+  return a + b;
+}
+early(5);
+const arrow = (x = 5, y = x * 2) => x + y;
+arrow();
+function viaClosure(x = 1, read = () => x) {
+  x = 99;
+  return read();
+}
+viaClosure();
+`;
+  const skip = {};
+
+  it("copies each parameter into a register, taking the default only when the argument is undefined", () => {
+    expectFunctions(
+      source,
+      skip,
+      {
+        name: "greet",
+        registerCount: 2,
+        instructions: [
+          "Ldar a0",
+          "JumpIfNotUndefined [6] (@8)",
+          "LdaSmi [1]",
+          "Jump [4] (@10)",
+          "Ldar a0",
+          "Star0",
+          "Ldar a1",
+          "JumpIfNotUndefined [6] (@19)",
+          "LdaSmi [2]",
+          "Jump [4] (@21)",
+          "Ldar a1",
+          "Star1",
+          "130 S> Ldar r1",
+          "142 E> Add r0, [0]",
+          "156 S> Return",
+        ],
+      },
+      {
+        name: "area",
+        registerCount: 2,
+        // A parameter without a default is only copied; a later default reads the copy.
+        instructions: [
+          "Mov a0, r0",
+          "Ldar a1",
+          "JumpIfNotUndefined [6] (@11)",
+          "Ldar r0",
+          "Jump [4] (@13)",
+          "Ldar a1",
+          "Star1",
+          "209 S> Ldar r1",
+          "222 E> Mul r0, [0]",
+          "231 S> Return",
+        ],
+      },
+      skip,
+      {
+        name: "withCounter",
+        registerCount: 2,
+        instructions: [
+          "Ldar a0",
+          "JumpIfNotUndefined [10] (@12)",
+          "LdaImmutableCurrentContextSlot [3]",
+          "Star1",
+          "341 E> CallUndefinedReceiver0 r1, [0]",
+          "Jump [4] (@14)",
+          "Ldar a0",
+          "Star0",
+          "363 S> Return",
+        ],
+      },
+      {
+        name: "early",
+        registerCount: 2,
+        // `b` is read before its own parameter is set, so it starts as the hole and the read is checked.
+        instructions: [
+          "LdaTheHole",
+          "Star1",
+          "Ldar a0",
+          "JumpIfNotUndefined [8] (@12)",
+          "Ldar r1",
+          "400 E> ThrowReferenceErrorIfHole [0]",
+          "Jump [4] (@14)",
+          "Ldar a0",
+          "Star0",
+          "Ldar a1",
+          "JumpIfNotUndefined [6] (@23)",
+          "LdaSmi [1]",
+          "Jump [4] (@25)",
+          "Ldar a1",
+          "Star1",
+          "414 S> Ldar r1",
+          "423 E> Add r0, [0]",
+          "427 S> Return",
+        ],
+        constantPool: ["<String[1]: #b>"],
+      },
+      {
+        name: "viaClosure",
+        registerCount: 2,
+        // A captured parameter lives in the function context and is not copied there from the argument.
+        instructions: [
+          "511 E> CreateFunctionContext [0], [1]",
+          "PushContext r1",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "Ldar a0",
+          "JumpIfNotUndefined [6] (@16)",
+          "LdaSmi [1]",
+          "Jump [4] (@18)",
+          "Ldar a0",
+          "StaCurrentContextSlot [2]",
+          "Ldar a1",
+          "JumpIfNotUndefined [8] (@30)",
+          "CreateClosure [1], [0], #2",
+          "Jump [4] (@32)",
+          "Ldar a1",
+          "Star0",
+          "539 S> LdaSmi [99]",
+          "541 E> StaCurrentContextSlot [2]",
+          "556 S> CallUndefinedReceiver0 r0, [0]",
+          "563 S> Return",
+        ],
+        children: [{ instructions: ["532 S> LdaCurrentContextSlot [2]", "ThrowReferenceErrorIfHole [0]", "533 S> Return"] }],
+      },
+      {
+        name: "arrow",
+        registerCount: 2,
+        instructions: [
+          "Ldar a0",
+          "JumpIfNotUndefined [6] (@8)",
+          "LdaSmi [5]",
+          "Jump [4] (@10)",
+          "Ldar a0",
+          "Star0",
+          "Ldar a1",
+          "JumpIfNotUndefined [9] (@22)",
+          "Ldar r0",
+          "468 E> MulSmi [2], [0]",
+          "Jump [4] (@24)",
+          "Ldar a1",
+          "Star1",
+          "478 S> Ldar r1",
+          "478 E> Add r0, [1]",
+          "481 S> Return",
         ],
       },
     );

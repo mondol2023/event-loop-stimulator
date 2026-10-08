@@ -26,6 +26,16 @@
   "bc-const-assign": {
     "status": "exact"
   },
+  "bc-defaults": {
+    "status": "opcodes",
+    "exceptions": [
+      {
+        "function": "#6:viaClosure/#1:x",
+        "level": "operands",
+        "reason": "Header name only: an arrow in a default initializer (read = () => x) prints as `x` in V8, while its constant-pool entry stays `read`; we print `read` in both"
+      }
+    ]
+  },
   "bc-far-jumps": {
     "status": "exact"
   },

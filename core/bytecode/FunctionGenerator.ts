@@ -11,6 +11,7 @@ import type {
   IfStatement,
   LogicalExpression,
   Node,
+  Pattern,
   ReturnStatement,
   SimpleCallExpression,
   Statement,
@@ -193,12 +194,13 @@ export class FunctionGenerator {
   generateFunction(node: FunctionLiteral): void {
     const entry = this.functionStart(node);
     if (node.body.type === "BlockStatement") {
-      this.generateBody(node.body.body, endOf(node.body) - 1, entry);
+      this.generateBody(node.body.body, endOf(node.body) - 1, entry, node.params);
       return;
     }
     // An arrow's expression body is `return <expression>`, positioned at the expression.
     const b = this.builder;
     this.enterFunction(entry);
+    this.initializeParameters(node.params);
     const expression = node.body;
     b.setStatementPosition(this.positionOf(expression));
     this.visitForAccumulatorValue(expression);
@@ -212,8 +214,9 @@ export class FunctionGenerator {
     return operatorPosition(this.source, node.id ? endOf(node.id) : (node.range?.[0] ?? 0) + "function".length);
   }
 
-  generateBody(statements: readonly Statement[], returnPosition: number, entryPosition = 0): void {
+  generateBody(statements: readonly Statement[], returnPosition: number, entryPosition = 0, params: readonly Pattern[] = []): void {
     this.enterFunction(entryPosition);
+    this.initializeParameters(params);
     this.visitDeclarations(statements);
     this.visitStatements(statements);
     if (!this.builder.remainderOfBlockIsDead) {
@@ -231,10 +234,48 @@ export class FunctionGenerator {
     if (!scope.needsContext) return;
     b.emit("CreateFunctionContext", b.constantPool.add({ kind: "scope-info", scope: "FUNCTION_SCOPE" }), scope.contextSlots);
     this.pushContext(scope);
-    const parameters = scope.variables.filter((v) => v.kind === "param" && v.allocation.kind === "context");
+    // With defaults the parameters are set by their initializers instead.
+    const parameters = scope.hasSimpleParameters ? scope.variables.filter((v) => v.kind === "param" && v.allocation.kind === "context") : [];
     for (const parameter of parameters.sort((a, c) => (a.parameterIndex ?? 0) - (c.parameterIndex ?? 0))) {
       b.emit("Ldar", argument(parameter.parameterIndex ?? 0));
       b.emit("StaCurrentContextSlot", this.slotOf(parameter));
+    }
+  }
+
+  /** V8's parameter initialization block, for a list with defaults: each named parameter is set from its raw argument. */
+  private initializeParameters(params: readonly Pattern[]): void {
+    const scope = this.currentScope;
+    if (scope.hasSimpleParameters) return;
+    const b = this.builder;
+    const parameters = params.map((param, index) => {
+      const target = param.type === "AssignmentPattern" ? param.left : param;
+      if (target.type !== "Identifier") throw new NotYetSupported(param);
+      const variable = this.scopes.declarationOf.get(target);
+      if (!variable) throw new Error("parameter without a variable");
+      // A body binding that a closure captures needs a block context of its own, which is not built yet.
+      return { target, variable, index, initializer: param.type === "AssignmentPattern" ? param.right : undefined };
+    });
+    if (scope.variables.some((v) => v.kind !== "param" && v.kind !== "function-name" && v.allocation.kind === "context")) {
+      throw new NotYetSupported(scope.node);
+    }
+    for (const { target, variable } of parameters) {
+      if (!variable.needsHoleInit) continue;
+      b.emit("LdaTheHole");
+      this.storeVariable(variable, target);
+    }
+    for (const { target, variable, index, initializer } of parameters) {
+      b.emit("Ldar", argument(index));
+      if (initializer) {
+        const useArgument = this.newLabels();
+        const done = this.newLabels();
+        b.jump("JumpIfNotUndefined", useArgument.new());
+        this.conditionally(() => this.visitForAccumulatorValue(initializer, target.name));
+        b.jump("Jump", done.new());
+        useArgument.bind();
+        b.emit("Ldar", argument(index));
+        done.bind();
+      }
+      this.storeVariable(variable, target);
     }
   }
 
