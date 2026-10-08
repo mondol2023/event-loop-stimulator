@@ -17,7 +17,13 @@
   "bc-break-continue": {
     "status": "exact"
   },
+  "bc-call-shapes": {
+    "status": "exact"
+  },
   "bc-far-jumps": {
+    "status": "exact"
+  },
+  "bc-functions": {
     "status": "exact"
   },
   "bc-if-else": {

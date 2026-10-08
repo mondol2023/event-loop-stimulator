@@ -1,0 +1,563 @@
+{
+  "schema": 1,
+  "fixture": "bc-functions",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 96,
+      "parameterCount": 6,
+      "registerCount": 11,
+      "frameSize": 88
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star0"
+      },
+      {
+        "offset": 5,
+        "text": "CreateClosure [1], [1], #2"
+      },
+      {
+        "offset": 9,
+        "text": "Star3"
+      },
+      {
+        "offset": 10,
+        "text": "CreateClosure [2], [2], #2"
+      },
+      {
+        "offset": 14,
+        "text": "Star4"
+      },
+      {
+        "offset": 15,
+        "text": "CreateClosure [3], [3], #2"
+      },
+      {
+        "offset": 19,
+        "text": "Star5"
+      },
+      {
+        "offset": 20,
+        "text": "CreateClosure [4], [4], #2"
+      },
+      {
+        "offset": 24,
+        "text": "Star6"
+      },
+      {
+        "offset": 25,
+        "position": {
+          "at": 147,
+          "kind": "S"
+        },
+        "text": "CreateClosure [5], [5], #2"
+      },
+      {
+        "offset": 29,
+        "text": "Star1"
+      },
+      {
+        "offset": 30,
+        "position": {
+          "at": 183,
+          "kind": "S"
+        },
+        "text": "CreateClosure [6], [6], #2"
+      },
+      {
+        "offset": 34,
+        "text": "Star2"
+      },
+      {
+        "offset": 35,
+        "position": {
+          "at": 350,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 37,
+        "text": "Star8"
+      },
+      {
+        "offset": 38,
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 40,
+        "text": "Star9"
+      },
+      {
+        "offset": 41,
+        "position": {
+          "at": 350,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r0, r8, r9, [0]"
+      },
+      {
+        "offset": 46,
+        "position": {
+          "at": 361,
+          "kind": "S"
+        },
+        "text": "LdaSmi [3]"
+      },
+      {
+        "offset": 48,
+        "text": "Star8"
+      },
+      {
+        "offset": 49,
+        "position": {
+          "at": 361,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r1, r8, [2]"
+      },
+      {
+        "offset": 53,
+        "position": {
+          "at": 367,
+          "kind": "S"
+        },
+        "text": "LdaSmi [4]"
+      },
+      {
+        "offset": 55,
+        "text": "Star8"
+      },
+      {
+        "offset": 56,
+        "position": {
+          "at": 367,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r2, r8, [4]"
+      },
+      {
+        "offset": 60,
+        "position": {
+          "at": 373,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r3, [6]"
+      },
+      {
+        "offset": 63,
+        "position": {
+          "at": 381,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 65,
+        "text": "Star8"
+      },
+      {
+        "offset": 66,
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 68,
+        "text": "Star9"
+      },
+      {
+        "offset": 69,
+        "text": "LdaSmi [3]"
+      },
+      {
+        "offset": 71,
+        "text": "Star10"
+      },
+      {
+        "offset": 72,
+        "position": {
+          "at": 381,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver r4, r8-r10, [8]"
+      },
+      {
+        "offset": 77,
+        "position": {
+          "at": 397,
+          "kind": "S"
+        },
+        "text": "LdaSmi [4]"
+      },
+      {
+        "offset": 79,
+        "text": "Star8"
+      },
+      {
+        "offset": 80,
+        "text": "LdaSmi [5]"
+      },
+      {
+        "offset": 82,
+        "text": "Star9"
+      },
+      {
+        "offset": 83,
+        "position": {
+          "at": 397,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r5, r8, r9, [10]"
+      },
+      {
+        "offset": 88,
+        "position": {
+          "at": 409,
+          "kind": "S"
+        },
+        "text": "LdaZero"
+      },
+      {
+        "offset": 89,
+        "text": "Star8"
+      },
+      {
+        "offset": 90,
+        "position": {
+          "at": 409,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r6, r8, [12]"
+      },
+      {
+        "offset": 94,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 95,
+        "position": {
+          "at": 418,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo add>",
+      "<SharedFunctionInfo none>",
+      "<SharedFunctionInfo three>",
+      "<SharedFunctionInfo swap>",
+      "<SharedFunctionInfo early>",
+      "<SharedFunctionInfo f>",
+      "<SharedFunctionInfo g>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "0": {
+        "name": "add",
+        "header": {
+          "length": 6,
+          "parameterCount": 3,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 123,
+              "kind": "S"
+            },
+            "text": "Ldar a1"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 132,
+              "kind": "E"
+            },
+            "text": "Add a0, [0]"
+          },
+          {
+            "offset": 5,
+            "position": {
+              "at": 136,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "1": {
+        "name": "none",
+        "header": {
+          "length": 2,
+          "parameterCount": 1,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 1,
+            "position": {
+              "at": 214,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "2": {
+        "name": "three",
+        "header": {
+          "length": 12,
+          "parameterCount": 4,
+          "registerCount": 1,
+          "frameSize": 8
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 242,
+              "kind": "S"
+            },
+            "text": "Ldar a1"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 251,
+              "kind": "E"
+            },
+            "text": "Add a0, [0]"
+          },
+          {
+            "offset": 5,
+            "text": "Star0"
+          },
+          {
+            "offset": 6,
+            "text": "Ldar a2"
+          },
+          {
+            "offset": 8,
+            "position": {
+              "at": 255,
+              "kind": "E"
+            },
+            "text": "Add r0, [1]"
+          },
+          {
+            "offset": 11,
+            "position": {
+              "at": 259,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "3": {
+        "name": "swap",
+        "header": {
+          "length": 6,
+          "parameterCount": 3,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 284,
+              "kind": "S"
+            },
+            "text": "Mov a1, a0"
+          },
+          {
+            "offset": 3,
+            "position": {
+              "at": 291,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 5,
+            "position": {
+              "at": 300,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "4": {
+        "name": "early",
+        "header": {
+          "length": 9,
+          "parameterCount": 2,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 323,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 2,
+            "text": "JumpIfToBooleanFalse [5] (@7)"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 330,
+              "kind": "S"
+            },
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 6,
+            "position": {
+              "at": 339,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 7,
+            "position": {
+              "at": 340,
+              "kind": "S"
+            },
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 8,
+            "position": {
+              "at": 347,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "5": {
+        "name": "f",
+        "header": {
+          "length": 3,
+          "parameterCount": 2,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 162,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 171,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "6": {
+        "name": "g",
+        "header": {
+          "length": 6,
+          "parameterCount": 2,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 192,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 192,
+              "kind": "E"
+            },
+            "text": "AddSmi [1], [0]"
+          },
+          {
+            "offset": 5,
+            "position": {
+              "at": 195,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}

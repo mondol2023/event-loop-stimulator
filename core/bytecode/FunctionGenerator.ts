@@ -1,14 +1,18 @@
 import type {
+  ArrowFunctionExpression,
   AssignmentExpression,
   BinaryExpression,
   ConditionalExpression,
   Expression,
   ForStatement,
+  FunctionDeclaration,
+  FunctionExpression,
   Identifier,
   IfStatement,
   LogicalExpression,
   Node,
   ReturnStatement,
+  SimpleCallExpression,
   Statement,
   TemplateLiteral,
   ThrowStatement,
@@ -17,7 +21,8 @@ import type {
   VariableDeclaration,
   WhileStatement,
 } from "estree";
-import type { ReferenceInfo, ScopeTree, Variable } from "@/core/frontend/scope/Scope";
+import type { ReferenceInfo, Scope, ScopeTree, Variable } from "@/core/frontend/scope/Scope";
+import type { FunctionId } from "@/core/shared/ids";
 import { BytecodeArrayBuilder, type Label } from "./BytecodeArrayBuilder";
 import { BytecodeLabels } from "./BytecodeLabels";
 import { type Opcode, THIS, argument, local } from "./bytecodes";
@@ -125,17 +130,37 @@ const COMMUTATIVE_WITH_SMI_LEFT: ReadonlySet<string> = new Set(["|", "&", "^", "
 
 type Chain = { readonly operator: string; readonly operands: readonly Expression[]; readonly positions: readonly number[] };
 
+export type FunctionLiteral = FunctionDeclaration | FunctionExpression | ArrowFunctionExpression;
+
+/** Compiles the functions a function creates; the program-wide counterpart of one FunctionGenerator. */
+export interface FunctionCompiler {
+  /** Compiles `node` to bytecode of its own and returns its id. `name` is the SharedFunctionInfo name (inferred or own). */
+  compile(node: FunctionLiteral, name: string): FunctionId;
+}
+
+/** `CreateClosureFlags::FastNewClosureBit`: set when the closure is created directly in a function scope. */
+const FAST_NEW_CLOSURE = 2;
+
 export type FunctionGeneratorOptions = {
   readonly source: string;
   readonly scopes: ScopeTree;
+  /** The function scope this generator compiles. */
+  readonly scope: Scope;
+  readonly functions: FunctionCompiler;
   readonly parameterCount: number;
   readonly localCount: number;
 };
 
 export class FunctionGenerator {
   readonly builder: BytecodeArrayBuilder;
+  /** The functions this one creates closures for, in constant-pool order. */
+  readonly children: FunctionId[] = [];
   private readonly source: string;
   private readonly scopes: ScopeTree;
+  private readonly functions: FunctionCompiler;
+  private currentScope: Scope;
+  /** The function declarations already created at the top of the function. */
+  private readonly hoisted = new Set<Node>();
   private result: ResultScope = new ResultScope("effect");
   private readonly slotCache = new Map<string, number>();
   private readonly loops: Loop[] = [];
@@ -143,6 +168,8 @@ export class FunctionGenerator {
   constructor(options: FunctionGeneratorOptions) {
     this.source = options.source;
     this.scopes = options.scopes;
+    this.functions = options.functions;
+    this.currentScope = options.scope;
     this.builder = new BytecodeArrayBuilder({
       parameterCount: options.parameterCount,
       localCount: options.localCount,
@@ -152,12 +179,47 @@ export class FunctionGenerator {
 
   // Statements.
 
-  generateBody(statements: readonly Statement[], returnPosition: number): void {
+  /** A function literal's body: its parameters need no code yet, so it is the declarations, the statements and the final return. */
+  generateFunction(node: FunctionLiteral): void {
+    const entry = this.functionStart(node);
+    if (node.body.type === "BlockStatement") {
+      this.generateBody(node.body.body, endOf(node.body) - 1, entry);
+      return;
+    }
+    // An arrow's expression body is `return <expression>`, positioned at the expression.
+    const b = this.builder;
+    b.setExpressionPosition(entry);
+    const expression = node.body;
+    b.setStatementPosition(this.positionOf(expression));
+    this.visitForAccumulatorValue(expression);
+    b.setStatementPosition(endOf(expression));
+    b.emit("Return");
+  }
+
+  /** V8's `FunctionLiteral::start_position()`: the `(` of the parameters, or the start of an arrow. */
+  private functionStart(node: FunctionLiteral): number {
+    if (node.type === "ArrowFunctionExpression") return startOf(node);
+    return operatorPosition(this.source, node.id ? endOf(node.id) : (node.range?.[0] ?? 0) + "function".length);
+  }
+
+  generateBody(statements: readonly Statement[], returnPosition: number, entryPosition = 0): void {
+    this.builder.setExpressionPosition(entryPosition);
+    this.createHoistedFunctions(statements);
     this.visitStatements(statements);
     if (!this.builder.remainderOfBlockIsDead) {
       this.builder.emit("LdaUndefined");
       this.builder.setStatementPosition(returnPosition);
       this.builder.emit("Return");
+    }
+  }
+
+  /** V8's VisitDeclarations: every function declaration of the body is created before any statement runs. */
+  private createHoistedFunctions(statements: readonly Statement[]): void {
+    for (const statement of statements) {
+      if (statement.type !== "FunctionDeclaration") continue;
+      this.hoisted.add(statement);
+      this.buildClosure(statement, statement.id.name);
+      this.assignToVariable(statement.id, "init");
     }
   }
 
@@ -173,6 +235,10 @@ export class FunctionGenerator {
   private visitStatement(node: Statement): void {
     switch (node.type) {
       case "EmptyStatement":
+        return;
+      case "FunctionDeclaration":
+        // Created with the other declarations; one nested in a block waits for block scopes.
+        if (!this.hoisted.has(node)) throw new NotYetSupported(node);
         return;
       case "ExpressionStatement":
         this.builder.setStatementPosition(startOf(node));
@@ -347,7 +413,7 @@ export class FunctionGenerator {
       const top = this.builder.registerTop;
       this.builder.setStatementPosition(position);
       const entered = this.enter("effect");
-      if (init) this.visitForAccumulatorValue(init);
+      if (init) this.visitForAccumulatorValue(init, target.name);
       else this.builder.emit("LdaUndefined");
       this.builder.setExpressionPosition(position);
       this.assignToVariable(target, "init");
@@ -376,9 +442,10 @@ export class FunctionGenerator {
     this.leave(entered);
   }
 
-  private visitForAccumulatorValue(expression: Expression): TypeHint {
+  /** `inferredName` names an anonymous function literal after what it is assigned to (V8's FuncNameInferrer). */
+  private visitForAccumulatorValue(expression: Expression, inferredName = ""): TypeHint {
     const entered = this.enter("value");
-    this.visitExpression(expression);
+    this.visitExpression(expression, inferredName);
     this.leave(entered);
     return entered.scope.typeHint;
   }
@@ -453,7 +520,7 @@ export class FunctionGenerator {
 
   // Expressions.
 
-  private visitExpression(node: Expression): void {
+  private visitExpression(node: Expression, inferredName = ""): void {
     // V8's parser has already folded literals by the time the generator runs.
     const literal = literalOf(node);
     if (literal) return this.visitLiteralValue(literal);
@@ -480,6 +547,12 @@ export class FunctionGenerator {
         return this.visitUpdate(node);
       case "TemplateLiteral":
         return this.visitTemplateLiteral(node);
+      case "FunctionExpression":
+      case "ArrowFunctionExpression":
+        this.buildClosure(node, node.type === "FunctionExpression" && node.id ? node.id.name : inferredName);
+        return;
+      case "CallExpression":
+        return this.visitCall(node);
       default:
         throw new NotYetSupported(node);
     }
@@ -516,6 +589,53 @@ export class FunctionGenerator {
 
   private stringConstant(value: string, folded = false): number {
     return this.builder.constantPool.add(folded ? { kind: "string", value, folded } : { kind: "string", value });
+  }
+
+  // Functions and calls.
+
+  /** V8's BuildClosure: `CreateClosure` of the function's SharedFunctionInfo, left in the accumulator. */
+  private buildClosure(node: FunctionLiteral, name: string): void {
+    const b = this.builder;
+    const id = this.functions.compile(node, name);
+    this.children.push(id);
+    const index = b.constantPool.add({ kind: "sfi", name, functionId: id });
+    const flags = this.currentScope.kind === "function" ? FAST_NEW_CLOSURE : 0;
+    b.emit("CreateClosure", index, b.feedback.addClosureCell(), flags);
+  }
+
+  /** V8's call position: the callee for a plain name, else the `(`. */
+  private callPosition(node: SimpleCallExpression): number {
+    const callee = node.callee;
+    if (callee.type === "Identifier") return startOf(callee);
+    return operatorPosition(this.source, endOf(callee));
+  }
+
+  /** A call whose receiver is `undefined`: the callee is a name or any other expression, not a property. */
+  private visitCall(node: SimpleCallExpression): void {
+    const callee = node.callee;
+    if (callee.type === "Super" || callee.type === "MemberExpression" || node.optional) throw new NotYetSupported(node);
+    const b = this.builder;
+    const top = b.registerTop;
+    const calleeRegister = b.allocateRegister();
+    this.visitForAccumulatorValue(callee);
+    b.emit("Star", local(calleeRegister));
+    const args: number[] = [];
+    for (const argument of node.arguments) {
+      if (argument.type === "SpreadElement") throw new NotYetSupported(argument);
+      this.visitForAccumulatorValue(argument);
+      const register = b.allocateRegister();
+      b.emit("Star", local(register));
+      args.push(register);
+    }
+    const slot = b.feedback.addSlot("call");
+    b.setExpressionPosition(this.callPosition(node));
+    const receiver = local(calleeRegister);
+    const [first, second] = args.map(local);
+    if (args.length === 0) b.emit("CallUndefinedReceiver0", receiver, slot);
+    else if (args.length === 1) b.emit("CallUndefinedReceiver1", receiver, first as number, slot);
+    else if (args.length === 2) b.emit("CallUndefinedReceiver2", receiver, first as number, second as number, slot);
+    else b.emit("CallUndefinedReceiver", receiver, first as number, args.length, slot);
+    b.releaseRegisters(top);
   }
 
   // Variables.
@@ -997,7 +1117,7 @@ export class FunctionGenerator {
     const position = this.operatorAt(target);
     const operator = node.operator;
     if (operator === "=") {
-      this.visitForAccumulatorValue(node.right);
+      this.visitForAccumulatorValue(node.right, target.name);
       b.setExpressionPosition(position);
       this.assignToVariable(target, "assign");
       return;

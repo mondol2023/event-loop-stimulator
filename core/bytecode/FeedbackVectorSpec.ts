@@ -16,13 +16,23 @@ export const FEEDBACK_SLOT_SIZE = {
   "jump-loop": 1,
   "clone-object": 1,
   literal: 1,
-  "closure-cell": 1,
 } as const;
 
 export type FeedbackSlotKind = keyof typeof FEEDBACK_SLOT_SIZE;
 
 export class FeedbackVectorSpec {
   private count = 0;
+  private cells = 0;
+
+  /** Closure feedback cells allocated so far: one per function literal a function creates. */
+  get closureCellCount(): number {
+    return this.cells;
+  }
+
+  /** `CreateClosure` names its cell by an index of its own, not by a slot (V8's closure feedback cell array). */
+  addClosureCell(): number {
+    return this.cells++;
+  }
 
   /** Slots allocated so far: the length of the vector. */
   get slotCount(): number {

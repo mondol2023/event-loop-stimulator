@@ -19,18 +19,29 @@ describe("FeedbackVectorSpec", () => {
     expect(spec.slotCount).toBe(12);
   });
 
-  it("gives binary operations, comparisons, literals and closure cells one slot", () => {
+  it("gives binary operations, comparisons and literals one slot", () => {
     // `Add r0, [0]`, `Add r0, [1]`, `TestEqualStrict a0, [6]` followed by a call at [7],
-    // CreateObjectLiteral [22] followed by DefineNamedOwnProperty [23], CreateClosure [0]..[3].
+    // CreateObjectLiteral [22] followed by DefineNamedOwnProperty [23].
     const spec = new FeedbackVectorSpec();
     expect(spec.addSlot("binary-op")).toBe(0);
     expect(spec.addSlot("binary-op")).toBe(1);
     expect(spec.addSlot("compare")).toBe(2);
     expect(spec.addSlot("literal")).toBe(3);
-    expect(spec.addSlot("closure-cell")).toBe(4);
-    expect(spec.addSlot("store")).toBe(5);
-    expect(spec.addSlot("global-store")).toBe(7);
-    expect(spec.slotCount).toBe(9);
+    expect(spec.addSlot("store")).toBe(4);
+    expect(spec.addSlot("global-store")).toBe(6);
+    expect(spec.slotCount).toBe(8);
+  });
+
+  it("numbers the closure cells of CreateClosure apart from the slots", () => {
+    // bc-call-shapes: CreateClosure [0], [0] .. [5], [3] between calls at [0] .. [27].
+    const spec = new FeedbackVectorSpec();
+    expect(spec.addClosureCell()).toBe(0);
+    expect(spec.addSlot("call")).toBe(0);
+    expect(spec.addClosureCell()).toBe(1);
+    expect(spec.addClosureCell()).toBe(2);
+    expect(spec.addSlot("call")).toBe(2);
+    expect(spec.slotCount).toBe(4);
+    expect(spec.closureCellCount).toBe(3);
   });
 
   it("exposes the table it counts with", () => {
