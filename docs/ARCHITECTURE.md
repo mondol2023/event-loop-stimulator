@@ -22,6 +22,10 @@ source ─▶ type-strip (TS only, position-preserving) ─▶ Scanner/Parser �
                    Timeline  ◀── every Tick carries (functionId, bytecodeOffset) ──▶ SourcePositionTable
 ```
 
+`core/compile/CompilationManager` runs the front half in one place: strip a leading BOM, check the size limits, strip types (TypeScript), parse, analyze scopes, validate the subset, generate bytecode, and emit the views. The first stage that reports a diagnostic stops the pipeline and no `program` is returned; `compile` never throws. `core/views` holds the AST and Bytecode views as pure emitters (`CodeViewStrategy`), and `positionsForSourceRange` / `sourceRangeForPos` map between source ranges and `(functionId, bytecodeOffset)` through the `SourcePositionTable` ([ADR-024](DECISIONS.md)).
+
+Bytecode fidelity is held by a ratchet against real `--print-bytecode` output ([ADR-022](DECISIONS.md), [ADR-023](DECISIONS.md)).
+
 The bytecode is the single source of truth, as it is in V8:
 
 - The interpreter executes the same `BytecodeArray`s that the panes display.
@@ -35,16 +39,17 @@ app/                 routing only: thin pages that compose features (+ api/ rout
 proxy.ts             optimistic session redirect, security headers, request id
 instrumentation.ts   validates the environment on server boot
 core/                PURE TS, runs in browser, worker and server:
-                     frontend/ bytecode/ baseline/ runtime/ interpreter/ host/ timeline/ shared/
+                     frontend/ bytecode/ views/ compile/ shared/   (Phase 2)
+                     baseline/ runtime/ interpreter/ host/ timeline/   (later phases)
 features/            React feature modules (components/, hooks/, store/), incl. the pipeline worker
 server/              `import "server-only"`: env, db, repositories, auth, security, audit, actions
 components/ui/       shadcn output
 lib/                 small shared UI helpers (cn)
-tests/conformance/   fixtures + *.expected.json recorded on real Node, generator, runner
+tests/conformance/   fixtures + *.expected.json recorded on real Node, bytecode-status.json (ratchet), generator, runner, test262 runner
 tests/tooling/       proofs for the lint rules, design tokens and build check
 scripts/conformance/ the ONLY code that spawns real node (pinned, sandboxed)
 scripts/             build checks
-vendor/test262/      in-subset tests only (Phase 2)
+vendor/test262/      in-subset tests only, plus exclusions.json with a reason for every test left out
 docs/                ARCHITECTURE, DECISIONS, FIDELITY, TARGET, SUPPORTED_SUBSET
 e2e/                 Playwright
 ```

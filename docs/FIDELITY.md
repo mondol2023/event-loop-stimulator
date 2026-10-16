@@ -89,7 +89,12 @@ These are refused with a diagnostic instead of approximated, so they can never p
 
 ## Known gaps
 
-Each gap names the construct, the difference from real Node/V8, and the fixture that shows it. There are none yet: the interpreter lands in Phase 3.
+Each gap names the construct, the difference from real Node/V8, and the fixture that shows it. The interpreter lands in Phase 3, so these are the gaps of the front end and the bytecode so far.
+
+- **V8's `SyntaxError` text is not reproduced.** A program with a syntax error gets our own `E_SYNTAX` diagnostic (a range and a hint). Real Node prints V8's message, source line and caret on stderr. A test262 `negative: {phase: parse}` test is judged by the code, not the wording (ADR-024). Errors that Babel recovers from (`let x; let x;`, a misplaced `return`) become diagnostics too, so no bytecode is produced for them.
+- **Node-internal stack frames are constants of the pinned version.** The stack of an uncaught error ends in frames such as `node:internal/modules/cjs/loader:1872:14`. We can print them only as recorded for Node 24.19.0; they are not derived from anything and change with the target ([`TARGET.md`](TARGET.md)). Seen in: `uncaught-type-error`, `uncaught-reference-error`, `unhandled-rejection`, `let-tdz-uncaught` and `error-in-timer-uncaught`.
+- **Bytecode of a function that is never called is unverified.** V8 compiles lazily, so real Node prints no bytecode for it and there is nothing to compare with (ADR-022). The generator still compiles it.
+- **Three bytecode fixtures are `pending`**, listed under "Bytecode operand differences" below: `bc-loop-let`, `closure-in-loop-let` and `loose-equality-coercions`.
 
 ## How real bytecode is captured
 
@@ -103,12 +108,16 @@ Each gap names the construct, the difference from real Node/V8, and the fixture 
 
 ## Bytecode operand differences
 
-Opcode sequences match `--print-bytecode`. Operand-level differences are listed here, per fixture.
+Opcode sequences match `--print-bytecode` except where this section says otherwise. Of the 79 fixtures with recorded bytecode, 72 are `exact`, 4 are `opcodes` (operand differences only, listed below) and 3 are `pending` (ADR-023, `tests/conformance/bytecode-status.json`). Operand-level differences are listed here, per fixture.
 
 - `bc-tdz-assign`, `assignFirst`: after an assignment to a not-yet-initialized binding inside a branch, V8 flushes the merge with `Ldar` of the temporary holding the value; we reload the binding. Same value, different register operand. The register optimizer's flush rule behind this is not yet understood.
 - `bc-defaults` and `default-params`, `viaClosure`'s arrow: the header name of an arrow in a default initializer (`read = () => x`) is `x` in V8, the identifier read inside it, while its constant-pool entry stays `read`. We print `read` in both. Instructions are identical.
 - `closure-counter`, `pair`'s first arrow: in `return [() => shared, (v) => (shared = v)]` V8's name inferrer runs at the later `shared = v` and names the earlier anonymous arrow `shared`, in its header and in the constant pool of `pair`. We leave it anonymous. Instructions are identical.
 - Optional chain right after the statement that stored its object, e.g. `var o = null; o?.a;`: the accumulator still equals `r0`, so the `Ldar r0` is elided and V8 flushes the temporary with `Mov r0, r1` before `JumpIfUndefinedOrNull`; we print `Star1` (and every later jump offset shifts by 2). Seen only in hand-made probes, no recorded fixture hits it. The flush order of the accumulator against locals in the register optimizer is the suspect; moving the accumulator last fixes the probe but breaks `bc-optional`, so the real rule is something else.
+
+An opcode difference (the generator does compile it; the fixture stays `pending`):
+
+- `loose-equality-coercions`, `show("!!{}", !!{})` and its siblings: in a value context V8 compiles `!!x` to a single `ToBoolean`, while we print `ToBooleanLogicalNot` then `LogicalNot`, which shifts every later offset. The other three functions of the fixture are exact. The rule behind V8's choice, and whether it extends to `!!!x`, is not yet probed.
 
 Not yet reproduced (the generator refuses them, so the fixture stays `pending`):
 

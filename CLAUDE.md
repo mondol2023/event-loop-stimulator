@@ -14,6 +14,10 @@ A V8 engine and event-loop visualizer. The spec is `PROMPT.md`: run one phase pe
 | `npm test` | Vitest (unit, golden, property, recorded conformance). Node env; UI tests add `// @vitest-environment jsdom` |
 | `npm run conformance` | Conformance suite in `tests/conformance/` |
 | `npm run conformance:record` | Re-record `*.expected.json` on real Node; refuses unless the runtime equals `docs/TARGET.md` |
+| `npm run conformance:status` | Rewrite `tests/conformance/bytecode-status.json` from the generator's current output (the bytecode ratchet; never touches `*.expected.json`) |
+| `npm run conformance:diff -- <file.cjs>` | Our bytecode against real Node's, side by side (a development aid) |
+| `npm run conformance:vendor-test262` | Re-vendor the in-subset test262 tests into `vendor/test262/` |
+| `npm run docs:subset` | Regenerate the excluded-construct tables in `docs/SUPPORTED_SUBSET.md` and `docs/FIDELITY.md` from `core/frontend/subset/excluded.ts` |
 | `npm run seed` | Upsert Role docs and indexes; promotes `ADMIN_BOOTSTRAP_EMAIL` only if that user already registered |
 | `npm run e2e` | Playwright (builds + starts on :3100) |
 | `npm run build` | Production build, then `scripts/check-build.mts` (no eval/child_process/vm in the output) |

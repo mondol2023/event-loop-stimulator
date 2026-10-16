@@ -2,6 +2,8 @@
 
 The playground runs one self-contained script as the body of a CommonJS module (`main.cjs`; a TypeScript source is type-stripped first, the way `node` does it). Everything outside the subset is refused with a diagnostic over the offending token and a hint, never approximated (PROMPT.md §3.3). Source is only parsed, never executed.
 
+The Phase 2 choices behind this list are ADR-021 in [`DECISIONS.md`](DECISIONS.md).
+
 What is supported is whatever the recorded fixtures in [`tests/conformance/fixtures/`](../tests/conformance/fixtures) exercise, plus what the validator tests in [`core/frontend/subset/validator.test.ts`](../core/frontend/subset/validator.test.ts) accept. `tests/conformance/subset-fixtures.test.ts` runs every runnable fixture through the frontend and fails if the validator refuses one.
 
 ## Limits
@@ -13,31 +15,33 @@ What is supported is whatever the recorded fixtures in [`tests/conformance/fixtu
 
 | Area | Supported | Fixtures |
 |---|---|---|
-| Declarations | `var`, `let`, `const` (with hoisting and the temporal dead zone), function declarations and expressions, arrow functions, `async` functions and arrows, default parameters | `var-hoisting`, `let-tdz-uncaught`, `const-assign-error`, `default-params` |
-| Closures | capturing, per-iteration `for (let …)` bindings | `closure-counter`, `closure-in-loop-let` |
-| Statements | `if`/`else`, `for`, `while`, `break`, `continue`, `return` (also at the top level), `throw`, `try`/`catch`/`finally` | `control-flow-loops`, `try-catch-finally-order`, `finally-passthrough` |
-| Operators | arithmetic (including `**`), comparison, loose and strict equality, bitwise, logical, `??`, `?.`, `?:`, comma, `typeof`, `delete`, `++`/`--`, compound assignment | `loose-equality-coercions`, `logical-nullish-optional`, `number-to-string` |
-| Literals | numbers, strings, template literals, `null`, `undefined`, array literals (with holes), object literals (properties, shorthand, methods) | `strings-and-templates`, `array-holes-inspect`, `object-key-order` |
-| Objects | `new`, `this`, property access, `delete`, `"use strict"` | `object-delete-and-methods`, `strict-mode-this` |
-| Async | `await`, promises, microtasks, `process.nextTick`, timers, `setImmediate`, `queueMicrotask` | `async-await-order`, `nexttick-vs-promise`, `timers-same-expiry-order` |
-| CommonJS | `this`, `module.exports`, `exports`, and `typeof` on `require`, `module`, `exports`, `__filename`, `__dirname` | `top-level-this-and-params` |
-| TypeScript | type annotations, interfaces, type aliases, generics, `as`, `satisfies`, non-null `!`, `import type`, optional parameters, `declare`, overloads, `abstract` | `ts-strip-basic` |
+| Declarations | `var`, `let`, `const` (with hoisting and the temporal dead zone), function declarations and expressions, arrow functions, `async` functions and arrows, default parameters | [var-hoisting](../tests/conformance/fixtures/var-hoisting.cjs), [let-tdz-uncaught](../tests/conformance/fixtures/let-tdz-uncaught.cjs), [const-assign-error](../tests/conformance/fixtures/const-assign-error.cjs), [default-params](../tests/conformance/fixtures/default-params.cjs), [bc-tdz](../tests/conformance/fixtures/bc-tdz.cjs), [bc-functions](../tests/conformance/fixtures/bc-functions.cjs), [bc-defaults](../tests/conformance/fixtures/bc-defaults.cjs) |
+| Closures | capturing, per-iteration `for (let …)` bindings | [closure-counter](../tests/conformance/fixtures/closure-counter.cjs), [closure-in-loop-let](../tests/conformance/fixtures/closure-in-loop-let.cjs), [bc-closures](../tests/conformance/fixtures/bc-closures.cjs) |
+| Statements | `if`/`else`, `for`, `while`, `break`, `continue`, `return` (also at the top level), `throw`, `try`/`catch`/`finally` | [control-flow-loops](../tests/conformance/fixtures/control-flow-loops.cjs), [try-catch-finally-order](../tests/conformance/fixtures/try-catch-finally-order.cjs), [finally-passthrough](../tests/conformance/fixtures/finally-passthrough.cjs), [bc-if-else](../tests/conformance/fixtures/bc-if-else.cjs), [bc-loops](../tests/conformance/fixtures/bc-loops.cjs), [bc-break-continue](../tests/conformance/fixtures/bc-break-continue.cjs), [bc-try-catch](../tests/conformance/fixtures/bc-try-catch.cjs), [return-vs-return-await](../tests/conformance/fixtures/return-vs-return-await.cjs) |
+| Operators | arithmetic (including `**`), comparison, loose and strict equality, bitwise, logical, `??`, `?.`, `?:`, comma, `typeof`, `delete`, `++`/`--`, compound assignment | [loose-equality-coercions](../tests/conformance/fixtures/loose-equality-coercions.cjs), [logical-nullish-optional](../tests/conformance/fixtures/logical-nullish-optional.cjs), [number-to-string](../tests/conformance/fixtures/number-to-string.cjs), [bc-locals-operators](../tests/conformance/fixtures/bc-locals-operators.cjs), [bc-optional](../tests/conformance/fixtures/bc-optional.cjs), [bc-logical-globals](../tests/conformance/fixtures/bc-logical-globals.cjs) |
+| Literals | numbers, strings, template literals, `null`, `undefined`, array literals (with holes), object literals (properties, shorthand, methods) | [strings-and-templates](../tests/conformance/fixtures/strings-and-templates.cjs), [array-holes-inspect](../tests/conformance/fixtures/array-holes-inspect.cjs), [object-key-order](../tests/conformance/fixtures/object-key-order.cjs), [bc-array-literals](../tests/conformance/fixtures/bc-array-literals.cjs), [bc-object-literals](../tests/conformance/fixtures/bc-object-literals.cjs) |
+| Objects | `new`, `this`, property access, `delete`, `"use strict"` | [object-delete-and-methods](../tests/conformance/fixtures/object-delete-and-methods.cjs), [strict-mode-this](../tests/conformance/fixtures/strict-mode-this.cjs), [bc-new-delete](../tests/conformance/fixtures/bc-new-delete.cjs), [bc-properties](../tests/conformance/fixtures/bc-properties.cjs), [bc-method-calls](../tests/conformance/fixtures/bc-method-calls.cjs) |
+| Async | `await`, promises, microtasks, `process.nextTick`, timers, `setImmediate`, `queueMicrotask` | [async-await-order](../tests/conformance/fixtures/async-await-order.cjs), [nexttick-vs-promise](../tests/conformance/fixtures/nexttick-vs-promise.cjs), [timers-same-expiry-order](../tests/conformance/fixtures/timers-same-expiry-order.cjs), [queuemicrotask-order](../tests/conformance/fixtures/queuemicrotask-order.cjs), [bc-async](../tests/conformance/fixtures/bc-async.cjs) |
+| CommonJS | `this`, `module.exports`, `exports`, and `typeof` on `require`, `module`, `exports`, `__filename`, `__dirname` | [top-level-this-and-params](../tests/conformance/fixtures/top-level-this-and-params.cjs), [strict-mode-this](../tests/conformance/fixtures/strict-mode-this.cjs) |
+| TypeScript | type annotations, interfaces, type aliases, generics, `as`, `satisfies`, non-null `!`, `import type`, optional parameters, `declare`, overloads, `abstract` | [ts-strip-basic](../tests/conformance/fixtures/ts-strip-basic.cts) |
 
 ## Globals
 
 A global is resolved through scope analysis: a local binding named `Date` is the user's own and is allowed. A name that Node does not define as a global is not refused: using it is a real `ReferenceError`.
 
-| Global | Supported use |
-|---|---|
-| `console` | `log`, `error`, `warn` |
-| `process` | `nextTick` |
-| `Promise` | `new Promise(...)`, `resolve`, `reject`, `all`, `race`, `allSettled`, `any` |
-| `Object` | `keys` |
-| `Math` | `abs`, `ceil`, `floor`, `max`, `min`, `round`, `sign`, `sqrt`, `trunc` |
-| `String`, `Number`, `Boolean`, `Array` | called or constructed; no static members yet |
-| `Error`, `TypeError`, `RangeError`, `ReferenceError`, `SyntaxError`, `AggregateError` | called or constructed |
-| `setTimeout`, `clearTimeout`, `setInterval`, `clearInterval`, `setImmediate`, `clearImmediate`, `queueMicrotask` | any use |
-| `undefined`, `NaN`, `Infinity` | any use |
+| Global | Supported use | Fixtures |
+|---|---|---|
+| `console` | `log`, `error`, `warn` | [console-error-warn](../tests/conformance/fixtures/console-error-warn.cjs) |
+| `process` | `nextTick` | [nexttick-vs-promise](../tests/conformance/fixtures/nexttick-vs-promise.cjs) |
+| `Promise` | `new Promise(...)`, `resolve`, `reject`, `all`, `race`, `allSettled`, `any` | [promise-combinators](../tests/conformance/fixtures/promise-combinators.cjs), [promise-resolve-same-promise](../tests/conformance/fixtures/promise-resolve-same-promise.cjs), [promise-vs-timeout](../tests/conformance/fixtures/promise-vs-timeout.cjs) |
+| `Object` | `keys` | [object-key-order](../tests/conformance/fixtures/object-key-order.cjs) |
+| `Math` | `abs`, `ceil`, `floor`, `max`, `min`, `round`, `sign`, `sqrt`, `trunc` | [number-to-string](../tests/conformance/fixtures/number-to-string.cjs) |
+| `String`, `Number`, `Boolean`, `Array` | called or constructed; no static members yet | [bc-call-shapes](../tests/conformance/fixtures/bc-call-shapes.cjs), [timer-delay-coercion](../tests/conformance/fixtures/timer-delay-coercion.cjs), [bc-new-delete](../tests/conformance/fixtures/bc-new-delete.cjs) |
+| `Error`, `TypeError`, `RangeError`, `ReferenceError`, `SyntaxError`, `AggregateError` | called or constructed | [error-in-timer-uncaught](../tests/conformance/fixtures/error-in-timer-uncaught.cjs), [promise-any-aggregate-error](../tests/conformance/fixtures/promise-any-aggregate-error.cjs), [uncaught-type-error](../tests/conformance/fixtures/uncaught-type-error.cjs), [uncaught-reference-error](../tests/conformance/fixtures/uncaught-reference-error.cjs) |
+| `setTimeout`, `clearTimeout`, `setInterval`, `clearInterval`, `setImmediate`, `clearImmediate`, `queueMicrotask` | any use | [timers-same-expiry-order](../tests/conformance/fixtures/timers-same-expiry-order.cjs), [interval-clear](../tests/conformance/fixtures/interval-clear.cjs), [drain-after-each-callback](../tests/conformance/fixtures/drain-after-each-callback.cjs), [timeout-vs-immediate-main](../tests/conformance/fixtures/timeout-vs-immediate-main.cjs), [queuemicrotask-order](../tests/conformance/fixtures/queuemicrotask-order.cjs) |
+| `undefined`, `NaN`, `Infinity` | any use | [logical-nullish-optional](../tests/conformance/fixtures/logical-nullish-optional.cjs), [number-to-string](../tests/conformance/fixtures/number-to-string.cjs), [bc-logical-globals](../tests/conformance/fixtures/bc-logical-globals.cjs) |
+
+Some entries have no fixture of their own yet (`Boolean(...)`, `clearImmediate`, `RangeError`, `SyntaxError`); only the validator tests cover them, until a fixture is recorded.
 
 A namespace global (`console`, `process`, `Promise`, `Object`, `Math`) can only be used through a supported member; `const m = Math` is refused so that no member check can be bypassed. `globalThis` and `global` are refused for the same reason.
 

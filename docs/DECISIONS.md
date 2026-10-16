@@ -188,3 +188,55 @@ It allows pure npm packages.
 - Rate limits: `compile.user` keyed by user id, else `compile.anon` keyed by hashed IP. If the limiter itself fails, the route answers 503 (fail closed). A failing limits read (Mongo) falls back to the defaults.
 - A failing session lookup is treated as anonymous; failing audit writes are dropped (counted, never logged with contents).
 - Sandbox `timeout`, `crashed` and `busy` all answer 503.
+
+## ADR-021: The Phase 2 subset: glue the spec list needs, and what stays refused (Phase 2)
+
+**Context.** PROMPT.md §7.1 lists the subset's features but not the constructs a real program needs around them (assignment, `new Promise`, methods). It also does not say which of the remaining constructs are refused rather than approximated.
+
+**Decision.**
+- **Supported**: the §7.1 list plus assignment and compound assignment, `++`/`--`, `?:`, `new` (for `new Promise` and `new Error`), `this` (methods), `delete`, bitwise operators, sloppy and strict (`'use strict'`) scripts, top-level `return` (legal in CommonJS), `Math.{abs,ceil,floor,max,min,round,sign,sqrt,trunc}` (IEEE-exact), and `process.nextTick` as the only member of `process`. TypeScript is erasable syntax only.
+- **Refused with a diagnostic and a hint**: classes (a stretch goal), `switch`, `do…while`, `for…in`, `for…of`, labeled statements, destructuring, spread/rest, `arguments`, `instanceof`, `in`, `with`, `require`/`import`/`export`, and everything §7.1 already excludes. Each can be added later, one at a time, with fixtures recorded on real Node.
+- `core/frontend/subset/excluded.ts` is the single list. The excluded tables in `SUPPORTED_SUBSET.md` and `FIDELITY.md` are generated from it by `npm run docs:subset`, and `tests/tooling/subset-docs.test.ts` fails when they drift.
+- Global names are resolved through scope analysis, not by matching member syntax: a local `Date` is the user's own, while `const r = Math.random`, `globalThis.Date` and `(0, eval)` are refused.
+
+**Consequence.** A program outside the subset is never run wrongly, only refused. The list is deliberately short and flagged for human review: widening it is a fixtures-first change.
+
+## ADR-022: How real bytecode is captured (Phase 2)
+
+**Context.** The ratchet (ADR-023) needs V8's own `--print-bytecode` listing for the user's functions, but the listing has about 100 Node-internal blocks, and `--print-bytecode-filter` matches by name only.
+
+**Decision.**
+- **The primary path shipped.** `npm run conformance:record` runs each runnable program fixture a second time under the same sandbox as its recorded run, with `--print-bytecode --no-compact --no-flush-bytecode --require mark.cjs`. Neither fallback (dropping `--permission`, name filters) was needed.
+- **Root.** `mark.cjs` calls a marker function just before Node compiles the main script; the main script is the first `Parameter count 6` block after it (CommonJS wraps the script in `function (exports, require, module, __filename, __dirname)`).
+- **Children are found by SharedFunctionInfo address**, never by name: walk the constant pool of the root to each `<SharedFunctionInfo ADDR>` and match the block whose header carries that address. `--no-compact` keeps addresses stable; `--no-flush-bytecode` keeps each function compiled once. A duplicate address or a name mismatch aborts the record.
+- **A function that was never called has no real bytecode.** V8 compiles lazily, so such a function is absent from `children`, and nothing verifies our bytecode for it. It is not an error.
+- **Failure is loud.** Any surprise throws `BytecodeCaptureError` naming the fixture; so does a capture run whose exit code differs from the recorded outcome. A capture is never partial.
+- A `.cts` fixture has Node's appended `//# sourceURL=` text removed from positions, so a `.cts` and its whitespace-stripped `.cjs` give identical trees.
+
+**Consequence.** The output cap for a capture run is raised to 32 MiB. If a Node upgrade changes the listing shape, the record fails instead of recording something wrong.
+
+## ADR-023: The bytecode fidelity ratchet and its exception policy (Phase 2)
+
+**Context.** PROMPT.md §3.4 asks for the same opcode sequence as real V8 for every fixture function. Reaching that for every construct at once is not realistic, and a plain pass/fail test would either be red for weeks or hide regressions.
+
+**Decision.**
+- Each fixture with recorded bytecode has a status in `tests/conformance/bytecode-status.json`: `pending` (the generator cannot compile it, or some function's opcodes differ), `opcodes` (every function has V8's opcodes; the functions that differ in operands, positions or pool are listed as exceptions), or `exact`.
+- The test fails on **any regression and on any unrecorded improvement**, so the file only ever moves forward. `npm run conformance:status` rewrites it from the generator's current output; it never touches an `*.expected.json`.
+- An exception needs a real, written reason. A placeholder or empty reason fails the test. A `pending` fixture cannot carry exceptions, and an `exact` one cannot either.
+- Every exception is also written up per fixture in `FIDELITY.md` ("Bytecode operand differences").
+- At the end of Phase 2: 72 fixtures `exact`, 4 `opcodes`, 3 `pending` of 79.
+
+**Consequence.** Fidelity can be claimed fixture by fixture, with the evidence in the repository. Adding a fixture is a deliberate step: it lands `pending` or with its exceptions explained.
+
+## ADR-024: Harness boundaries, module layout and syntax errors (Phase 2)
+
+**Context.** Three small questions needed one answer each: how test262's harness runs, where the view and compile code lives, and what happens to V8's own `SyntaxError` text.
+
+**Decision.**
+- **The test262 harness is host-provided.** test262's `assert.js`, `sta.js` and `doneprintHandle.js` use features outside the subset, so the Phase 3 simulator defines `assert`, `Test262Error`, `$DONE` and `print` as host builtins. A test may include only those three files; anything else puts it in `vendor/test262/exclusions.json` with a reason (`validator`, `include`, `feature`). The contract is `tests/conformance/test262/harnessContract.md`. `runTest262` is tested against stub simulators; the run over every vendored test (1,008 files, sloppy and strict) is an `it.todo` until the Phase 3 interpreter exists.
+- **Layout.** `core/views` (the AST and Bytecode views, as `CodeViewStrategy`s) and `core/compile` (`CompilationManager`) join `core/frontend`, `core/bytecode` and `core/shared`. Views are pure emitters over a `BytecodeProgram`.
+- **BOM.** `CompilationManager` strips one leading U+FEFF before anything else, because V8 never sees it. Every offset in a result is relative to the BOM-less text, and `hasBom` lets a caller shift them back.
+- **A position with no range.** `sourceRangeForPos` returns `SourceRange | undefined`: an unknown function, an out-of-range offset, or an instruction before the first recorded position has none. V8's position table is sparse, so an instruction is attributed to the latest entry at or before its offset, in both directions.
+- **V8's `SyntaxError` text is not reproduced.** A syntax error is our own `E_SYNTAX` diagnostic with a range and a hint, not V8's stderr. This is a recorded gap in `FIDELITY.md`.
+
+**Consequence.** The simulator in Phase 3 must provide the harness builtins before the test262 `todo` can be turned on. UI code that maps a tick to source must handle a missing range.

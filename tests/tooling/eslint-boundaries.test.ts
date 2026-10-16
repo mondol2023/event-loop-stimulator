@@ -38,6 +38,10 @@ describe("dependency rule", () => {
     ['import { run } from "@/tests/conformance/runner";', "features/playground/store.ts"],
     ['import { record } from "@/scripts/conformance/record";', "server/security/sandbox.ts"],
     ['import { record } from "../scripts/conformance/record";', "lib/utils.ts"],
+    // The pure pipeline cannot reach the harness that spawns real node (core/views and core/compile are core too).
+    ['import { parseExpectation } from "@/scripts/conformance/expectation";', "core/compile/CompilationManager.ts"],
+    ['import { parseExpectation } from "../../scripts/conformance/expectation.mts";', "core/views/BytecodeView.ts"],
+    ['import { discoverFixtures } from "@/scripts/conformance/fixtures";', "core/bytecode/BytecodeGenerator.ts"],
     // Zod only via core/shared/zod, which disables its `new Function` JIT.
     ['import { z } from "zod";', "server/env.ts"],
     ['import * as z from "zod/v4";', "features/playground/worker/messages.ts"],
