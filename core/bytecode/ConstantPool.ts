@@ -12,6 +12,8 @@ export type ConstantEntry =
   | { readonly kind: "smi"; readonly value: number }
   /** `text` is the literal as written, without the `n`; it may be hexadecimal, octal or binary. */
   | { readonly kind: "bigint"; readonly text: string }
+  /** One case of a jump table: the distance from the switch to where the case lands. Never deduplicated, and set after layout. */
+  | { readonly kind: "jump-offset"; readonly value: number }
   /** A function the bytecode can create a closure for; `functionId` finds its own bytecode. */
   | { readonly kind: "sfi"; readonly name: string; readonly functionId: FunctionId }
   /** An object or array literal description, printed as `<{text}>`. */
@@ -45,6 +47,18 @@ export class ConstantPool {
     const at = this.list.length - 1;
     if (key !== undefined) this.index.set(key, at);
     return at;
+  }
+
+  /** V8's ConstantArrayBuilder::InsertJumpTable: `size` consecutive entries, filled in by `setJumpOffset` once the cases are placed. Returns the first index. */
+  addJumpTable(size: number): number {
+    const first = this.list.length;
+    for (let i = 0; i < size; i++) this.list.push({ kind: "jump-offset", value: 0 });
+    return first;
+  }
+
+  setJumpOffset(index: number, value: number): void {
+    if (this.list[index]?.kind !== "jump-offset") throw new Error(`constant-pool entry ${index} is not a jump-table entry`);
+    this.list[index] = { kind: "jump-offset", value };
   }
 
   // Reserved entries (V8's ConstantArrayBuilder::CreateReservedEntry). Every forward jump reserves
@@ -93,6 +107,7 @@ function printEntry(entry: ConstantEntry): string {
     case "string":
       return printString(entry);
     case "smi":
+    case "jump-offset":
       return String(entry.value);
     case "bigint":
       return `<BigInt ${BigInt(entry.text).toString()}>`;

@@ -414,6 +414,8 @@ const NO_EXTERNAL_SIDE_EFFECTS: ReadonlySet<Opcode> = new Set<Opcode>([
   "TestNull",
   "TestUndefined",
   "TestTypeOf",
+  "SwitchOnSmiNoFeedback",
+  "SwitchOnGeneratorState",
 ]);
 
 export function isWithoutExternalSideEffects(opcode: Opcode): boolean {

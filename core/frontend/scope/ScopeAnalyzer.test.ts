@@ -296,6 +296,22 @@ describe("catch", () => {
     expect(variable(scope, "e").allocation).toEqual({ kind: "context", index: 0 });
   });
 
+  it("context-allocates the catch parameter even when nothing captures it (V8: catch-bound variables always live in the context)", () => {
+    const tree = analyze("try {} catch (e) { e; }");
+    const scope = tree.scopes.find((s) => s.kind === "catch") as Scope;
+    expect(scope.needsContext).toBe(true);
+    expect(scope.contextSlots).toBe(1);
+    expect(variable(scope, "e").allocation).toEqual({ kind: "context", index: 0 });
+    expect(variable(scope, "e").captured).toBe(false);
+  });
+
+  it("gives an unused catch parameter its slot too, and takes no register for it", () => {
+    const tree = analyze("function f() { try {} catch (e) {} let x = 1; return x; }");
+    const scope = tree.scopes.find((s) => s.kind === "catch") as Scope;
+    expect(variable(scope, "e").allocation).toEqual({ kind: "context", index: 0 });
+    expect(variable(fnScope(tree, "f"), "x").allocation).toEqual({ kind: "register", index: 0 });
+  });
+
   it("a catch without a parameter creates no scope", () => {
     expect(analyze("try {} catch { 1; }").scopes.filter((s) => s.kind === "catch")).toHaveLength(0);
   });

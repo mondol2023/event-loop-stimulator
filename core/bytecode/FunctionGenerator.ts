@@ -4,6 +4,7 @@ import type {
   AssignmentExpression,
   BinaryExpression,
   BlockStatement,
+  CatchClause,
   ChainExpression,
   ConditionalExpression,
   Expression,
@@ -24,6 +25,7 @@ import type {
   Statement,
   TemplateLiteral,
   ThrowStatement,
+  TryStatement,
   UnaryExpression,
   UpdateExpression,
   VariableDeclaration,
@@ -34,6 +36,7 @@ import type { FunctionId } from "@/core/shared/ids";
 import { BytecodeArrayBuilder, type Label } from "./BytecodeArrayBuilder";
 import { BytecodeLabels } from "./BytecodeLabels";
 import { CLOSURE, CURRENT_CONTEXT, type Opcode, THIS, argument, local } from "./bytecodes";
+import { type Command, DeferredCommands } from "./DeferredCommands";
 import type { FeedbackSlotKind } from "./FeedbackVectorSpec";
 import { type LiteralValue, isSmi, literalOf, toBooleanOf } from "./literals";
 import { arrayBoilerplateText, arrayFlags, elementIndexOf, isCompileTimeValue, objectBoilerplateText, objectFlags } from "./literalShape";
@@ -78,6 +81,18 @@ type Loop = {
   /** The context in use outside the loop body; break and continue pop back to it. */
   readonly context: ContextScope;
 };
+
+/**
+ * V8's ControlScope chain, innermost last: who gets to carry out a `break`, `continue`, `return` or
+ * rethrow. A try/finally intercepts them all to run its `finally` block first.
+ */
+type Control =
+  | { readonly kind: "loop"; readonly loop: Loop }
+  | { readonly kind: "try-catch" }
+  | { readonly kind: "try-finally"; readonly commands: DeferredCommands; readonly finalization: BytecodeLabels; readonly context: ContextScope };
+
+/** `HandlerTable::CAUGHT`: the exception is predicted to be caught by the handler. */
+const CAUGHT = 1;
 
 /** `BytecodeArray::kMaxOsrUrgency - 1`: the deepest loop level a `JumpLoop` reports. */
 const MAX_OSR_DEPTH = 5;
@@ -205,6 +220,9 @@ export class FunctionGenerator {
   private optionalLabels: BytecodeLabels | undefined;
   private readonly slotCache = new Map<string, number>();
   private readonly loops: Loop[] = [];
+  private readonly controls: Control[] = [];
+  /** `HandlerTable::CatchPrediction` of the handler an exception thrown here would reach first. */
+  private catchPrediction = 0;
 
   constructor(options: FunctionGeneratorOptions) {
     this.source = options.source;
@@ -375,12 +393,15 @@ export class FunctionGenerator {
     }
     this.visitDeclarations(node.body);
     this.visitStatements(node.body);
-    if (scope.needsContext) {
-      b.emit("PopContext", outer.register);
-      outer.register = CURRENT_CONTEXT;
-      this.context = outer;
-    }
+    if (scope.needsContext) this.popContext(outer);
     this.currentScope = enclosingScope;
+  }
+
+  /** V8's ~ContextScope: back to `outer`, whose context waits in its register. */
+  private popContext(outer: ContextScope): void {
+    this.builder.emit("PopContext", outer.register);
+    outer.register = CURRENT_CONTEXT;
+    this.context = outer;
   }
 
   private visitStatements(statements: readonly Statement[]): void {
@@ -416,13 +437,15 @@ export class FunctionGenerator {
       case "ForStatement":
         return this.visitFor(node);
       case "BreakStatement":
-        return this.jumpOutOfLoop(node, "breakLabels");
+        return this.jumpOutOfLoop(node, "break");
       case "ContinueStatement":
-        return this.jumpOutOfLoop(node, "continueLabels");
+        return this.jumpOutOfLoop(node, "continue");
       case "ReturnStatement":
         return this.visitReturn(node);
       case "ThrowStatement":
         return this.visitThrow(node);
+      case "TryStatement":
+        return this.visitTry(node);
       default:
         throw new NotYetSupported(node);
     }
@@ -465,8 +488,7 @@ export class FunctionGenerator {
     b.setStatementPosition(startOf(node));
     if (node.argument) this.visitForAccumulatorValue(node.argument);
     else b.emit("LdaUndefined");
-    b.setStatementPosition(endOf(node));
-    b.emit("Return");
+    this.performCommand({ kind: "return" }, endOf(node));
   }
 
   private visitThrow(node: ThrowStatement): void {
@@ -482,20 +504,176 @@ export class FunctionGenerator {
   private beginLoop(): Loop {
     const loop: Loop = { header: this.builder.newLabel(), continueLabels: this.newLabels(), backEdge: this.newLabels(), breakLabels: this.newLabels(), context: this.context };
     this.loops.push(loop);
+    this.controls.push({ kind: "loop", loop });
     return loop;
   }
 
   private endLoop(loop: Loop): void {
+    this.controls.pop();
     this.loops.pop();
     loop.breakLabels.bind();
   }
 
-  /** `break` or `continue`: leaves the block contexts opened since the loop began (one pop reaches the loop's own), then jumps. */
-  private jumpOutOfLoop(node: Node, target: "breakLabels" | "continueLabels"): void {
+  /** `break` or `continue`: handed to the control scopes, which leave the contexts and finally blocks in the way. */
+  private jumpOutOfLoop(node: Node, kind: "break" | "continue"): void {
     const loop = this.innermostLoop();
     this.builder.setStatementPosition(startOf(node));
-    if (this.context !== loop.context) this.builder.emit("PopContext", loop.context.register);
-    this.builder.jump("Jump", loop[target].new());
+    this.performCommand({ kind, target: loop });
+  }
+
+  /**
+   * V8's ControlScope::PerformCommand: the innermost scope that takes the command carries it out;
+   * the function level returns or rethrows. `position` is the source position of a return.
+   */
+  private performCommand(command: Command, position?: number): void {
+    const b = this.builder;
+    for (let i = this.controls.length - 1; i >= 0; i--) {
+      const control = this.controls[i] as Control;
+      switch (control.kind) {
+        case "loop":
+          if (command.kind === "return" || command.kind === "rethrow" || command.target !== control.loop) continue;
+          this.popContextTo(control.loop.context);
+          b.jump("Jump", (command.kind === "break" ? control.loop.breakLabels : control.loop.continueLabels).new());
+          return;
+        case "try-catch":
+          if (command.kind !== "rethrow") continue;
+          // Execution re-enters the function through the handler table, which restores the context.
+          b.emit("ReThrow");
+          return;
+        case "try-finally":
+          this.popContextTo(control.context);
+          // The return position is dropped: the return runs after the finally block, with none.
+          control.commands.recordCommand(command);
+          b.jump("Jump", control.finalization.new());
+          return;
+      }
+    }
+    if (command.kind === "return") {
+      if (position !== undefined) b.setStatementPosition(position);
+      b.emit("Return");
+    } else if (command.kind === "rethrow") {
+      b.emit("ReThrow");
+    } else {
+      throw new Error("break or continue outside a loop");
+    }
+  }
+
+  /** V8's PopContextToExpectedDepth: a single PopContext reaches any enclosing context, whatever the number pushed since. */
+  private popContextTo(expected: ContextScope): void {
+    if (this.context !== expected) this.builder.emit("PopContext", expected.register);
+  }
+
+  // try / catch / finally.
+
+  private visitTry(node: TryStatement): void {
+    const { block, handler, finalizer } = node;
+    if (finalizer) {
+      // With both, the parser wraps a try/catch in the try block of the try/finally. That block
+      // holds the try/catch as a statement, so the registers it takes are released after it.
+      this.buildTryFinally(
+        () => (handler ? this.visitStatements([{ ...node, finalizer: null }]) : this.visitBlock(block)),
+        () => this.visitBlock(finalizer),
+        this.catchPrediction,
+      );
+    } else if (handler) {
+      this.visitTryCatch(block, handler);
+    }
+  }
+
+  private visitTryCatch(block: BlockStatement, handler: CatchClause): void {
+    if (handler.param && handler.param.type !== "Identifier") throw new NotYetSupported(handler.param);
+    const b = this.builder;
+    // A try/catch is predicted to catch; the prediction holds for its try block only.
+    const outerPrediction = this.catchPrediction;
+    this.catchPrediction = CAUGHT;
+    this.buildTryCatch(
+      () => {
+        this.visitBlock(block);
+        this.catchPrediction = outerPrediction;
+      },
+      (context) => {
+        const scope = this.scopes.scopeOf.get(handler);
+        if (scope) {
+          // Binds the exception in a context of its own.
+          const exception = b.allocateRegister();
+          b.emit("Star", local(exception));
+          b.emit("CreateCatchContext", local(exception), b.constantPool.add({ kind: "scope-info", scope: "CATCH_SCOPE" }));
+          b.releaseRegisters(exception);
+          b.emit("Star", local(context));
+        }
+        // The message belongs to the exception being caught: clear it.
+        b.emit("LdaTheHole");
+        b.emit("SetPendingMessage");
+        b.emit("Ldar", local(context));
+        if (scope) this.visitInCatchScope(handler.body, scope);
+        else this.visitBlock(handler.body);
+      },
+      CAUGHT,
+    );
+  }
+
+  /** V8's VisitInScope for the catch scope: its context is pushed, the body runs, the context is popped. */
+  private visitInCatchScope(body: BlockStatement, scope: Scope): void {
+    const enclosingScope = this.currentScope;
+    const outer = this.context;
+    this.currentScope = scope;
+    this.pushContext(scope);
+    this.visitBlock(body);
+    this.popContext(outer);
+    this.currentScope = enclosingScope;
+  }
+
+  /** V8's BuildTryCatch: the try block runs under a handler table row; the handler enters `catchBody` with the context to restore. */
+  private buildTryCatch(tryBody: () => void, catchBody: (context: number) => void, prediction: number): void {
+    const b = this.builder;
+    if (b.remainderOfBlockIsDead) return;
+    const handler = b.newHandlerEntry();
+    const exit = this.newLabels();
+    // The handler gets the context back from this register, wherever in the try block the exception came from.
+    const context = b.allocateRegister();
+    b.emit("Mov", CURRENT_CONTEXT, local(context));
+    b.markTryBegin(handler, context);
+    this.mergeBranches(
+      () => {
+        this.controls.push({ kind: "try-catch" });
+        tryBody();
+        this.controls.pop();
+        b.markTryEnd(handler);
+        b.jump("Jump", exit.new());
+        b.markHandler(handler, prediction);
+      },
+      () => catchBody(context),
+    );
+    exit.bind();
+  }
+
+  /** V8's BuildTryFinally: every way out of the try block records a token, and the dispatch after the finally block follows it. */
+  private buildTryFinally(tryBody: () => void, finallyBody: () => void, prediction: number): void {
+    const b = this.builder;
+    if (b.remainderOfBlockIsDead) return;
+    const handler = b.newHandlerEntry();
+    const finalization = this.newLabels();
+    const token = local(b.allocateRegister());
+    const result = local(b.allocateRegister());
+    const message = local(b.allocateRegister());
+    b.emit("LdaTheHole");
+    b.emit("Star", message);
+    const commands = new DeferredCommands(b, { token, result, message }, (command) => this.performCommand(command));
+    const context = b.allocateRegister();
+    b.emit("Mov", CURRENT_CONTEXT, local(context));
+    b.markTryBegin(handler, context);
+    this.controls.push({ kind: "try-finally", commands, finalization, context: this.context });
+    // The try block can throw anywhere, so what it checked is not known to be checked afterwards.
+    this.conditionally(tryBody);
+    this.controls.pop();
+    b.markTryEnd(handler);
+    if (!b.remainderOfBlockIsDead) commands.recordFallThroughPath();
+    b.jump("Jump", finalization.new());
+    b.markHandler(handler, prediction);
+    commands.recordHandlerRethrowPath();
+    finalization.bind();
+    finallyBody();
+    commands.applyDeferredCommands();
   }
 
   private innermostLoop(): Loop {
@@ -1086,7 +1264,8 @@ export class FunctionGenerator {
       this.builder.emit(insideTypeof ? "LdaGlobalInsideTypeof" : "LdaGlobal", this.stringConstant(identifier.name), slot);
       return;
     }
-    this.loadVariable(variable, identifier);
+    // A value the accumulator still holds is not loaded again, and has been checked already.
+    if (this.loadVariable(variable, identifier)) return;
     if (reference.needsTdzCheck) this.checkForHole(variable, identifier.name);
   }
 
@@ -1117,26 +1296,31 @@ export class FunctionGenerator {
     this.builder.emit("ThrowReferenceErrorIfHole", this.stringConstant(name));
   }
 
-  /** `forceMutable` is the hole check of an assignment, which loads the slot as mutable even for a const. */
-  private loadVariable(variable: Variable, at: Node, forceMutable = false): void {
+  /**
+   * `forceMutable` is the hole check of an assignment, which loads the slot as mutable even for a
+   * const. Returns true when nothing was emitted because the accumulator already holds the value.
+   */
+  private loadVariable(variable: Variable, at: Node, forceMutable = false): boolean {
     const allocation = variable.allocation;
     switch (allocation.kind) {
       case "register":
         this.builder.emit("Ldar", local(allocation.index));
-        return;
+        return false;
       case "parameter":
         this.builder.emit("Ldar", argument(allocation.index));
-        return;
+        return false;
       case "context": {
         const { register, depth } = this.contextAccess(variable);
         const slot = this.slotOf(variable);
         const immutable = !variable.maybeAssigned && !forceMutable;
+        if (immutable && this.builder.isVariableInAccumulator(variable)) return true;
         if (register === CURRENT_CONTEXT && depth === 0) {
           this.builder.emit(immutable ? "LdaImmutableCurrentContextSlot" : "LdaCurrentContextSlot", slot);
         } else {
           this.builder.emit(immutable ? "LdaImmutableContextSlot" : "LdaContextSlot", register, slot, depth);
         }
-        return;
+        if (immutable) this.builder.setVariableInAccumulator(variable);
+        return false;
       }
       default:
         throw new NotYetSupported(at);

@@ -77,6 +77,7 @@ export function formatInstruction(instruction: Instruction): string {
   }
   const mnemonic = scale === 1 ? opcode : `${opcode}.${scale === 2 ? "Wide" : "ExtraWide"}`;
   const text = parts.length === 0 ? mnemonic : `${mnemonic} ${parts.join(", ")}`;
+  if (instruction.switchTargets) return `${text} { ${instruction.switchTargets.map((c) => `${c.caseValue}: @${c.target}`).join(", ")} }`;
   return instruction.jumpTarget === undefined ? text : `${text} (@${instruction.jumpTarget})`;
 }
 

@@ -69,7 +69,7 @@ export function finishFunction(
   builder: BytecodeArrayBuilder,
   meta: { readonly id: FunctionId; readonly name: string; readonly children?: readonly FunctionId[]; readonly handlerTable?: readonly HandlerEntry[] },
 ): BytecodeFunction {
-  const { array, positions, header } = builder.build();
+  const { array, positions, header, handlerTable } = builder.build();
   return {
     id: meta.id,
     name: meta.name,
@@ -80,7 +80,7 @@ export function finishFunction(
     constantPool: builder.constantPool,
     positions,
     feedback: builder.feedback,
-    handlerTable: meta.handlerTable ?? [],
+    handlerTable: meta.handlerTable ?? handlerTable,
     children: meta.children ?? [],
   };
 }

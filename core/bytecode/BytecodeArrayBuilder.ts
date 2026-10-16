@@ -12,6 +12,7 @@ import {
   local,
   requiredScale,
 } from "./bytecodes";
+import type { HandlerEntry } from "./BytecodeProgram";
 import { ConstantPool } from "./ConstantPool";
 import { FeedbackVectorSpec } from "./FeedbackVectorSpec";
 import { type OptimizerNode, RegisterOptimizer, type SourceInfo } from "./RegisterOptimizer";
@@ -49,7 +50,26 @@ export type BuiltBytecode = {
   readonly array: BytecodeArray;
   readonly positions: SourcePositionTable;
   readonly header: BytecodeHeader;
+  /** One row per `newHandlerEntry`, in that order. */
+  readonly handlerTable: readonly HandlerEntry[];
 };
+
+/** V8's BytecodeJumpTable: `size` consecutive constant-pool entries holding the distance from a switch to each case. */
+export class JumpTable {
+  /** Case value to the index of the instruction it was bound to. */
+  readonly targets = new Map<number, number>();
+  /** Index of the switch instruction, once it has been written. */
+  switchIndex: number | undefined;
+
+  constructor(
+    readonly poolIndex: number,
+    readonly size: number,
+    readonly base: number,
+  ) {}
+}
+
+/** The marks of one try range, as instruction indexes until the layout is known. */
+type HandlerMarks = { start: number; end: number; handler: number; prediction: number; context: number };
 
 export type BuilderOptions = {
   /** Includes the receiver. */
@@ -100,6 +120,8 @@ export class BytecodeArrayBuilder {
   private readonly fixedRegisters: number;
   private top: number;
   private latest: SourceInfo | undefined;
+  private readonly handlers: HandlerMarks[] = [];
+  private readonly jumpTables: JumpTable[] = [];
   // The writer's view of the basic block it is in.
   private exitSeen = false;
   private last: Pending | undefined;
@@ -172,6 +194,16 @@ export class BytecodeArrayBuilder {
     return new Label();
   }
 
+  /** V8's IsVariableInRegister for the accumulator: the register optimizer knows it holds `variable`. */
+  isVariableInAccumulator(variable: object): boolean {
+    return this.optimizer?.isVariableInAccumulator(variable) ?? false;
+  }
+
+  /** V8's SetVariableInRegister for the accumulator. */
+  setVariableInAccumulator(variable: object): void {
+    this.optimizer?.setVariableInAccumulator(variable);
+  }
+
   /**
    * Binds `label` to the next instruction to be emitted. A label no written jump refers to is left
    * alone, as in V8: it starts no basic block, so dead code stays dead.
@@ -209,6 +241,75 @@ export class BytecodeArrayBuilder {
       }
       delete jump.reservation;
     }
+  }
+
+  // Exception handlers (V8's HandlerTableBuilder and the Mark* calls of the builder).
+
+  /** A new row of the handler table; rows are listed in the order they are created. */
+  newHandlerEntry(): number {
+    this.handlers.push({ start: 0, end: 0, handler: 0, prediction: 0, context: 0 });
+    return this.handlers.length - 1;
+  }
+
+  /** The start of a try range. `context` is the register index that holds the context to restore when the handler runs. */
+  markTryBegin(id: number, context: number): void {
+    // Everything the handler can see must be in its register by now; and the last write must stay put.
+    this.optimizer?.flush();
+    this.last = undefined;
+    const entry = this.handlerMarks(id);
+    entry.start = this.pending.length;
+    entry.context = context;
+  }
+
+  markTryEnd(id: number): void {
+    this.last = undefined;
+    this.handlerMarks(id).end = this.pending.length;
+  }
+
+  /** Where the exception is caught: a new basic block that nothing falls into. */
+  markHandler(id: number, prediction: number): void {
+    this.optimizer?.flush();
+    this.startBasicBlock();
+    const entry = this.handlerMarks(id);
+    entry.handler = this.pending.length;
+    entry.prediction = prediction;
+  }
+
+  private handlerMarks(id: number): HandlerMarks {
+    const entry = this.handlers[id];
+    if (!entry) throw new Error(`no handler entry ${id}`);
+    return entry;
+  }
+
+  // Jump tables.
+
+  /** Reserves `size` constant-pool entries for the cases `base` to `base + size - 1` of a switch. */
+  allocateJumpTable(size: number, base: number): JumpTable {
+    if (size <= 0) throw new Error("a jump table needs at least one entry");
+    const table = new JumpTable(this.constantPool.addJumpTable(size), size, base);
+    this.jumpTables.push(table);
+    return table;
+  }
+
+  /** Jumps to the case numbered by the Smi in the accumulator; falls through if no case is bound to it. */
+  switchOnSmiNoFeedback(table: JumpTable): void {
+    const opcode: Opcode = "SwitchOnSmiNoFeedback";
+    const operands: Operand[] = [table.poolIndex, table.size, table.base];
+    if (this.optimizer) {
+      const prepared = this.optimizer.prepare(opcode, operands);
+      this.optimizer.emit({ opcode, operands: prepared, info: this.takePosition(opcode), table });
+    } else {
+      this.write({ opcode, operands, info: this.takePosition(opcode), table });
+    }
+  }
+
+  /** Binds one case of `table` to the next instruction, which starts a basic block. */
+  bindJumpTableEntry(table: JumpTable, caseValue: number): void {
+    if (caseValue < table.base || caseValue >= table.base + table.size) throw new Error(`case ${caseValue} is outside the jump table`);
+    if (table.targets.has(caseValue)) throw new Error(`case ${caseValue} is already bound`);
+    this.optimizer?.flush();
+    table.targets.set(caseValue, this.pending.length);
+    this.startBasicBlock();
   }
 
   /** Binds the head of a loop; the `JumpLoop` that closes the loop refers back to it. */
@@ -286,6 +387,7 @@ export class BytecodeArrayBuilder {
         pending.scale = Math.max(pending.scale, pending.reservation) as OperandScale;
       }
     }
+    if (node.table) (node.table as JumpTable).switchIndex = this.pending.length;
     this.pending.push(pending);
     this.last = pending;
   }
@@ -314,6 +416,7 @@ export class BytecodeArrayBuilder {
       instructions.map((p, i) => {
         const offset = offsets[i] ?? 0;
         const base = { offset, opcode: p.opcode, scale: p.scale, operands: [...p.operands], size: instructionSize(p.opcode, p.scale) };
+        if (p.table) return { ...base, switchTargets: this.placeCases(p.table as JumpTable, offsets) };
         return p.jump ? { ...base, jumpTarget: targetOffset(p.jump.label as Label, offsets) } : base;
       }) satisfies Instruction[],
     );
@@ -327,7 +430,32 @@ export class BytecodeArrayBuilder {
     // from what the register optimizer let through, not from what the allocator handed out.
     const registerCount = Math.max(this.fixedRegisters, highestRegisterUsed(this.pending) + 1);
     const header = { length: array.length, parameterCount: this.parameterCount, registerCount, frameSize: registerCount * REGISTER_SIZE };
-    return { array, positions, header };
+    const handlerTable = this.handlers.map((h) => ({
+      start: offsets[h.start] ?? 0,
+      end: offsets[h.end] ?? 0,
+      handler: offsets[h.handler] ?? 0,
+      prediction: h.prediction,
+      data: h.context,
+    }));
+    return { array, positions, header, handlerTable };
+  }
+
+  /**
+   * Writes each bound case into the pool as its distance from the switch (V8 measures it from the
+   * opcode, after any `Wide` prefix) and returns the absolute targets, in case order.
+   */
+  private placeCases(table: JumpTable, offsets: readonly number[]): { caseValue: number; target: number }[] {
+    const switchIndex = table.switchIndex;
+    if (switchIndex === undefined) throw new Error("a jump table was allocated but never switched on");
+    const switchInstruction = this.pending[switchIndex] as Pending;
+    const from = (offsets[switchIndex] ?? 0) + (switchInstruction.scale === 1 ? 0 : 1);
+    const cases: { caseValue: number; target: number }[] = [];
+    for (const caseValue of [...table.targets.keys()].sort((a, b) => a - b)) {
+      const target = offsets[table.targets.get(caseValue) as number] ?? 0;
+      this.constantPool.setJumpOffset(table.poolIndex + caseValue - table.base, target - from);
+      cases.push({ caseValue, target });
+    }
+    return cases;
   }
 
   /**

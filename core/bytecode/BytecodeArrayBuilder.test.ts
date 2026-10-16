@@ -484,3 +484,128 @@ describe("BytecodeArrayBuilder: fixed registers", () => {
     expect(new BytecodeArrayBuilder({ parameterCount: 1, localCount: 3 }).build().header).toMatchObject({ registerCount: 3, frameSize: 24 });
   });
 });
+
+describe("BytecodeArrayBuilder: handler table", () => {
+  it("records where a try range starts and ends, where its handler is and which register holds the context", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const handler = b.newHandlerEntry();
+    b.emit("LdaUndefined");
+    b.markTryBegin(handler, 3);
+    b.emit("LdaSmi", 1);
+    b.emit("Throw");
+    b.markTryEnd(handler);
+    b.markHandler(handler, 1);
+    b.emit("Star0");
+    const built = b.build();
+    expect(built.array.instructions.map(formatInstruction)).toEqual(["LdaUndefined", "LdaSmi [1]", "Throw", "Star0"]);
+    expect(built.handlerTable).toEqual([{ start: 1, end: 4, handler: 4, prediction: 1, data: 3 }]);
+  });
+
+  it("lists the entries in the order they were created, not the order they were closed", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const outer = b.newHandlerEntry();
+    const inner = b.newHandlerEntry();
+    b.markTryBegin(outer, 2);
+    b.markTryBegin(inner, 3);
+    b.emit("Throw");
+    b.markTryEnd(inner);
+    b.markHandler(inner, 1);
+    b.emit("Throw");
+    b.markTryEnd(outer);
+    b.markHandler(outer, 0);
+    b.emit("ReThrow");
+    expect(b.build().handlerTable).toEqual([
+      { start: 0, end: 2, handler: 2, prediction: 0, data: 2 },
+      { start: 0, end: 1, handler: 1, prediction: 1, data: 3 },
+    ]);
+  });
+
+  it("keeps the load before a try range, which would otherwise be elided by the instruction after it", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const handler = b.newHandlerEntry();
+    b.emit("LdaTheHole");
+    b.markTryBegin(handler, 0);
+    b.emit("LdaZero");
+    expect(texts(b)).toEqual(["LdaTheHole", "LdaZero"]);
+  });
+
+  it("starts a handler a new basic block, so code after a throw is live there", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const handler = b.newHandlerEntry();
+    b.markTryBegin(handler, 0);
+    b.emit("Throw");
+    b.emit("LdaZero"); // dead: nothing can reach it
+    b.markTryEnd(handler);
+    b.markHandler(handler, 0);
+    b.emit("Star0");
+    expect(texts(b)).toEqual(["Throw", "Star0"]);
+  });
+});
+
+describe("BytecodeArrayBuilder: jump tables", () => {
+  // Ldar r0; switch on it; case 0 returns 1, case 1 returns 2, anything else falls out of the switch.
+  function assembleSwitch(): BytecodeArrayBuilder {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1, localCount: 1 });
+    const table = b.allocateJumpTable(2, 0);
+    const other = b.newLabel();
+    b.emit("Ldar", local(0));
+    b.switchOnSmiNoFeedback(table);
+    b.jump("Jump", other);
+    b.bindJumpTableEntry(table, 0);
+    b.emit("LdaSmi", 1);
+    b.emit("Return");
+    b.bindJumpTableEntry(table, 1);
+    b.emit("LdaSmi", 2);
+    b.emit("Return");
+    b.bind(other);
+    b.emit("LdaUndefined");
+    b.emit("Return");
+    return b;
+  }
+
+  it("prints the switch with the absolute target of every case", () => {
+    expect(texts(assembleSwitch())).toEqual([
+      "Ldar r0",
+      "SwitchOnSmiNoFeedback [0], [2], [0] { 0: @8, 1: @11 }",
+      "Jump [8] (@14)",
+      "LdaSmi [1]",
+      "Return",
+      "LdaSmi [2]",
+      "Return",
+      "LdaUndefined",
+      "Return",
+    ]);
+  });
+
+  it("stores each case as its distance from the switch in consecutive constant-pool entries", () => {
+    const b = assembleSwitch();
+    b.build();
+    expect(b.constantPool.printEntries()).toEqual(["6", "9"]);
+  });
+
+  it("numbers the cases from the base, and skips the entries that were never bound", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1 });
+    const table = b.allocateJumpTable(3, 1);
+    b.emit("Ldar", argument(0));
+    b.switchOnSmiNoFeedback(table);
+    b.bindJumpTableEntry(table, 3);
+    b.emit("Return");
+    b.bindJumpTableEntry(table, 1);
+    b.emit("Return");
+    expect(texts(b)[1]).toBe("SwitchOnSmiNoFeedback [0], [3], [1] { 1: @7, 3: @6 }");
+  });
+
+  it("flushes the register optimizer before the switch, so a register that only stood in for another is real at every target", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1, optimizeRegisters: true });
+    const table = b.allocateJumpTable(1, 0);
+    const standIn = b.allocateRegister();
+    b.emit("Mov", argument(0), local(standIn));
+    b.emit("Ldar", argument(0));
+    b.switchOnSmiNoFeedback(table);
+    b.bindJumpTableEntry(table, 0);
+    b.emit("Return");
+    const listing = texts(b);
+    const at = listing.findIndex((t) => t.startsWith("SwitchOnSmiNoFeedback"));
+    expect(listing.slice(0, at)).toContain("Mov a0, r0");
+  });
+});

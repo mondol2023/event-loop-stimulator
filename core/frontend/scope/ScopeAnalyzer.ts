@@ -602,7 +602,8 @@ class Analyzer {
     for (const variable of this.allocationOrder(scope)) {
       if (!variable.used) {
         variable.allocation = { kind: "unused" };
-      } else if (variable.captured) {
+      } else if (variable.captured || scope.kind === "catch") {
+        // V8's Scope::MustAllocateInContext: "Catch-bound variables are always context-allocated".
         variable.allocation = { kind: "context", index: scope.contextSlots++ };
       } else if (variable.kind === "param" && variable.parameterIndex !== undefined && scope.hasSimpleParameters) {
         // With defaults the named parameter is a local that V8 initializes from the raw argument.

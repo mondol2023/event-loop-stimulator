@@ -13,6 +13,8 @@ export type Instruction = {
   readonly size: number;
   /** Absolute offset a jump lands on. Only jumps have one. */
   readonly jumpTarget?: number;
+  /** A switch only: the absolute offset of each bound case, in case order. */
+  readonly switchTargets?: readonly { readonly caseValue: number; readonly target: number }[];
 };
 
 /** Bytes an instruction takes: the optional prefix, the opcode and each operand. */

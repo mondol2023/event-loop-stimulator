@@ -21,6 +21,8 @@ export type OptimizerNode = {
   info: SourceInfo | undefined;
   /** Set on a jump by the builder; the optimizer passes it through untouched. */
   readonly jump?: { readonly label: object; readonly direction: "forward" | "backward" };
+  /** Set on a switch by the builder, like `jump`. */
+  readonly table?: object;
 };
 
 /**
@@ -36,9 +38,16 @@ export function mergeSourceInfo(deferred: SourceInfo | undefined, own: SourceInf
 const FIRST_LOCAL = -7;
 const localIndex = (operand: number): number => FIRST_LOCAL - operand;
 
+/** What the register optimizer knows about the variable a register holds (V8's VariableHint). */
+type VariableHint = { readonly variable: object | undefined; readonly definite: boolean };
+const NO_VARIABLE: VariableHint = { variable: undefined, definite: true };
+
 class RegisterInfo {
   next: RegisterInfo = this;
   prev: RegisterInfo = this;
+  hint: VariableHint = NO_VARIABLE;
+  /** Set when the register joins an equivalence set or is bound to a variable; `flush` clears it. */
+  needsFlush = false;
 
   constructor(
     readonly register: number,
@@ -57,15 +66,23 @@ class RegisterInfo {
     this.next.prev = this;
     this.equivalenceId = info.equivalenceId;
     this.materialized = false;
+    this.hint = info.hint;
   }
 
-  moveToNewEquivalenceSet(equivalenceId: number, materialized: boolean): void {
+  /** Leaves a flush with a variable only possibly in the register, or with none. */
+  flushHint(reset: boolean): void {
+    if (reset) this.hint = NO_VARIABLE;
+    else if (this.hint.variable !== undefined) this.hint = { variable: this.hint.variable, definite: false };
+  }
+
+  moveToNewEquivalenceSet(equivalenceId: number, materialized: boolean, resetHint = true): void {
     this.next.prev = this.prev;
     this.prev.next = this.next;
     this.next = this;
     this.prev = this;
     this.equivalenceId = equivalenceId;
     this.materialized = materialized;
+    this.flushHint(resetHint);
   }
 
   isInSameEquivalenceSet(info: RegisterInfo): boolean {
@@ -110,7 +127,8 @@ class RegisterInfo {
 
 /** V8's register index: locals count up from 0, parameters and the frame header are below, the accumulator in between. */
 function order(register: number): number {
-  return register === ACCUMULATOR ? -4 : -register - 7;
+  if (register === ACCUMULATOR) return -8;
+  return -register - 7;
 }
 
 export class RegisterOptimizer {
@@ -152,7 +170,10 @@ export class RegisterOptimizer {
   }
 
   registerAllocated(register: number): void {
-    this.info(register).allocated = true;
+    const info = this.info(register);
+    info.allocated = true;
+    // A register that only stood in for another value starts over with a value of its own.
+    if (!info.materialized) info.moveToNewEquivalenceSet(this.nextEquivalenceId++, true);
   }
 
   registersFreed(registers: readonly number[]): void {
@@ -187,7 +208,11 @@ export class RegisterOptimizer {
 
     // Materialize an alternate in the equivalence set that `output` is leaving.
     if (output.materialized) this.createMaterializedEquivalent(output);
-    if (!sameSet) output.addToEquivalenceSetOf(input);
+    if (!sameSet) {
+      // The set now has two members, so it has to be flushed.
+      output.needsFlush = true;
+      output.addToEquivalenceSetOf(input);
+    }
 
     if (outputObservable) {
       // Force the store to be emitted when the register is observable.
@@ -229,12 +254,30 @@ export class RegisterOptimizer {
   /** Breaks every equivalence, storing each live value into the registers that were standing in for it. */
   flush(): void {
     for (const info of this.all()) {
+      if (info.needsFlush) {
+        info.needsFlush = false;
+        info.flushHint(false);
+      }
       if (!info.materialized) continue;
       for (let equivalent = info.next; equivalent !== info; equivalent = info.next) {
         if (equivalent.allocated && !equivalent.materialized) this.outputRegisterTransfer(info, equivalent);
-        equivalent.moveToNewEquivalenceSet(this.nextEquivalenceId++, true);
+        equivalent.moveToNewEquivalenceSet(this.nextEquivalenceId++, true, false);
+        equivalent.needsFlush = false;
       }
     }
+  }
+
+  /** Records that the accumulator, and so every register equal to it, holds `variable`. */
+  setVariableInAccumulator(variable: object): void {
+    for (let it = this.accumulator, first = true; first || it !== this.accumulator; it = it.next, first = false) {
+      it.needsFlush = true;
+      it.hint = { variable, definite: true };
+    }
+  }
+
+  isVariableInAccumulator(variable: object): boolean {
+    const { hint } = this.accumulator;
+    return hint.definite && hint.variable === variable;
   }
 
   /**
@@ -245,7 +288,7 @@ export class RegisterOptimizer {
    */
   prepare(opcode: Opcode, operands: readonly Operand[]): Operand[] {
     const bytecode = bytecodeInfo(opcode);
-    if (isJump(opcode) || opcode === "Debugger" || opcode === "SuspendGenerator" || opcode === "ResumeGenerator") this.flush();
+    if (isJump(opcode) || opcode === "SwitchOnSmiNoFeedback" || opcode === "SwitchOnGeneratorState" || opcode === "Debugger" || opcode === "SuspendGenerator" || opcode === "ResumeGenerator") this.flush();
 
     const use = bytecode.accumulator;
     if ((use === "read" || use === "readwrite" || use === "read-clobber") && !this.accumulator.materialized) this.materialize(this.accumulator);
