@@ -444,6 +444,7 @@ class Analyzer {
         return;
       case "BreakStatement":
       case "ContinueStatement":
+        return;
       case "MetaProperty":
       case "ThisExpression":
         this.thisUses.push({ node, scope: this.current });

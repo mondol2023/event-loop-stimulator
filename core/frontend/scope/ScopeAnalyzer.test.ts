@@ -447,6 +447,19 @@ describe("allocation: variables nothing uses", () => {
   });
 });
 
+describe("break and continue inside an arrow", () => {
+  it("do not make the enclosing function keep a receiver in its context", () => {
+    const tree = analyze("function f() { var g = () => { for (;;) { if (1) continue; break; } }; g(); }");
+    expect(fnScope(tree, "f").thisVariable).toBeNull();
+    expect(tree.thisOf.size).toBe(0);
+  });
+
+  it("an arrow that does read this still does", () => {
+    const tree = analyze("function f() { var g = () => this; g(); }");
+    expect(fnScope(tree, "f").thisVariable?.captured).toBe(true);
+  });
+});
+
 describe("async functions", () => {
   it("marks async function scopes and counts their awaits (V8 suspend_count)", () => {
     const tree = analyze("async function f() { await 1; await 2; }\nfunction g() {}\nasync function h() { }");

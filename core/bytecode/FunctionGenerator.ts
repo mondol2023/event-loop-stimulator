@@ -459,6 +459,8 @@ export class FunctionGenerator {
         // A sloppy block function is also copied to a function-level var, which is not built yet.
         if (this.functionScope.variables.some((v) => v.annexB && v.name === statement.id.name)) throw new NotYetSupported(statement);
         this.hoisted.add(statement);
+        // V8 drops a declaration whose binding nothing names: no closure, no register, no SharedFunctionInfo.
+        if (this.scopes.declarationOf.get(statement.id)?.allocation.kind === "unused") continue;
         this.buildClosure(statement, statement.id.name);
         this.assignToVariable(statement.id, "init");
       } else if (statement.type === "VariableDeclaration" && statement.kind !== "var") {

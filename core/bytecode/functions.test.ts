@@ -53,6 +53,31 @@ function expectFunctions(source: string, wrapper: Expected, ...children: Expecte
 }
 
 describe("functions and plain calls", () => {
+  it("emits nothing after a loop that never exits: JumpLoop ends its block like Jump does", () => {
+    expectFunctions(
+      "function g(x){ if (x) { for(;;){} x = 5; } } g(0);",
+      { registerCount: 3 },
+      {
+        name: "g",
+        registerCount: 0,
+        instructions: ["15 S> Ldar a0", "JumpIfToBooleanFalse [6] (@8)", "24 E> JumpLoop [0], [0], [0] (@4)", "LdaUndefined", "43 S> Return"],
+      },
+    );
+  });
+
+  it("drops a function declaration nothing refers to, as V8 does: no closure, no register", () => {
+    expectFunctions("function foo(){}", { registerCount: 0, instructions: ["LdaUndefined", "15 S> Return"], children: [] });
+    expectFunctions(
+      "function w(){ function unused(){} return 1; } w();",
+      {
+        registerCount: 1,
+        instructions: ["0 E> CreateClosure [0], [0], #2", "Star0", "46 S> CallUndefinedReceiver0 r0, [0]", "LdaUndefined", "49 S> Return"],
+        constantPool: ["<SharedFunctionInfo w>"],
+      },
+      { name: "w", registerCount: 0, instructions: ["34 S> LdaSmi [1]", "43 S> Return"], constantPool: [], children: [] },
+    );
+  });
+
   it("creates declared functions first, then calls them with the receiver left undefined", () => {
     expectFunctions(
       "function add(a, b) { return a + b; }\nvar f = function (x) { return x; };\nvar g = (y) => y + 1;\nadd(1, 2);\nf(3);\ng(4);\n",

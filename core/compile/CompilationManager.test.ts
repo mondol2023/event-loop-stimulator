@@ -84,6 +84,12 @@ describe("CompilationManager.compile", () => {
     );
   });
 
+  it("reports a program too deep for the stack instead of throwing", () => {
+    const result = manager.compile(`var o = {}; o${".a".repeat(5000)};`, "js");
+    expect(result.program).toBeUndefined();
+    expect(result.diagnostics.map((d) => d.code)).toEqual(["E_NOT_YET_SUPPORTED"]);
+  });
+
   it("never throws on near-valid programs either", () => {
     const pieces = [
       "var a", " = ", "1", ";", "function f(", ") {", "}", "return", "x", "async ", "await ", "try {",

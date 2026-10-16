@@ -108,7 +108,7 @@ const ACCUMULATOR_LOADS_WITHOUT_EFFECTS: ReadonlySet<Opcode> = new Set<Opcode>([
 ]);
 
 /** Instructions after which the rest of a basic block can never run. */
-const LEAVES_BLOCK: ReadonlySet<Opcode> = new Set<Opcode>(["Return", "Throw", "ReThrow", "Abort", "Jump", "JumpConstant"]);
+const LEAVES_BLOCK: ReadonlySet<Opcode> = new Set<Opcode>(["Return", "Throw", "ReThrow", "Abort", "Jump", "JumpConstant", "JumpLoop"]);
 
 export class BytecodeArrayBuilder {
   readonly constantPool = new ConstantPool();

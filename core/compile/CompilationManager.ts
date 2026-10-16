@@ -35,6 +35,15 @@ export type CompilationResult = {
 
 const BOM = 0xfeff;
 
+function tooDeep(source: string): Diagnostic {
+  return {
+    code: "E_NOT_YET_SUPPORTED",
+    message: "The program is nested too deeply to compile.",
+    range: { start: 0, end: Math.min(1, source.length) },
+    hint: "Split the long expression or the deep nesting into several statements.",
+  };
+}
+
 export class CompilationManager {
   /** Never throws, whatever the string. */
   compile(source: string, lang: Language): CompilationResult {
@@ -56,23 +65,30 @@ export class CompilationManager {
     if (!parsed.ok) return { diagnostics: parsed.error, hasBom, strippedJs: js };
     const { ast } = parsed.value;
 
-    const scopes = analyzeScopes(parsed.value);
-    const refused = validateSubset(parsed.value, scopes);
-    if (refused.length > 0) return { diagnostics: refused, hasBom, strippedJs: js, ast, scopes };
+    // A program the front end cannot walk without overflowing the stack (a chain of thousands of
+    // member accesses fits in the size limit) is a diagnostic, not an exception.
+    try {
+      const scopes = analyzeScopes(parsed.value);
+      const refused = validateSubset(parsed.value, scopes);
+      if (refused.length > 0) return { diagnostics: refused, hasBom, strippedJs: js, ast, scopes };
 
-    const generated = generateBytecode(parsed.value, scopes);
-    if (!generated.ok) return { diagnostics: generated.error, hasBom, strippedJs: js, ast, scopes };
+      const generated = generateBytecode(parsed.value, scopes);
+      if (!generated.ok) return { diagnostics: generated.error, hasBom, strippedJs: js, ast, scopes };
 
-    const program = generated.value;
-    const context = { source: js, ast };
-    return {
-      diagnostics: [],
-      hasBom,
-      strippedJs: js,
-      ast,
-      scopes,
-      program,
-      views: { ast: astView.emit(program, context), bytecode: bytecodeView.emit(program, context) },
-    };
+      const program = generated.value;
+      const context = { source: js, ast };
+      return {
+        diagnostics: [],
+        hasBom,
+        strippedJs: js,
+        ast,
+        scopes,
+        program,
+        views: { ast: astView.emit(program, context), bytecode: bytecodeView.emit(program, context) },
+      };
+    } catch (error) {
+      if (error instanceof RangeError) return { diagnostics: [tooDeep(js)], hasBom, strippedJs: js };
+      throw error;
+    }
   }
 }
