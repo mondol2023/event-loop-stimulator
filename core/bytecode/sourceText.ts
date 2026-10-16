@@ -35,3 +35,18 @@ export function operatorPosition(source: string, from: number): number {
   }
   return i;
 }
+
+/** The end of a node including the parentheses around it: where the parser is once it has read the expression. */
+export function endWithParentheses(source: string, node: Node): number {
+  const extra = (node as { extra?: { parenthesized?: boolean; parenStart?: number } }).extra;
+  const start = node.range?.[0] ?? 0;
+  let end = endOf(node);
+  if (!extra?.parenthesized || typeof extra.parenStart !== "number") return end;
+  const count = [...source.slice(extra.parenStart, start)].filter((c) => c === "(").length;
+  for (let closed = 0; closed < count; closed++) {
+    const close = source.indexOf(")", end);
+    if (close < 0) break;
+    end = close + 1;
+  }
+  return end;
+}

@@ -53,7 +53,7 @@ class ProgramCompiler implements FunctionCompiler {
     this.functions[id] = finishFunction(wrapper.builder, { id: asFunctionId(id), name: "", children: wrapper.children });
   }
 
-  compile(node: FunctionLiteral, name: string): FunctionId {
+  compile(node: FunctionLiteral, name: string, debugName: string): FunctionId {
     const id = this.reserve();
     const scope = this.scopes.scopeOf.get(node);
     if (!scope) throw new Error("function without a scope");
@@ -66,7 +66,7 @@ class ProgramCompiler implements FunctionCompiler {
       localCount: scope.stackSlots,
     });
     generator.generateFunction(node);
-    this.functions[id] = finishFunction(generator.builder, { id: asFunctionId(id), name, children: generator.children });
+    this.functions[id] = finishFunction(generator.builder, { id: asFunctionId(id), name: debugName, children: generator.children });
     return asFunctionId(id);
   }
 

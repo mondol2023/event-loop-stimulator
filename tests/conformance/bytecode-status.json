@@ -1,6 +1,6 @@
 {
   "array-holes-inspect": {
-    "status": "pending"
+    "status": "exact"
   },
   "array-length-truncate": {
     "status": "pending"
@@ -13,6 +13,9 @@
   },
   "await-thenable-two-extra-ticks": {
     "status": "pending"
+  },
+  "bc-array-literals": {
+    "status": "exact"
   },
   "bc-block-contexts": {
     "status": "exact"
@@ -66,7 +69,22 @@
   "bc-loops": {
     "status": "exact"
   },
+  "bc-method-calls": {
+    "status": "exact"
+  },
   "bc-named-expression": {
+    "status": "exact"
+  },
+  "bc-new-delete": {
+    "status": "exact"
+  },
+  "bc-object-literals": {
+    "status": "exact"
+  },
+  "bc-optional": {
+    "status": "exact"
+  },
+  "bc-properties": {
     "status": "exact"
   },
   "bc-receiver-capture": {
@@ -98,40 +116,52 @@
     "status": "exact"
   },
   "closure-counter": {
-    "status": "pending"
+    "status": "opcodes",
+    "exceptions": [
+      {
+        "function": "#2:pair",
+        "level": "operands",
+        "reason": "Pool entry only: in `[() => shared, (v) => (shared = v)]` V8's name inferrer, run by the later `shared = v`, names the earlier anonymous arrow `shared` (pool entry and header); we leave it anonymous. Instructions are identical"
+      },
+      {
+        "function": "#2:pair/#2:shared",
+        "level": "operands",
+        "reason": "Header name only: in `[() => shared, (v) => (shared = v)]` V8's name inferrer, run by the later `shared = v`, names the earlier anonymous arrow `shared` (pool entry and header); we leave it anonymous. Instructions are identical"
+      }
+    ]
   },
   "closure-in-loop-let": {
     "status": "pending"
   },
   "console-error-warn": {
-    "status": "pending"
+    "status": "exact"
   },
   "const-assign-error": {
     "status": "pending"
   },
   "control-flow-loops": {
-    "status": "pending"
+    "status": "exact"
   },
   "default-params": {
     "status": "pending"
   },
   "drain-after-each-callback": {
-    "status": "pending"
+    "status": "exact"
   },
   "empty-script": {
     "status": "exact"
   },
   "error-in-timer-uncaught": {
-    "status": "pending"
+    "status": "exact"
   },
   "finally-passthrough": {
-    "status": "pending"
+    "status": "exact"
   },
   "inspect-nesting-and-wrapping": {
-    "status": "pending"
+    "status": "exact"
   },
   "interval-clear": {
-    "status": "pending"
+    "status": "exact"
   },
   "let-tdz-uncaught": {
     "status": "pending"
@@ -143,25 +173,25 @@
     "status": "pending"
   },
   "nexttick-vs-promise": {
-    "status": "pending"
+    "status": "exact"
   },
   "number-to-string": {
-    "status": "pending"
+    "status": "exact"
   },
   "object-delete-and-methods": {
     "status": "pending"
   },
   "object-key-order": {
-    "status": "pending"
+    "status": "exact"
   },
   "promise-any-aggregate-error": {
-    "status": "pending"
+    "status": "exact"
   },
   "promise-combinators": {
     "status": "pending"
   },
   "promise-resolve-same-promise": {
-    "status": "pending"
+    "status": "exact"
   },
   "promise-vs-timeout": {
     "status": "pending"
@@ -170,7 +200,7 @@
     "status": "pending"
   },
   "recursion-factorial": {
-    "status": "pending"
+    "status": "exact"
   },
   "rejection-handled-late": {
     "status": "pending"
@@ -182,45 +212,45 @@
     "status": "pending"
   },
   "strings-and-templates": {
-    "status": "pending"
+    "status": "exact"
   },
   "throw-non-error": {
     "status": "pending"
   },
   "timeout-vs-immediate-main": {
-    "status": "pending"
+    "status": "exact"
   },
   "timer-delay-coercion": {
-    "status": "pending"
+    "status": "exact"
   },
   "timer-overflow-warning": {
-    "status": "pending"
+    "status": "exact"
   },
   "timers-same-expiry-order": {
-    "status": "pending"
+    "status": "exact"
   },
   "top-level-this-and-params": {
-    "status": "pending"
+    "status": "exact"
   },
   "try-catch-finally-order": {
     "status": "pending"
   },
   "ts-strip-basic": {
-    "status": "pending"
+    "status": "exact"
   },
   "typeof-undeclared": {
     "status": "pending"
   },
   "uncaught-reference-error": {
-    "status": "pending"
+    "status": "exact"
   },
   "uncaught-type-error": {
-    "status": "pending"
+    "status": "exact"
   },
   "unhandled-rejection": {
-    "status": "pending"
+    "status": "exact"
   },
   "var-hoisting": {
-    "status": "pending"
+    "status": "exact"
   }
 }

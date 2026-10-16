@@ -107,6 +107,8 @@ Opcode sequences match `--print-bytecode`. Operand-level differences are listed 
 
 - `bc-tdz-assign`, `assignFirst`: after an assignment to a not-yet-initialized binding inside a branch, V8 flushes the merge with `Ldar` of the temporary holding the value; we reload the binding. Same value, different register operand. The register optimizer's flush rule behind this is not yet understood.
 - `bc-defaults`, `viaClosure`'s arrow: the header name of an arrow in a default initializer (`read = () => x`) is `x` in V8, the identifier read inside it, while its constant-pool entry stays `read`. We print `read` in both. Instructions are identical.
+- `closure-counter`, `pair`'s first arrow: in `return [() => shared, (v) => (shared = v)]` V8's name inferrer runs at the later `shared = v` and names the earlier anonymous arrow `shared`, in its header and in the constant pool of `pair`. We leave it anonymous. Instructions are identical.
+- Optional chain right after the statement that stored its object, e.g. `var o = null; o?.a;`: the accumulator still equals `r0`, so the `Ldar r0` is elided and V8 flushes the temporary with `Mov r0, r1` before `JumpIfUndefinedOrNull`; we print `Star1` (and every later jump offset shifts by 2). Seen only in hand-made probes, no recorded fixture hits it. The flush order of the accumulator against locals in the register optimizer is the suspect; moving the accumulator last fixes the probe but breaks `bc-optional`, so the real rule is something else.
 
 Not yet reproduced (the generator refuses them, so the fixture stays `pending`):
 

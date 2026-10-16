@@ -1,8 +1,10 @@
 import type {
+  ArrayExpression,
   ArrowFunctionExpression,
   AssignmentExpression,
   BinaryExpression,
   BlockStatement,
+  ChainExpression,
   ConditionalExpression,
   Expression,
   ForStatement,
@@ -14,7 +16,9 @@ import type {
   MemberExpression,
   NewExpression,
   Node,
+  ObjectExpression,
   Pattern,
+  Property,
   ReturnStatement,
   SimpleCallExpression,
   Statement,
@@ -32,7 +36,8 @@ import { BytecodeLabels } from "./BytecodeLabels";
 import { CLOSURE, CURRENT_CONTEXT, type Opcode, THIS, argument, local } from "./bytecodes";
 import type { FeedbackSlotKind } from "./FeedbackVectorSpec";
 import { type LiteralValue, isSmi, literalOf, toBooleanOf } from "./literals";
-import { endOf, operatorPosition, startOf } from "./sourceText";
+import { arrayBoilerplateText, arrayFlags, elementIndexOf, isCompileTimeValue, objectBoilerplateText, objectFlags } from "./literalShape";
+import { endOf, endWithParentheses, operatorPosition, startOf } from "./sourceText";
 
 // V8's BytecodeGenerator for one function body (src/interpreter/bytecode-generator.cc). The shape
 // follows V8 closely because the output is compared with `--print-bytecode` instruction by
@@ -153,9 +158,20 @@ export type FunctionLiteral = FunctionDeclaration | FunctionExpression | ArrowFu
 
 /** Compiles the functions a function creates; the program-wide counterpart of one FunctionGenerator. */
 export interface FunctionCompiler {
-  /** Compiles `node` to bytecode of its own and returns its id. `name` is the SharedFunctionInfo name (inferred or own). */
-  compile(node: FunctionLiteral, name: string): FunctionId;
+  /**
+   * Compiles `node` to bytecode of its own and returns its id. `name` is the SharedFunctionInfo name
+   * (inferred or own) and `debugName` the one its bytecode listing is headed with; they differ for
+   * `{ f: () => 1 }` assigned to `o`, which is `f` in the pool but `o.f` in the header.
+   */
+  compile(node: FunctionLiteral, name: string, debugName: string): FunctionId;
 }
+
+/** Property names the scanner reads as keywords: V8 does not take them for an identifier before a call's `(`. */
+const RESERVED_WORDS: ReadonlySet<string> = new Set([
+  "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "false",
+  "finally", "for", "function", "if", "import", "in", "instanceof", "new", "null", "return", "switch", "this", "throw", "true", "try", "typeof",
+  "var", "void", "while", "with",
+]);
 
 /** `CreateClosureFlags::FastNewClosureBit`: set for every closure made inside a function. */
 const FAST_NEW_CLOSURE = 2;
@@ -185,6 +201,8 @@ export class FunctionGenerator {
   /** The function declarations already created at the top of the function. */
   private readonly hoisted = new Set<Node>();
   private result: ResultScope = new ResultScope("effect");
+  /** Where an optional link of the chain being visited jumps to when its object is `null` or `undefined`. */
+  private optionalLabels: BytecodeLabels | undefined;
   private readonly slotCache = new Map<string, number>();
   private readonly loops: Loop[] = [];
 
@@ -218,7 +236,7 @@ export class FunctionGenerator {
     const expression = node.body;
     b.setStatementPosition(this.positionOf(expression));
     this.visitForAccumulatorValue(expression);
-    b.setStatementPosition(endOf(expression));
+    b.setStatementPosition(endWithParentheses(this.source, expression));
     b.emit("Return");
   }
 
@@ -597,9 +615,9 @@ export class FunctionGenerator {
   }
 
   /** `inferredName` names an anonymous function literal after what it is assigned to (V8's FuncNameInferrer). */
-  private visitForAccumulatorValue(expression: Expression, inferredName = ""): TypeHint {
+  private visitForAccumulatorValue(expression: Expression, inferredName = "", debugName = inferredName): TypeHint {
     const entered = this.enter("value");
-    this.visitExpression(expression, inferredName);
+    this.visitExpression(expression, inferredName, debugName);
     this.leave(entered);
     return entered.scope.typeHint;
   }
@@ -674,7 +692,7 @@ export class FunctionGenerator {
 
   // Expressions.
 
-  private visitExpression(node: Expression, inferredName = ""): void {
+  private visitExpression(node: Expression, inferredName = "", debugName = inferredName): void {
     // V8's parser has already folded literals by the time the generator runs.
     const literal = literalOf(node);
     if (literal) return this.visitLiteralValue(literal);
@@ -706,14 +724,21 @@ export class FunctionGenerator {
         return this.visitTemplateLiteral(node);
       case "FunctionExpression":
       case "ArrowFunctionExpression":
-        this.buildClosure(node, node.type === "FunctionExpression" && node.id ? node.id.name : inferredName);
+        if (node.type === "FunctionExpression" && node.id) this.buildClosure(node, node.id.name, node.id.name);
+        else this.buildClosure(node, inferredName, debugName);
         return;
+      case "ObjectExpression":
+        return this.visitObjectLiteral(node, debugName);
+      case "ArrayExpression":
+        return this.visitArrayLiteral(node, inferredName, debugName);
       case "CallExpression":
         return this.visitCall(node);
       case "NewExpression":
         return this.visitNew(node);
       case "MemberExpression":
         return this.visitMember(node);
+      case "ChainExpression":
+        return this.visitChain(node);
       default:
         throw new NotYetSupported(node);
     }
@@ -755,9 +780,9 @@ export class FunctionGenerator {
   // Functions and calls.
 
   /** V8's BuildClosure: `CreateClosure` of the function's SharedFunctionInfo, left in the accumulator. */
-  private buildClosure(node: FunctionLiteral, name: string): void {
+  private buildClosure(node: FunctionLiteral, name: string, debugName = name): void {
     const b = this.builder;
-    const id = this.functions.compile(node, name);
+    const id = this.functions.compile(node, name, debugName);
     this.children.push(id);
     const index = b.constantPool.add({ kind: "sfi", name, functionId: id });
     b.emit("CreateClosure", index, b.feedback.addClosureCell(), FAST_NEW_CLOSURE);
@@ -769,8 +794,10 @@ export class FunctionGenerator {
    */
   private callPosition(node: SimpleCallExpression): number {
     const callee = node.callee;
+    // The token before the `(` of `f?.()` is the `?.`, which is no name.
+    if (node.optional) return this.source.indexOf("(", operatorPosition(this.source, endOf(callee)));
     if (callee.type === "Identifier") return startOf(callee);
-    if (callee.type === "MemberExpression" && !callee.computed && callee.property.type === "Identifier" && !this.isParenthesized(callee)) {
+    if (callee.type === "MemberExpression" && !callee.computed && callee.property.type === "Identifier" && !this.isParenthesized(callee) && !RESERVED_WORDS.has(callee.property.name)) {
       return startOf(callee.property);
     }
     return operatorPosition(this.source, endOf(callee));
@@ -783,24 +810,26 @@ export class FunctionGenerator {
   /** A call: the callee is a name or any other expression (receiver `undefined`), or a property (receiver is its object). */
   private visitCall(node: SimpleCallExpression): void {
     const callee = node.callee;
-    if (callee.type === "Super" || node.optional) throw new NotYetSupported(node);
+    if (callee.type === "Super") throw new NotYetSupported(node);
     const b = this.builder;
     const top = b.registerTop;
     const calleeRegister = b.allocateRegister();
     const args: number[] = [];
     const member = callee.type === "MemberExpression" ? callee : undefined;
     if (member) {
-      if (member.optional || member.object.type === "Super") throw new NotYetSupported(node);
+      if (member.object.type === "Super") throw new NotYetSupported(node);
       // The receiver is the first register of the argument list; the callee is loaded from it.
       this.visitForAccumulatorValue(member.object);
       const receiver = b.allocateRegister();
       b.emit("Star", local(receiver));
       args.push(receiver);
+      this.jumpIfOptionalNullish(member);
       this.loadProperty(receiver, member);
     } else {
       this.visitForAccumulatorValue(callee);
     }
     b.emit("Star", local(calleeRegister));
+    this.jumpIfOptionalNullish(node);
     for (const argument of node.arguments) {
       if (argument.type === "SpreadElement") throw new NotYetSupported(argument);
       this.visitForAccumulatorValue(argument);
@@ -842,7 +871,7 @@ export class FunctionGenerator {
     b.setExpressionPosition(startOf(node));
     b.emit("Ldar", local(constructor));
     const slot = b.feedback.addSlot("call");
-    b.emit("Construct", local(constructor), local(args[0] ?? constructor), args.length, slot);
+    b.emit("Construct", local(constructor), local(args[0] ?? 0), args.length, slot);
     b.releaseRegisters(top);
   }
 
@@ -857,15 +886,57 @@ export class FunctionGenerator {
     return isArrayIndex(property.value) ? undefined : property.value;
   }
 
-  /** V8's `Property::position()`: the name of `o.a`, the `[` of `o[k]`. */
+  /**
+   * V8's `Property::position()`: the name of `o.a`, the `[` of `o[k]`. A `.` that follows a call is
+   * parsed by another loop of the parser, which records the dot itself; so does one that follows an optional link.
+   */
   private memberPosition(node: MemberExpression): number {
-    return node.computed ? operatorPosition(this.source, endOf(node.object)) : startOf(node.property);
+    const at = operatorPosition(this.source, endOf(node.object));
+    // `o?.[k]` is positioned at its `[`, `o?.a` at the `?.`.
+    if (node.optional) return node.computed ? this.source.indexOf("[", at) : at;
+    if (node.computed || this.followsCall(node)) return at;
+    return startOf(node.property);
+  }
+
+  /** Whether a call or an optional link lies in the chain of members `node` is applied to (without parentheses in between). */
+  private followsCall(node: MemberExpression): boolean {
+    let object: Expression | Node = node.object;
+    while (!this.isParenthesized(object)) {
+      if (object.type === "CallExpression") return true;
+      if (object.type !== "MemberExpression") return false;
+      if (object.optional) return true;
+      object = object.object;
+    }
+    return false;
   }
 
   private visitMember(node: MemberExpression): void {
-    if (node.optional || node.object.type === "Super") throw new NotYetSupported(node);
+    if (node.object.type === "Super") throw new NotYetSupported(node);
     const object = this.visitForRegisterValue(node.object);
+    this.jumpIfOptionalNullish(node);
     this.loadProperty(object, node);
+  }
+
+  /** V8's VisitOptionalChain: a link that finds `null` or `undefined` skips the rest of the chain, which then yields `undefined`. */
+  private visitChain(node: ChainExpression): void {
+    const b = this.builder;
+    const outer = this.optionalLabels;
+    const nullish = this.newLabels();
+    const done = this.newLabels();
+    this.optionalLabels = nullish;
+    this.visitForAccumulatorValue(node.expression);
+    this.optionalLabels = outer;
+    b.jump("Jump", done.new());
+    nullish.bind();
+    b.emit("LdaUndefined");
+    done.bind();
+  }
+
+  /** The `?.` of an optional link: leaves the chain when the value in the accumulator is `null` or `undefined`. */
+  private jumpIfOptionalNullish(link: MemberExpression | SimpleCallExpression): void {
+    if (!link.optional) return;
+    if (!this.optionalLabels) throw new NotYetSupported(link);
+    this.builder.jump("JumpIfUndefinedOrNull", this.optionalLabels.new());
   }
 
   /** Loads `node`'s property of the object in `object` into the accumulator (V8's VisitPropertyLoad). */
@@ -908,6 +979,82 @@ export class FunctionGenerator {
     if (name !== undefined) this.builder.emit("LdaConstant", this.stringConstant(name));
     else this.visitForAccumulatorValue(operand.property as Expression);
     this.builder.emit(this.currentScope.strict ? "DeletePropertyStrict" : "DeletePropertySloppy", local(object));
+  }
+
+  // Object and array literals.
+
+  /**
+   * V8's VisitObjectLiteral: the constant part of the literal comes from its boilerplate, the
+   * properties with run-time values are defined one by one on a copy. `path` is the name the literal is
+   * reachable under (`o` for `var o = { ... }`), which function values are named after.
+   */
+  private visitObjectLiteral(node: ObjectExpression, path: string): void {
+    const b = this.builder;
+    for (const property of node.properties) {
+      if (property.type === "SpreadElement" || property.computed || property.kind !== "init") throw new NotYetSupported(property);
+      if (property.key.type === "Identifier" && property.key.name === "__proto__" && !property.shorthand && !property.method) throw new NotYetSupported(property);
+    }
+    if (node.properties.length === 0) {
+      b.emit("CreateEmptyObjectLiteral");
+      return;
+    }
+    const entry = b.constantPool.add({ kind: "boilerplate", text: objectBoilerplateText(node) });
+    b.emit("CreateObjectLiteral", entry, b.feedback.addSlot("literal"), objectFlags(node));
+    const literal = b.allocateRegister();
+    b.emit("Star", local(literal));
+    for (const property of node.properties) {
+      if (property.type !== "Property") continue;
+      const value = property.value as Expression;
+      if (isCompileTimeValue(value)) continue;
+      const name = this.propertyNameOf(property);
+      if (name === undefined || elementIndexOf(property) !== undefined) throw new NotYetSupported(property);
+      // A method's function literal starts at its name, not at its parameter list.
+      b.setExpressionPosition(property.method ? startOf(property.key) : this.positionOf(value));
+      // A method keeps its own name in the header; any other anonymous function is named `path.key`.
+      const qualified = path === "" ? name : `${path}.${name}`;
+      this.visitForAccumulatorValue(value, name, property.method ? name : qualified);
+      b.emit("DefineNamedOwnProperty", local(literal), this.stringConstant(name), b.feedback.addSlot("store"));
+    }
+    b.emit("Ldar", local(literal));
+  }
+
+  /** The string an object-literal key stands for, when it is written as a name or a string. */
+  private propertyNameOf(property: Property): string | undefined {
+    const key = property.key;
+    if (key.type === "Identifier") return key.name;
+    if (key.type === "Literal" && typeof key.value === "string") return key.value;
+    return undefined;
+  }
+
+  /** V8's VisitArrayLiteral: constant elements come from the boilerplate, the others are stored by index. */
+  private visitArrayLiteral(node: ArrayExpression, inferredName: string, debugName: string): void {
+    const b = this.builder;
+    for (const element of node.elements) {
+      if (element?.type === "SpreadElement") throw new NotYetSupported(element);
+    }
+    if (node.elements.length === 0) {
+      b.emit("CreateEmptyArrayLiteral", b.feedback.addSlot("literal"));
+      return;
+    }
+    const entry = b.constantPool.add({ kind: "boilerplate", text: arrayBoilerplateText(node) });
+    b.emit("CreateArrayLiteral", entry, b.feedback.addSlot("literal"), arrayFlags(node));
+    const literal = b.allocateRegister();
+    b.emit("Star", local(literal));
+    let storeSlot: number | undefined;
+    node.elements.forEach((element, position) => {
+      if (!element || element.type === "SpreadElement" || isCompileTimeValue(element)) return;
+      const top = b.registerTop;
+      const index = b.allocateRegister();
+      if (position === 0) b.emit("LdaZero");
+      else b.emit("LdaSmi", position);
+      b.emit("Star", local(index));
+      this.visitForAccumulatorValue(element, inferredName, debugName);
+      // One slot serves every store of the literal, taken once the first value has been visited.
+      storeSlot ??= b.feedback.addSlot("store");
+      b.emit("StaInArrayLiteral", local(literal), local(index), storeSlot);
+      b.releaseRegisters(top);
+    });
+    b.emit("Ldar", local(literal));
   }
 
   // Variables.
@@ -1479,6 +1626,13 @@ export class FunctionGenerator {
         return this.operatorAt(node.left);
       case "UpdateExpression":
         return node.prefix ? startOf(node.argument) : operatorPosition(this.source, endOf(node.argument));
+      // A conditional sits where its condition starts, inside any parentheses around the whole.
+      case "ConditionalExpression":
+        return node.range?.[0] ?? 0;
+      case "CallExpression":
+        return node.callee.type === "Super" ? startOf(node) : this.callPosition(node);
+      case "MemberExpression":
+        return this.memberPosition(node);
       default:
         return startOf(node);
     }
@@ -1697,7 +1851,6 @@ export class FunctionGenerator {
       b.emit("LdaConstant", this.stringConstant(last));
       b.emit("Add", local(lastPart), slot);
     }
-    this.setResultIsString();
   }
 }
 

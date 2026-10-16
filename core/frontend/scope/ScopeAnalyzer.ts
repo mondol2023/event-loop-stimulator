@@ -186,7 +186,8 @@ class Analyzer {
       captured: false,
       maybeAssigned: false,
       needsHoleInit: false,
-      used: options.kind === "param" || options.kind === "function-name" || options.kind === "catch",
+      // V8 gives a named function expression's own name no storage unless something refers to it.
+      used: options.kind === "param" || options.kind === "catch",
       annexB: false,
       tdz: options.tdz,
       initializedAt: options.initializedAt,
