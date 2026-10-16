@@ -446,3 +446,38 @@ describe("allocation: variables nothing uses", () => {
     expect(variable(tree.root, "f").allocation).toEqual({ kind: "register", index: 2 });
   });
 });
+
+describe("async functions", () => {
+  it("marks async function scopes and counts their awaits (V8 suspend_count)", () => {
+    const tree = analyze("async function f() { await 1; await 2; }\nfunction g() {}\nasync function h() { }");
+    expect(fnScope(tree, "f").isAsync).toBe(true);
+    expect(fnScope(tree, "f").suspendCount).toBe(2);
+    expect(fnScope(tree, "g").isAsync).toBe(false);
+    expect(fnScope(tree, "h").suspendCount).toBe(0);
+  });
+
+  it("counts an await for the function that contains it, not the one enclosing that", () => {
+    const tree = analyze("async function outer() { const inner = async () => { await 1; }; return inner; }");
+    expect(fnScope(tree, "outer").suspendCount).toBe(0);
+    const arrow = tree.scopes.find((s) => s.node.type === "ArrowFunctionExpression") as Scope;
+    expect(arrow.isAsync).toBe(true);
+    expect(arrow.suspendCount).toBe(1);
+  });
+
+  it("reserves register 0 for the generator object, before the function's locals", () => {
+    const tree = analyze("async function f() { var v = 1; let l = 2; return v + l; }");
+    const f = fnScope(tree, "f");
+    expect(variable(f, "v").allocation).toEqual({ kind: "register", index: 1 });
+    expect(variable(f, "l").allocation).toEqual({ kind: "register", index: 2 });
+    expect(f.stackSlots).toBe(3);
+  });
+
+  it("an async function without locals still holds the generator object", () => {
+    expect(fnScope(analyze("async function f() {}"), "f").stackSlots).toBe(1);
+  });
+
+  it("a plain function keeps register 0 for its first local", () => {
+    const f = fnScope(analyze("function f() { let a = 1; return a; }"), "f");
+    expect(variable(f, "a").allocation).toEqual({ kind: "register", index: 0 });
+  });
+});

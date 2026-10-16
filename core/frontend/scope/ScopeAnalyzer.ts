@@ -128,6 +128,8 @@ class Analyzer {
       needsContext: false,
       contextSlots: 0,
       stackSlots: 0,
+      isAsync: false,
+      suspendCount: 0,
       perIteration: false,
       parameterNames,
       hasSimpleParameters,
@@ -284,6 +286,7 @@ class Analyzer {
     const simple = node.params.every((p) => p.type === "Identifier");
     const names = node.params.map((p) => (p.type === "Identifier" ? p.name : ""));
     const scope = this.newScope("function", node, outer, strict, names, simple);
+    scope.isAsync = node.async === true;
     this.current = scope;
 
     if (node.type === "FunctionExpression" && node.id) {
@@ -475,6 +478,11 @@ class Analyzer {
         }
         return;
 
+      case "AwaitExpression":
+        this.functionScope().suspendCount++;
+        this.visit(node.argument);
+        return;
+
       default:
         for (const child of childNodes(node)) this.visit(child);
     }
@@ -582,7 +590,8 @@ class Analyzer {
   // ---- allocation -------------------------------------------------------------------
 
   private allocateFunction(fn: Scope): void {
-    const registers = { next: 0 };
+    // An async function's generator object is the first local (V8 DeclareGeneratorObjectVar).
+    const registers = { next: fn.isAsync ? 1 : 0 };
     this.allocateScope(fn, registers);
     fn.stackSlots = registers.next;
   }

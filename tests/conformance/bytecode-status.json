@@ -9,12 +9,15 @@
     "status": "exact"
   },
   "async-await-order": {
-    "status": "pending"
+    "status": "exact"
   },
   "await-thenable-two-extra-ticks": {
-    "status": "pending"
+    "status": "exact"
   },
   "bc-array-literals": {
+    "status": "exact"
+  },
+  "bc-async": {
     "status": "exact"
   },
   "bc-block-contexts": {
@@ -201,25 +204,25 @@
     "status": "exact"
   },
   "promise-combinators": {
-    "status": "pending"
+    "status": "exact"
   },
   "promise-resolve-same-promise": {
     "status": "exact"
   },
   "promise-vs-timeout": {
-    "status": "pending"
+    "status": "exact"
   },
   "queuemicrotask-order": {
-    "status": "pending"
+    "status": "exact"
   },
   "recursion-factorial": {
     "status": "exact"
   },
   "rejection-handled-late": {
-    "status": "pending"
+    "status": "exact"
   },
   "return-vs-return-await": {
-    "status": "pending"
+    "status": "exact"
   },
   "strict-mode-this": {
     "status": "exact"

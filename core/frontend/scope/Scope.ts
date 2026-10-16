@@ -95,6 +95,10 @@ export type Scope = {
   readonly parameterNames: readonly string[];
   /** Function scopes only: no defaults, rest or destructuring in the parameter list. */
   readonly hasSimpleParameters: boolean;
+  /** Function scopes only: an `async` function or arrow. V8 compiles it as a generator, whose object takes the first register. */
+  isAsync: boolean;
+  /** Function scopes only: the `await`s in the function's own body (not in functions nested in it), each a point where it can suspend. */
+  suspendCount: number;
   /** Non-arrow function scopes only: the receiver as a variable, present iff an arrow inside reads `this` (it then lives in the context). */
   thisVariable: Variable | null;
 };

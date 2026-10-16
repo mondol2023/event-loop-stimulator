@@ -112,6 +112,8 @@ Opcode sequences match `--print-bytecode`. Operand-level differences are listed 
 
 Not yet reproduced (the generator refuses them, so the fixture stays `pending`):
 
+- An async function with default, rest or destructured parameters. V8 puts the generator object after the parameters' own locals and runs their initializers inside the try block that rejects the promise; the generator throws `NotYetSupported` rather than emit the plain-function order. Async functions with simple parameters match V8 exactly in every recorded fixture (`bc-async`, `async-await-order`, `await-thenable-two-extra-ticks` and the rest), with no operand differences.
+- Generator functions (`function*`) are excluded before bytecode generation (`E_EXCLUDED_FEATURE`); the generator also refuses one itself, so it can never be compiled as a plain function.
 - `bc-loop-let`, `perIteration`: a `for (let …)` loop whose variable a closure captures. V8 copies the binding into a fresh block context each iteration with a flag and a temporary; the generator throws `NotYetSupported` rather than emit a single function-level slot.
 - `while (z, c)`: the statement position of a comma-expression loop test differs from V8's.
 

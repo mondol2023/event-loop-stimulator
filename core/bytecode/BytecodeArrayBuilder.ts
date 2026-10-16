@@ -293,8 +293,15 @@ export class BytecodeArrayBuilder {
 
   /** Jumps to the case numbered by the Smi in the accumulator; falls through if no case is bound to it. */
   switchOnSmiNoFeedback(table: JumpTable): void {
-    const opcode: Opcode = "SwitchOnSmiNoFeedback";
-    const operands: Operand[] = [table.poolIndex, table.size, table.base];
+    this.switchOn("SwitchOnSmiNoFeedback", [table.poolIndex, table.size, table.base], table);
+  }
+
+  /** Resumes a suspended generator at the case numbered by its state; a fresh generator falls through. */
+  switchOnGeneratorState(generator: number, table: JumpTable): void {
+    this.switchOn("SwitchOnGeneratorState", [generator, table.poolIndex, table.size], table);
+  }
+
+  private switchOn(opcode: Opcode, operands: Operand[], table: JumpTable): void {
     if (this.optimizer) {
       const prepared = this.optimizer.prepare(opcode, operands);
       this.optimizer.emit({ opcode, operands: prepared, info: this.takePosition(opcode), table });

@@ -1212,4 +1212,24 @@ viaClosure();
       },
     );
   });
+
+  it("starts a method at the parenthesis of its parameters, where its context is created", () => {
+    expectFunctions(
+      "const o = {\n  then(resolve) { return () => resolve; },\n};\no.then(1);\n",
+      {},
+      {
+        name: "then",
+        registerCount: 1,
+        instructions: [
+          "18 E> CreateFunctionContext [0], [1]",
+          "PushContext r0",
+          "Ldar a0",
+          "StaCurrentContextSlot [2]",
+          "30 S> CreateClosure [1], [0], #2",
+          "51 S> Return",
+        ],
+        constantPool: ["<ScopeInfo FUNCTION_SCOPE>", "<SharedFunctionInfo>"],
+      },
+    );
+  });
 });

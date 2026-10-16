@@ -1,0 +1,2692 @@
+{
+  "schema": 1,
+  "fixture": "bc-async",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 169,
+      "parameterCount": 6,
+      "registerCount": 16,
+      "frameSize": 128
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateFunctionContext [0], [1]"
+      },
+      {
+        "offset": 3,
+        "text": "PushContext r12"
+      },
+      {
+        "offset": 5,
+        "text": "CreateClosure [1], [0], #2"
+      },
+      {
+        "offset": 9,
+        "text": "StaCurrentContextSlot [2]"
+      },
+      {
+        "offset": 11,
+        "text": "CreateClosure [2], [1], #2"
+      },
+      {
+        "offset": 15,
+        "text": "Star0"
+      },
+      {
+        "offset": 16,
+        "text": "CreateClosure [3], [2], #2"
+      },
+      {
+        "offset": 20,
+        "text": "Star1"
+      },
+      {
+        "offset": 21,
+        "text": "CreateClosure [4], [3], #2"
+      },
+      {
+        "offset": 25,
+        "text": "Star2"
+      },
+      {
+        "offset": 26,
+        "text": "CreateClosure [5], [4], #2"
+      },
+      {
+        "offset": 30,
+        "text": "Star3"
+      },
+      {
+        "offset": 31,
+        "text": "CreateClosure [6], [5], #2"
+      },
+      {
+        "offset": 35,
+        "text": "Star4"
+      },
+      {
+        "offset": 36,
+        "text": "CreateClosure [7], [6], #2"
+      },
+      {
+        "offset": 40,
+        "text": "Star5"
+      },
+      {
+        "offset": 41,
+        "text": "CreateClosure [8], [7], #2"
+      },
+      {
+        "offset": 45,
+        "text": "Star6"
+      },
+      {
+        "offset": 46,
+        "text": "CreateClosure [9], [8], #2"
+      },
+      {
+        "offset": 50,
+        "text": "Star7"
+      },
+      {
+        "offset": 51,
+        "position": {
+          "at": 703,
+          "kind": "S"
+        },
+        "text": "CreateClosure [10], [9], #2"
+      },
+      {
+        "offset": 55,
+        "text": "Star8"
+      },
+      {
+        "offset": 56,
+        "position": {
+          "at": 745,
+          "kind": "S"
+        },
+        "text": "CreateClosure [11], [10], #2"
+      },
+      {
+        "offset": 60,
+        "text": "Star9"
+      },
+      {
+        "offset": 61,
+        "position": {
+          "at": 793,
+          "kind": "S"
+        },
+        "text": "CreateClosure [12], [11], #2"
+      },
+      {
+        "offset": 65,
+        "text": "Star10"
+      },
+      {
+        "offset": 66,
+        "position": {
+          "at": 861,
+          "kind": "S"
+        },
+        "text": "CreateObjectLiteral [13], [0], #41"
+      },
+      {
+        "offset": 70,
+        "text": "Star13"
+      },
+      {
+        "offset": 71,
+        "position": {
+          "at": 863,
+          "kind": "E"
+        },
+        "text": "CreateClosure [14], [12], #2"
+      },
+      {
+        "offset": 75,
+        "text": "DefineNamedOwnProperty r13, [15], [1]"
+      },
+      {
+        "offset": 79,
+        "text": "Mov r13, r11"
+      },
+      {
+        "offset": 82,
+        "position": {
+          "at": 890,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 84,
+        "text": "Star14"
+      },
+      {
+        "offset": 85,
+        "position": {
+          "at": 890,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r0, r14, [3]"
+      },
+      {
+        "offset": 89,
+        "position": {
+          "at": 902,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r1, [5]"
+      },
+      {
+        "offset": 92,
+        "position": {
+          "at": 911,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 94,
+        "text": "Star14"
+      },
+      {
+        "offset": 95,
+        "position": {
+          "at": 911,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r2, r14, [7]"
+      },
+      {
+        "offset": 99,
+        "position": {
+          "at": 924,
+          "kind": "S"
+        },
+        "text": "LdaImmutableCurrentContextSlot [2]"
+      },
+      {
+        "offset": 101,
+        "text": "Star14"
+      },
+      {
+        "offset": 102,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 104,
+        "text": "Star15"
+      },
+      {
+        "offset": 105,
+        "position": {
+          "at": 924,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r3, r14, r15, [9]"
+      },
+      {
+        "offset": 110,
+        "position": {
+          "at": 944,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 112,
+        "text": "Star14"
+      },
+      {
+        "offset": 113,
+        "position": {
+          "at": 944,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r4, r14, [11]"
+      },
+      {
+        "offset": 117,
+        "position": {
+          "at": 957,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 119,
+        "text": "Star14"
+      },
+      {
+        "offset": 120,
+        "position": {
+          "at": 957,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r5, r14, [13]"
+      },
+      {
+        "offset": 124,
+        "position": {
+          "at": 974,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 126,
+        "text": "Star14"
+      },
+      {
+        "offset": 127,
+        "position": {
+          "at": 974,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r6, r14, [15]"
+      },
+      {
+        "offset": 131,
+        "position": {
+          "at": 986,
+          "kind": "S"
+        },
+        "text": "LdaZero"
+      },
+      {
+        "offset": 132,
+        "text": "Star14"
+      },
+      {
+        "offset": 133,
+        "position": {
+          "at": 986,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r7, r14, [17]"
+      },
+      {
+        "offset": 137,
+        "position": {
+          "at": 997,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 139,
+        "text": "Star14"
+      },
+      {
+        "offset": 140,
+        "position": {
+          "at": 997,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r8, r14, [19]"
+      },
+      {
+        "offset": 144,
+        "position": {
+          "at": 1007,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r9, [21]"
+      },
+      {
+        "offset": 147,
+        "position": {
+          "at": 1016,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 149,
+        "text": "Star14"
+      },
+      {
+        "offset": 150,
+        "position": {
+          "at": 1016,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r10, r14, [23]"
+      },
+      {
+        "offset": 154,
+        "position": {
+          "at": 1039,
+          "kind": "S"
+        },
+        "text": "GetNamedProperty r11, [15], [25]"
+      },
+      {
+        "offset": 158,
+        "text": "Star13"
+      },
+      {
+        "offset": 159,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 161,
+        "text": "Star15"
+      },
+      {
+        "offset": 162,
+        "position": {
+          "at": 1039,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r13, r11, r15, [27]"
+      },
+      {
+        "offset": 167,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 168,
+        "position": {
+          "at": 1044,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<ScopeInfo FUNCTION_SCOPE>",
+      "<SharedFunctionInfo sink>",
+      "<SharedFunctionInfo noAwait>",
+      "<SharedFunctionInfo empty>",
+      "<SharedFunctionInfo oneAwait>",
+      "<SharedFunctionInfo twoAwaits>",
+      "<SharedFunctionInfo captured>",
+      "<SharedFunctionInfo returnsAwait>",
+      "<SharedFunctionInfo guarded>",
+      "<SharedFunctionInfo throws>",
+      "<SharedFunctionInfo arrow>",
+      "<SharedFunctionInfo block>",
+      "<SharedFunctionInfo named>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<SharedFunctionInfo m>",
+      "<String[1]: #m>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "1": {
+        "name": "sink",
+        "header": {
+          "length": 2,
+          "parameterCount": 2,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 1,
+            "position": {
+              "at": 200,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "2": {
+        "name": "noAwait",
+        "header": {
+          "length": 36,
+          "parameterCount": 2,
+          "registerCount": 4,
+          "frameSize": 32
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "Mov <closure>, r1"
+          },
+          {
+            "offset": 3,
+            "text": "Mov <this>, r2"
+          },
+          {
+            "offset": 6,
+            "position": {
+              "at": 224,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r1-r2"
+          },
+          {
+            "offset": 10,
+            "text": "Star0"
+          },
+          {
+            "offset": 11,
+            "text": "Mov <context>, r1"
+          },
+          {
+            "offset": 14,
+            "position": {
+              "at": 230,
+              "kind": "S"
+            },
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 17,
+            "text": "Mov a0, r3"
+          },
+          {
+            "offset": 20,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r2-r3"
+          },
+          {
+            "offset": 24,
+            "position": {
+              "at": 239,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 25,
+            "text": "Star3"
+          },
+          {
+            "offset": 26,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 27,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 28,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 31,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r2-r3"
+          },
+          {
+            "offset": 35,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [
+          "(14, 25) -> 25 (prediction=3, data=1)"
+        ],
+        "children": {}
+      },
+      "3": {
+        "name": "empty",
+        "header": {
+          "length": 35,
+          "parameterCount": 1,
+          "registerCount": 4,
+          "frameSize": 32
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "Mov <closure>, r1"
+          },
+          {
+            "offset": 3,
+            "text": "Mov <this>, r2"
+          },
+          {
+            "offset": 6,
+            "position": {
+              "at": 262,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r1-r2"
+          },
+          {
+            "offset": 10,
+            "text": "Star0"
+          },
+          {
+            "offset": 11,
+            "text": "Mov <context>, r1"
+          },
+          {
+            "offset": 14,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 15,
+            "text": "Star3"
+          },
+          {
+            "offset": 16,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 19,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r2-r3"
+          },
+          {
+            "offset": 23,
+            "position": {
+              "at": 266,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 24,
+            "text": "Star3"
+          },
+          {
+            "offset": 25,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 26,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 27,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 30,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r2-r3"
+          },
+          {
+            "offset": 34,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [
+          "(14, 24) -> 24 (prediction=3, data=1)"
+        ],
+        "children": {}
+      },
+      "4": {
+        "name": "oneAwait",
+        "header": {
+          "length": 76,
+          "parameterCount": 2,
+          "registerCount": 5,
+          "frameSize": 40
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "SwitchOnGeneratorState r0, [0], [1] { 0: @33 }"
+          },
+          {
+            "offset": 4,
+            "text": "Mov <closure>, r2"
+          },
+          {
+            "offset": 7,
+            "text": "Mov <this>, r3"
+          },
+          {
+            "offset": 10,
+            "position": {
+              "at": 291,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r2-r3"
+          },
+          {
+            "offset": 14,
+            "text": "Star0"
+          },
+          {
+            "offset": 15,
+            "text": "Mov <context>, r2"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 307,
+              "kind": "S"
+            },
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 21,
+            "text": "Mov a0, r4"
+          },
+          {
+            "offset": 24,
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r3-r4"
+          },
+          {
+            "offset": 28,
+            "position": {
+              "at": 307,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r2, [0]"
+          },
+          {
+            "offset": 33,
+            "text": "ResumeGenerator r0, r0-r2"
+          },
+          {
+            "offset": 37,
+            "text": "Star3"
+          },
+          {
+            "offset": 38,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 42,
+            "text": "Star4"
+          },
+          {
+            "offset": 43,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 44,
+            "text": "TestReferenceEqual r4"
+          },
+          {
+            "offset": 46,
+            "text": "JumpIfTrue [5] (@51)"
+          },
+          {
+            "offset": 48,
+            "text": "Ldar r3"
+          },
+          {
+            "offset": 50,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 51,
+            "text": "Mov r3, r1"
+          },
+          {
+            "offset": 54,
+            "position": {
+              "at": 316,
+              "kind": "S"
+            },
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 57,
+            "text": "Mov r1, r4"
+          },
+          {
+            "offset": 60,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r3-r4"
+          },
+          {
+            "offset": 64,
+            "position": {
+              "at": 325,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 65,
+            "text": "Star4"
+          },
+          {
+            "offset": 66,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 67,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 68,
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 71,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r3-r4"
+          },
+          {
+            "offset": 75,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "33"
+        ],
+        "handlerTable": [
+          "(18, 65) -> 65 (prediction=3, data=2)"
+        ],
+        "children": {}
+      },
+      "5": {
+        "name": "twoAwaits",
+        "header": {
+          "length": 155,
+          "parameterCount": 3,
+          "registerCount": 7,
+          "frameSize": 56
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "SwitchOnGeneratorState r0, [0], [3] { 0: @36, 1: @69, 2: @110 }"
+          },
+          {
+            "offset": 4,
+            "text": "Mov <closure>, r2"
+          },
+          {
+            "offset": 7,
+            "text": "Mov <this>, r3"
+          },
+          {
+            "offset": 10,
+            "position": {
+              "at": 352,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r2-r3"
+          },
+          {
+            "offset": 14,
+            "text": "Star0"
+          },
+          {
+            "offset": 15,
+            "text": "Mov <context>, r2"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 361,
+              "kind": "S"
+            },
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 20,
+            "text": "Star5"
+          },
+          {
+            "offset": 21,
+            "text": "Mov r0, r4"
+          },
+          {
+            "offset": 24,
+            "position": {
+              "at": 363,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r4-r5"
+          },
+          {
+            "offset": 28,
+            "text": "Mov a0, r3"
+          },
+          {
+            "offset": 31,
+            "position": {
+              "at": 363,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r3, [0]"
+          },
+          {
+            "offset": 36,
+            "text": "ResumeGenerator r0, r0-r3"
+          },
+          {
+            "offset": 40,
+            "text": "Star4"
+          },
+          {
+            "offset": 41,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 45,
+            "text": "Star5"
+          },
+          {
+            "offset": 46,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 47,
+            "text": "TestReferenceEqual r5"
+          },
+          {
+            "offset": 49,
+            "text": "JumpIfTrue [5] (@54)"
+          },
+          {
+            "offset": 51,
+            "text": "Ldar r4"
+          },
+          {
+            "offset": 53,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 54,
+            "text": "Mov r0, r5"
+          },
+          {
+            "offset": 57,
+            "text": "Mov a1, r6"
+          },
+          {
+            "offset": 60,
+            "position": {
+              "at": 378,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r5-r6"
+          },
+          {
+            "offset": 64,
+            "position": {
+              "at": 372,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r4, [1]"
+          },
+          {
+            "offset": 69,
+            "text": "ResumeGenerator r0, r0-r4"
+          },
+          {
+            "offset": 73,
+            "text": "Star5"
+          },
+          {
+            "offset": 74,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 78,
+            "text": "Star6"
+          },
+          {
+            "offset": 79,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 80,
+            "text": "TestReferenceEqual r6"
+          },
+          {
+            "offset": 82,
+            "text": "JumpIfTrue [5] (@87)"
+          },
+          {
+            "offset": 84,
+            "text": "Ldar r5"
+          },
+          {
+            "offset": 86,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 87,
+            "position": {
+              "at": 361,
+              "kind": "E"
+            },
+            "text": "CallUndefinedReceiver2 r3, r4, r5, [0]"
+          },
+          {
+            "offset": 92,
+            "position": {
+              "at": 392,
+              "kind": "S"
+            },
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 94,
+            "text": "Star3"
+          },
+          {
+            "offset": 95,
+            "text": "Mov r0, r4"
+          },
+          {
+            "offset": 98,
+            "text": "Mov a1, r5"
+          },
+          {
+            "offset": 101,
+            "position": {
+              "at": 402,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r4-r5"
+          },
+          {
+            "offset": 105,
+            "position": {
+              "at": 396,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r3, [2]"
+          },
+          {
+            "offset": 110,
+            "text": "ResumeGenerator r0, r0-r3"
+          },
+          {
+            "offset": 114,
+            "text": "Star4"
+          },
+          {
+            "offset": 115,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 119,
+            "text": "Star5"
+          },
+          {
+            "offset": 120,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 121,
+            "text": "TestReferenceEqual r5"
+          },
+          {
+            "offset": 123,
+            "text": "JumpIfTrue [5] (@128)"
+          },
+          {
+            "offset": 125,
+            "text": "Ldar r4"
+          },
+          {
+            "offset": 127,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 128,
+            "text": "Ldar r4"
+          },
+          {
+            "offset": 130,
+            "position": {
+              "at": 394,
+              "kind": "E"
+            },
+            "text": "Add r3, [2]"
+          },
+          {
+            "offset": 133,
+            "text": "Star1"
+          },
+          {
+            "offset": 134,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 135,
+            "text": "Star4"
+          },
+          {
+            "offset": 136,
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 139,
+            "position": {
+              "at": 392,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r3-r4"
+          },
+          {
+            "offset": 143,
+            "position": {
+              "at": 405,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 144,
+            "text": "Star4"
+          },
+          {
+            "offset": 145,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 146,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 147,
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 150,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r3-r4"
+          },
+          {
+            "offset": 154,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "36",
+          "69",
+          "110"
+        ],
+        "handlerTable": [
+          "(18, 144) -> 144 (prediction=3, data=2)"
+        ],
+        "children": {}
+      },
+      "6": {
+        "name": "captured",
+        "header": {
+          "length": 91,
+          "parameterCount": 2,
+          "registerCount": 5,
+          "frameSize": 40
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "SwitchOnGeneratorState r0, [0], [1] { 0: @49 }"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 430,
+              "kind": "E"
+            },
+            "text": "CreateFunctionContext [1], [2]"
+          },
+          {
+            "offset": 7,
+            "text": "PushContext r1"
+          },
+          {
+            "offset": 9,
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 11,
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 13,
+            "text": "Mov <closure>, r2"
+          },
+          {
+            "offset": 16,
+            "text": "Mov <this>, r3"
+          },
+          {
+            "offset": 19,
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r2-r3"
+          },
+          {
+            "offset": 23,
+            "text": "Star0"
+          },
+          {
+            "offset": 24,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 25,
+            "text": "StaCurrentContextSlot [3]"
+          },
+          {
+            "offset": 27,
+            "text": "Mov <context>, r2"
+          },
+          {
+            "offset": 30,
+            "position": {
+              "at": 444,
+              "kind": "S"
+            },
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 32,
+            "position": {
+              "at": 444,
+              "kind": "E"
+            },
+            "text": "StaCurrentContextSlot [3]"
+          },
+          {
+            "offset": 34,
+            "position": {
+              "at": 447,
+              "kind": "S"
+            },
+            "text": "LdaImmutableCurrentContextSlot [2]"
+          },
+          {
+            "offset": 36,
+            "text": "Star4"
+          },
+          {
+            "offset": 37,
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 40,
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r3-r4"
+          },
+          {
+            "offset": 44,
+            "position": {
+              "at": 447,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r2, [0]"
+          },
+          {
+            "offset": 49,
+            "text": "ResumeGenerator r0, r0-r2"
+          },
+          {
+            "offset": 53,
+            "text": "Star3"
+          },
+          {
+            "offset": 54,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 58,
+            "text": "Star4"
+          },
+          {
+            "offset": 59,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 60,
+            "text": "TestReferenceEqual r4"
+          },
+          {
+            "offset": 62,
+            "text": "JumpIfTrue [5] (@67)"
+          },
+          {
+            "offset": 64,
+            "text": "Ldar r3"
+          },
+          {
+            "offset": 66,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 67,
+            "position": {
+              "at": 456,
+              "kind": "S"
+            },
+            "text": "CreateClosure [2], [0], #2"
+          },
+          {
+            "offset": 71,
+            "text": "Star4"
+          },
+          {
+            "offset": 72,
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 75,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r3-r4"
+          },
+          {
+            "offset": 79,
+            "position": {
+              "at": 475,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 80,
+            "text": "Star4"
+          },
+          {
+            "offset": 81,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 82,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 83,
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 86,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r3-r4"
+          },
+          {
+            "offset": 90,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "49",
+          "<ScopeInfo FUNCTION_SCOPE>",
+          "<SharedFunctionInfo>"
+        ],
+        "handlerTable": [
+          "(30, 80) -> 80 (prediction=3, data=2)"
+        ],
+        "children": {}
+      },
+      "7": {
+        "name": "returnsAwait",
+        "header": {
+          "length": 73,
+          "parameterCount": 2,
+          "registerCount": 4,
+          "frameSize": 32
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "SwitchOnGeneratorState r0, [0], [1] { 0: @33 }"
+          },
+          {
+            "offset": 4,
+            "text": "Mov <closure>, r1"
+          },
+          {
+            "offset": 7,
+            "text": "Mov <this>, r2"
+          },
+          {
+            "offset": 10,
+            "position": {
+              "at": 505,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r1-r2"
+          },
+          {
+            "offset": 14,
+            "text": "Star0"
+          },
+          {
+            "offset": 15,
+            "text": "Mov <context>, r1"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 511,
+              "kind": "S"
+            },
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 21,
+            "text": "Mov a0, r3"
+          },
+          {
+            "offset": 24,
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r2-r3"
+          },
+          {
+            "offset": 28,
+            "position": {
+              "at": 518,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r1, [0]"
+          },
+          {
+            "offset": 33,
+            "text": "ResumeGenerator r0, r0-r1"
+          },
+          {
+            "offset": 37,
+            "text": "Star2"
+          },
+          {
+            "offset": 38,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 42,
+            "text": "Star3"
+          },
+          {
+            "offset": 43,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 44,
+            "text": "TestReferenceEqual r3"
+          },
+          {
+            "offset": 46,
+            "text": "JumpIfTrue [5] (@51)"
+          },
+          {
+            "offset": 48,
+            "text": "Ldar r2"
+          },
+          {
+            "offset": 50,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 51,
+            "text": "Ldar r2"
+          },
+          {
+            "offset": 53,
+            "text": "Star3"
+          },
+          {
+            "offset": 54,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 57,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r2-r3"
+          },
+          {
+            "offset": 61,
+            "position": {
+              "at": 526,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 62,
+            "text": "Star3"
+          },
+          {
+            "offset": 63,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 64,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 65,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 68,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r2-r3"
+          },
+          {
+            "offset": 72,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "33"
+        ],
+        "handlerTable": [
+          "(18, 62) -> 62 (prediction=3, data=1)"
+        ],
+        "children": {}
+      },
+      "8": {
+        "name": "guarded",
+        "header": {
+          "length": 172,
+          "parameterCount": 2,
+          "registerCount": 10,
+          "frameSize": 80
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "SwitchOnGeneratorState r0, [0], [2] { 0: @41, 1: @132 }"
+          },
+          {
+            "offset": 4,
+            "text": "Mov <closure>, r1"
+          },
+          {
+            "offset": 7,
+            "text": "Mov <this>, r2"
+          },
+          {
+            "offset": 10,
+            "position": {
+              "at": 551,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r1-r2"
+          },
+          {
+            "offset": 14,
+            "text": "Star0"
+          },
+          {
+            "offset": 15,
+            "text": "Mov <context>, r1"
+          },
+          {
+            "offset": 18,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 19,
+            "text": "Star4"
+          },
+          {
+            "offset": 20,
+            "text": "Mov <context>, r5"
+          },
+          {
+            "offset": 23,
+            "text": "Mov <context>, r6"
+          },
+          {
+            "offset": 26,
+            "position": {
+              "at": 563,
+              "kind": "S"
+            },
+            "text": "Mov r0, r7"
+          },
+          {
+            "offset": 29,
+            "text": "Mov a0, r8"
+          },
+          {
+            "offset": 32,
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r7-r8"
+          },
+          {
+            "offset": 36,
+            "position": {
+              "at": 563,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r6, [0]"
+          },
+          {
+            "offset": 41,
+            "text": "ResumeGenerator r0, r0-r6"
+          },
+          {
+            "offset": 45,
+            "text": "Star7"
+          },
+          {
+            "offset": 46,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 50,
+            "text": "Star8"
+          },
+          {
+            "offset": 51,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 52,
+            "text": "TestReferenceEqual r8"
+          },
+          {
+            "offset": 54,
+            "text": "JumpIfTrue [5] (@59)"
+          },
+          {
+            "offset": 56,
+            "text": "Ldar r7"
+          },
+          {
+            "offset": 58,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 59,
+            "text": "Ldar r7"
+          },
+          {
+            "offset": 61,
+            "text": "Jump [27] (@88)"
+          },
+          {
+            "offset": 63,
+            "text": "Star7"
+          },
+          {
+            "offset": 64,
+            "text": "CreateCatchContext r7, [2]"
+          },
+          {
+            "offset": 67,
+            "text": "Star6"
+          },
+          {
+            "offset": 68,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 69,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 70,
+            "text": "Ldar r6"
+          },
+          {
+            "offset": 72,
+            "text": "PushContext r7"
+          },
+          {
+            "offset": 74,
+            "position": {
+              "at": 586,
+              "kind": "S"
+            },
+            "text": "LdaImmutableContextSlot r7, [2], [0]"
+          },
+          {
+            "offset": 78,
+            "text": "Star8"
+          },
+          {
+            "offset": 79,
+            "text": "LdaImmutableCurrentContextSlot [2]"
+          },
+          {
+            "offset": 81,
+            "text": "Star9"
+          },
+          {
+            "offset": 82,
+            "position": {
+              "at": 586,
+              "kind": "E"
+            },
+            "text": "CallUndefinedReceiver1 r8, r9, [0]"
+          },
+          {
+            "offset": 86,
+            "text": "PopContext r7"
+          },
+          {
+            "offset": 88,
+            "text": "LdaSmi [-1]"
+          },
+          {
+            "offset": 90,
+            "text": "Star3"
+          },
+          {
+            "offset": 91,
+            "text": "Star2"
+          },
+          {
+            "offset": 92,
+            "text": "Jump [8] (@100)"
+          },
+          {
+            "offset": 94,
+            "text": "Star3"
+          },
+          {
+            "offset": 95,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 96,
+            "text": "Star2"
+          },
+          {
+            "offset": 97,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 98,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 99,
+            "text": "Star4"
+          },
+          {
+            "offset": 100,
+            "position": {
+              "at": 607,
+              "kind": "S"
+            },
+            "text": "LdaImmutableCurrentContextSlot [2]"
+          },
+          {
+            "offset": 102,
+            "text": "Star6"
+          },
+          {
+            "offset": 103,
+            "position": {
+              "at": 607,
+              "kind": "E"
+            },
+            "text": "CallUndefinedReceiver0 r6, [2]"
+          },
+          {
+            "offset": 106,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 107,
+            "text": "TestReferenceEqual r2"
+          },
+          {
+            "offset": 109,
+            "text": "JumpIfFalse [8] (@117)"
+          },
+          {
+            "offset": 111,
+            "text": "Ldar r4"
+          },
+          {
+            "offset": 113,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 114,
+            "text": "Ldar r3"
+          },
+          {
+            "offset": 116,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 117,
+            "position": {
+              "at": 617,
+              "kind": "S"
+            },
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 120,
+            "text": "Mov a0, r3"
+          },
+          {
+            "offset": 123,
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r2-r3"
+          },
+          {
+            "offset": 127,
+            "position": {
+              "at": 624,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r1, [1]"
+          },
+          {
+            "offset": 132,
+            "text": "ResumeGenerator r0, r0-r1"
+          },
+          {
+            "offset": 136,
+            "text": "Star2"
+          },
+          {
+            "offset": 137,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 141,
+            "text": "Star3"
+          },
+          {
+            "offset": 142,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 143,
+            "text": "TestReferenceEqual r3"
+          },
+          {
+            "offset": 145,
+            "text": "JumpIfTrue [5] (@150)"
+          },
+          {
+            "offset": 147,
+            "text": "Ldar r2"
+          },
+          {
+            "offset": 149,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 150,
+            "text": "Ldar r2"
+          },
+          {
+            "offset": 152,
+            "text": "Star3"
+          },
+          {
+            "offset": 153,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 156,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r2-r3"
+          },
+          {
+            "offset": 160,
+            "position": {
+              "at": 632,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 161,
+            "text": "Star3"
+          },
+          {
+            "offset": 162,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 163,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 164,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 167,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r2-r3"
+          },
+          {
+            "offset": 171,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "41",
+          "132",
+          "<ScopeInfo CATCH_SCOPE>"
+        ],
+        "handlerTable": [
+          "(18, 161) -> 161 (prediction=3, data=1)",
+          "(23, 88) -> 94 (prediction=3, data=5)",
+          "(26, 59) -> 63 (prediction=1, data=6)"
+        ],
+        "children": {}
+      },
+      "9": {
+        "name": "throws",
+        "header": {
+          "length": 79,
+          "parameterCount": 2,
+          "registerCount": 4,
+          "frameSize": 32
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "SwitchOnGeneratorState r0, [0], [1] { 0: @40 }"
+          },
+          {
+            "offset": 4,
+            "text": "Mov <closure>, r1"
+          },
+          {
+            "offset": 7,
+            "text": "Mov <this>, r2"
+          },
+          {
+            "offset": 10,
+            "position": {
+              "at": 656,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r1-r2"
+          },
+          {
+            "offset": 14,
+            "text": "Star0"
+          },
+          {
+            "offset": 15,
+            "text": "Mov <context>, r1"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 662,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 20,
+            "text": "JumpIfToBooleanFalse [5] (@25)"
+          },
+          {
+            "offset": 22,
+            "position": {
+              "at": 669,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 24,
+            "position": {
+              "at": 669,
+              "kind": "E"
+            },
+            "text": "Throw"
+          },
+          {
+            "offset": 25,
+            "position": {
+              "at": 678,
+              "kind": "S"
+            },
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 28,
+            "text": "Mov a0, r3"
+          },
+          {
+            "offset": 31,
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r2-r3"
+          },
+          {
+            "offset": 35,
+            "position": {
+              "at": 678,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r1, [0]"
+          },
+          {
+            "offset": 40,
+            "text": "ResumeGenerator r0, r0-r1"
+          },
+          {
+            "offset": 44,
+            "text": "Star2"
+          },
+          {
+            "offset": 45,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 49,
+            "text": "Star3"
+          },
+          {
+            "offset": 50,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 51,
+            "text": "TestReferenceEqual r3"
+          },
+          {
+            "offset": 53,
+            "text": "JumpIfTrue [5] (@58)"
+          },
+          {
+            "offset": 55,
+            "text": "Ldar r2"
+          },
+          {
+            "offset": 57,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 58,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 59,
+            "text": "Star3"
+          },
+          {
+            "offset": 60,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 63,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r2-r3"
+          },
+          {
+            "offset": 67,
+            "position": {
+              "at": 687,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 68,
+            "text": "Star3"
+          },
+          {
+            "offset": 69,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 70,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 71,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 74,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r2-r3"
+          },
+          {
+            "offset": 78,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "40"
+        ],
+        "handlerTable": [
+          "(18, 68) -> 68 (prediction=3, data=1)"
+        ],
+        "children": {}
+      },
+      "10": {
+        "name": "arrow",
+        "header": {
+          "length": 76,
+          "parameterCount": 2,
+          "registerCount": 4,
+          "frameSize": 32
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "SwitchOnGeneratorState r0, [0], [1] { 0: @33 }"
+          },
+          {
+            "offset": 4,
+            "text": "Mov <closure>, r1"
+          },
+          {
+            "offset": 7,
+            "text": "Mov <this>, r2"
+          },
+          {
+            "offset": 10,
+            "position": {
+              "at": 703,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r1-r2"
+          },
+          {
+            "offset": 14,
+            "text": "Star0"
+          },
+          {
+            "offset": 15,
+            "text": "Mov <context>, r1"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 726,
+              "kind": "S"
+            },
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 21,
+            "text": "Mov a0, r3"
+          },
+          {
+            "offset": 24,
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r2-r3"
+          },
+          {
+            "offset": 28,
+            "position": {
+              "at": 717,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r1, [0]"
+          },
+          {
+            "offset": 33,
+            "text": "ResumeGenerator r0, r0-r1"
+          },
+          {
+            "offset": 37,
+            "text": "Star2"
+          },
+          {
+            "offset": 38,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 42,
+            "text": "Star3"
+          },
+          {
+            "offset": 43,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 44,
+            "text": "TestReferenceEqual r3"
+          },
+          {
+            "offset": 46,
+            "text": "JumpIfTrue [5] (@51)"
+          },
+          {
+            "offset": 48,
+            "text": "Ldar r2"
+          },
+          {
+            "offset": 50,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 51,
+            "text": "Ldar r2"
+          },
+          {
+            "offset": 53,
+            "position": {
+              "at": 726,
+              "kind": "E"
+            },
+            "text": "AddSmi [1], [0]"
+          },
+          {
+            "offset": 56,
+            "text": "Star3"
+          },
+          {
+            "offset": 57,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 60,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r2-r3"
+          },
+          {
+            "offset": 64,
+            "position": {
+              "at": 729,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 65,
+            "text": "Star3"
+          },
+          {
+            "offset": 66,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 67,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 68,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 71,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r2-r3"
+          },
+          {
+            "offset": 75,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "33"
+        ],
+        "handlerTable": [
+          "(18, 65) -> 65 (prediction=3, data=1)"
+        ],
+        "children": {}
+      },
+      "11": {
+        "name": "block",
+        "header": {
+          "length": 71,
+          "parameterCount": 1,
+          "registerCount": 4,
+          "frameSize": 32
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "SwitchOnGeneratorState r0, [0], [1] { 0: @32 }"
+          },
+          {
+            "offset": 4,
+            "text": "Mov <closure>, r1"
+          },
+          {
+            "offset": 7,
+            "text": "Mov <this>, r2"
+          },
+          {
+            "offset": 10,
+            "position": {
+              "at": 745,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r1-r2"
+          },
+          {
+            "offset": 14,
+            "text": "Star0"
+          },
+          {
+            "offset": 15,
+            "text": "Mov <context>, r1"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 759,
+              "kind": "S"
+            },
+            "text": "LdaNull"
+          },
+          {
+            "offset": 19,
+            "text": "Star3"
+          },
+          {
+            "offset": 20,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 23,
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r2-r3"
+          },
+          {
+            "offset": 27,
+            "position": {
+              "at": 759,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r1, [0]"
+          },
+          {
+            "offset": 32,
+            "text": "ResumeGenerator r0, r0-r1"
+          },
+          {
+            "offset": 36,
+            "text": "Star2"
+          },
+          {
+            "offset": 37,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 41,
+            "text": "Star3"
+          },
+          {
+            "offset": 42,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 43,
+            "text": "TestReferenceEqual r3"
+          },
+          {
+            "offset": 45,
+            "text": "JumpIfTrue [5] (@50)"
+          },
+          {
+            "offset": 47,
+            "text": "Ldar r2"
+          },
+          {
+            "offset": 49,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 50,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 51,
+            "text": "Star3"
+          },
+          {
+            "offset": 52,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 55,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r2-r3"
+          },
+          {
+            "offset": 59,
+            "position": {
+              "at": 771,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 60,
+            "text": "Star3"
+          },
+          {
+            "offset": 61,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 62,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 63,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 66,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r2-r3"
+          },
+          {
+            "offset": 70,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "32"
+        ],
+        "handlerTable": [
+          "(18, 60) -> 60 (prediction=3, data=1)"
+        ],
+        "children": {}
+      },
+      "12": {
+        "name": "named",
+        "header": {
+          "length": 76,
+          "parameterCount": 2,
+          "registerCount": 5,
+          "frameSize": 40
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "SwitchOnGeneratorState r0, [0], [1] { 0: @36 }"
+          },
+          {
+            "offset": 4,
+            "text": "Mov <closure>, r1"
+          },
+          {
+            "offset": 7,
+            "text": "Mov r1, r2"
+          },
+          {
+            "offset": 10,
+            "text": "Mov <this>, r3"
+          },
+          {
+            "offset": 13,
+            "position": {
+              "at": 813,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r2-r3"
+          },
+          {
+            "offset": 17,
+            "text": "Star0"
+          },
+          {
+            "offset": 18,
+            "text": "Mov <context>, r2"
+          },
+          {
+            "offset": 21,
+            "position": {
+              "at": 819,
+              "kind": "S"
+            },
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 24,
+            "text": "Mov a0, r4"
+          },
+          {
+            "offset": 27,
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r3-r4"
+          },
+          {
+            "offset": 31,
+            "position": {
+              "at": 819,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r2, [0]"
+          },
+          {
+            "offset": 36,
+            "text": "ResumeGenerator r0, r0-r2"
+          },
+          {
+            "offset": 40,
+            "text": "Star3"
+          },
+          {
+            "offset": 41,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 45,
+            "text": "Star4"
+          },
+          {
+            "offset": 46,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 47,
+            "text": "TestReferenceEqual r4"
+          },
+          {
+            "offset": 49,
+            "text": "JumpIfTrue [5] (@54)"
+          },
+          {
+            "offset": 51,
+            "text": "Ldar r3"
+          },
+          {
+            "offset": 53,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 54,
+            "position": {
+              "at": 828,
+              "kind": "S"
+            },
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 57,
+            "text": "Mov r1, r4"
+          },
+          {
+            "offset": 60,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r3-r4"
+          },
+          {
+            "offset": 64,
+            "position": {
+              "at": 841,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 65,
+            "text": "Star4"
+          },
+          {
+            "offset": 66,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 67,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 68,
+            "text": "Mov r0, r3"
+          },
+          {
+            "offset": 71,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r3-r4"
+          },
+          {
+            "offset": 75,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "36"
+        ],
+        "handlerTable": [
+          "(21, 65) -> 65 (prediction=3, data=2)"
+        ],
+        "children": {}
+      },
+      "14": {
+        "name": "m",
+        "header": {
+          "length": 72,
+          "parameterCount": 2,
+          "registerCount": 4,
+          "frameSize": 32
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "text": "SwitchOnGeneratorState r0, [0], [1] { 0: @33 }"
+          },
+          {
+            "offset": 4,
+            "text": "Mov <closure>, r1"
+          },
+          {
+            "offset": 7,
+            "text": "Mov <this>, r2"
+          },
+          {
+            "offset": 10,
+            "position": {
+              "at": 870,
+              "kind": "E"
+            },
+            "text": "InvokeIntrinsic [_AsyncFunctionEnter], r1-r2"
+          },
+          {
+            "offset": 14,
+            "text": "Star0"
+          },
+          {
+            "offset": 15,
+            "text": "Mov <context>, r1"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 876,
+              "kind": "S"
+            },
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 21,
+            "text": "Mov a0, r3"
+          },
+          {
+            "offset": 24,
+            "text": "InvokeIntrinsic [_AsyncFunctionAwait], r2-r3"
+          },
+          {
+            "offset": 28,
+            "position": {
+              "at": 876,
+              "kind": "E"
+            },
+            "text": "SuspendGenerator r0, r0-r1, [0]"
+          },
+          {
+            "offset": 33,
+            "text": "ResumeGenerator r0, r0-r1"
+          },
+          {
+            "offset": 37,
+            "text": "Star2"
+          },
+          {
+            "offset": 38,
+            "text": "InvokeIntrinsic [_GeneratorGetResumeMode], r0-r0"
+          },
+          {
+            "offset": 42,
+            "text": "Star3"
+          },
+          {
+            "offset": 43,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 44,
+            "text": "TestReferenceEqual r3"
+          },
+          {
+            "offset": 46,
+            "text": "JumpIfTrue [5] (@51)"
+          },
+          {
+            "offset": 48,
+            "text": "Ldar r2"
+          },
+          {
+            "offset": 50,
+            "text": "ReThrow"
+          },
+          {
+            "offset": 51,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 52,
+            "text": "Star3"
+          },
+          {
+            "offset": 53,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 56,
+            "text": "InvokeIntrinsic [_AsyncFunctionResolve], r2-r3"
+          },
+          {
+            "offset": 60,
+            "position": {
+              "at": 885,
+              "kind": "S"
+            },
+            "text": "Return"
+          },
+          {
+            "offset": 61,
+            "text": "Star3"
+          },
+          {
+            "offset": 62,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 63,
+            "text": "SetPendingMessage"
+          },
+          {
+            "offset": 64,
+            "text": "Mov r0, r2"
+          },
+          {
+            "offset": 67,
+            "text": "InvokeIntrinsic [_AsyncFunctionReject], r2-r3"
+          },
+          {
+            "offset": 71,
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "33"
+        ],
+        "handlerTable": [
+          "(18, 61) -> 61 (prediction=3, data=1)"
+        ],
+        "children": {}
+      }
+    }
+  }
+}

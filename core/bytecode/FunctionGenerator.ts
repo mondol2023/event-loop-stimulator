@@ -2,6 +2,7 @@ import type {
   ArrayExpression,
   ArrowFunctionExpression,
   AssignmentExpression,
+  AwaitExpression,
   BinaryExpression,
   BlockStatement,
   CatchClause,
@@ -33,7 +34,7 @@ import type {
 } from "estree";
 import type { ReferenceInfo, Scope, ScopeTree, Variable } from "@/core/frontend/scope/Scope";
 import type { FunctionId } from "@/core/shared/ids";
-import { BytecodeArrayBuilder, type Label } from "./BytecodeArrayBuilder";
+import { BytecodeArrayBuilder, type JumpTable, type Label } from "./BytecodeArrayBuilder";
 import { BytecodeLabels } from "./BytecodeLabels";
 import { CLOSURE, CURRENT_CONTEXT, type Opcode, THIS, argument, local } from "./bytecodes";
 import { type Command, DeferredCommands } from "./DeferredCommands";
@@ -93,6 +94,12 @@ type Control =
 
 /** `HandlerTable::CAUGHT`: the exception is predicted to be caught by the handler. */
 const CAUGHT = 1;
+
+/** `HandlerTable::ASYNC_AWAIT`: an exception reaching the handler becomes the rejection of an async function's promise. */
+const ASYNC_AWAIT = 3;
+
+/** Where an async function keeps its generator object (V8's `generator_object()`): the first register, ahead of the locals. */
+const GENERATOR = local(0);
 
 /** `BytecodeArray::kMaxOsrUrgency - 1`: the deepest loop level a `JumpLoop` reports. */
 const MAX_OSR_DEPTH = 5;
@@ -223,8 +230,15 @@ export class FunctionGenerator {
   private readonly controls: Control[] = [];
   /** `HandlerTable::CatchPrediction` of the handler an exception thrown here would reach first. */
   private catchPrediction = 0;
+  private readonly isAsync: boolean;
+  /** Where each `await` resumes; bound as the suspend points are compiled. Only an async function with an `await` has one. */
+  private suspendTable: JumpTable | undefined;
+  private suspendCount = 0;
 
   constructor(options: FunctionGeneratorOptions) {
+    this.isAsync = options.scope.isAsync;
+    // There is no point in an async function's body where an exception goes uncaught: the outermost handler rejects the promise.
+    if (this.isAsync) this.catchPrediction = ASYNC_AWAIT;
     this.source = options.source;
     this.scopes = options.scopes;
     this.functions = options.functions;
@@ -242,6 +256,10 @@ export class FunctionGenerator {
 
   /** A function literal's body: its parameters need no code yet, so it is the declarations, the statements and the final return. */
   generateFunction(node: FunctionLiteral): void {
+    // A generator's state machine is not built yet; compiled as a plain function it would be wrong.
+    if (node.generator) throw new NotYetSupported(node);
+    // V8 puts the generator object after the parameters' own locals and initializes them inside the try; not built yet.
+    if (node.async && !this.functionScope.hasSimpleParameters) throw new NotYetSupported(node);
     const entry = this.functionStart(node);
     if (node.body.type === "BlockStatement") {
       this.generateBody(node.body.body, endOf(node.body) - 1, entry, node.params);
@@ -252,37 +270,52 @@ export class FunctionGenerator {
     this.enterFunction(entry);
     this.initializeParameters(node.params);
     const expression = node.body;
-    b.setStatementPosition(this.positionOf(expression));
-    this.visitForAccumulatorValue(expression);
-    b.setStatementPosition(endWithParentheses(this.source, expression));
-    b.emit("Return");
+    this.inAsyncTry(() => {
+      b.setStatementPosition(this.positionOf(expression));
+      this.visitForAccumulatorValue(expression);
+      this.buildReturn(endWithParentheses(this.source, expression));
+    });
   }
 
   /** V8's `FunctionLiteral::start_position()`: the `(` of the parameters, or the start of an arrow. */
   private functionStart(node: FunctionLiteral): number {
-    if (node.type === "ArrowFunctionExpression") return startOf(node);
-    return operatorPosition(this.source, node.id ? endOf(node.id) : (node.range?.[0] ?? 0) + "function".length);
+    // The arrow's own first token, whether or not it is parenthesized.
+    if (node.type === "ArrowFunctionExpression") return node.range?.[0] ?? 0;
+    const start = node.range?.[0] ?? 0;
+    if (node.id) return operatorPosition(this.source, endOf(node.id));
+    // A method has no `function` keyword: its node starts at the `(` of its parameters.
+    if (this.source[start] === "(") return start;
+    const afterAsync = node.async ? operatorPosition(this.source, start + "async".length) : start;
+    const afterKeyword = operatorPosition(this.source, afterAsync + "function".length);
+    return this.source[afterKeyword] === "*" ? operatorPosition(this.source, afterKeyword + 1) : afterKeyword;
   }
 
   generateBody(statements: readonly Statement[], returnPosition: number, entryPosition = 0, params: readonly Pattern[] = []): void {
     this.enterFunction(entryPosition);
     this.initializeParameters(params);
     this.visitDeclarations(statements);
-    this.visitStatements(statements);
-    if (!this.builder.remainderOfBlockIsDead) {
-      this.builder.emit("LdaUndefined");
-      this.builder.setStatementPosition(returnPosition);
-      this.builder.emit("Return");
-    }
+    this.inAsyncTry(() => {
+      this.visitStatements(statements);
+      if (!this.builder.remainderOfBlockIsDead) {
+        this.builder.emit("LdaUndefined");
+        this.buildReturn(returnPosition);
+      }
+    });
   }
 
   /** The function's own context, when something in it is captured; parameters it holds are copied in. */
   private enterFunction(entryPosition: number): void {
     const b = this.builder;
-    b.setExpressionPosition(entryPosition);
     const scope = this.currentScope;
+    // A resumed generator dispatches before anything else runs, so the switch comes ahead of the entry position.
+    if (this.isAsync && scope.suspendCount > 0) {
+      this.suspendTable = b.allocateJumpTable(scope.suspendCount, 0);
+      b.switchOnGeneratorState(GENERATOR, this.suspendTable);
+    }
+    b.setExpressionPosition(entryPosition);
     if (!scope.needsContext) {
       this.copyClosureName();
+      this.createGeneratorObject();
       return;
     }
     b.emit("CreateFunctionContext", b.constantPool.add({ kind: "scope-info", scope: "FUNCTION_SCOPE" }), scope.contextSlots);
@@ -298,6 +331,69 @@ export class FunctionGenerator {
       b.emit("Ldar", argument(parameter.parameterIndex ?? 0));
       b.emit("StaCurrentContextSlot", this.slotOf(parameter));
     }
+    this.createGeneratorObject();
+  }
+
+  /** V8's BuildGeneratorObjectVariableInitialization: an async function starts by creating the promise and its generator object. */
+  private createGeneratorObject(): void {
+    if (!this.isAsync) return;
+    const b = this.builder;
+    const top = b.registerTop;
+    const closure = b.allocateRegister();
+    b.allocateRegister();
+    b.emit("Mov", CLOSURE, local(closure));
+    b.emit("Mov", THIS, local(closure + 1));
+    b.emit("InvokeIntrinsic", "_AsyncFunctionEnter", local(closure), 2);
+    b.emit("Star", GENERATOR);
+    b.releaseRegisters(top);
+  }
+
+  /**
+   * An async function's body runs under a handler that turns whatever is thrown into the rejection
+   * of its promise (V8's parser wraps the body in a try/catch for it); any other body runs as it is.
+   */
+  private inAsyncTry(body: () => void): void {
+    if (!this.isAsync) {
+      body();
+      return;
+    }
+    const b = this.builder;
+    this.buildTryCatch(
+      body,
+      () => {
+        const top = b.registerTop;
+        const generator = b.allocateRegister();
+        const exception = b.allocateRegister();
+        b.emit("Star", local(exception));
+        b.emit("LdaTheHole");
+        b.emit("SetPendingMessage");
+        b.emit("Mov", GENERATOR, local(generator));
+        b.emit("InvokeIntrinsic", "_AsyncFunctionReject", local(generator), 2);
+        b.emit("Return");
+        b.releaseRegisters(top);
+      },
+      this.catchPrediction,
+    );
+  }
+
+  /** The return of the value in the accumulator; an async function resolves its promise with it first. */
+  private buildReturn(position: number): void {
+    const b = this.builder;
+    if (this.isAsync) this.resolvePromise();
+    b.setStatementPosition(position);
+    b.emit("Return");
+  }
+
+  /** V8's BuildAsyncReturn: `%_AsyncFunctionResolve(generator, value)`, the value being the accumulator. */
+  private resolvePromise(): void {
+    const b = this.builder;
+    const top = b.registerTop;
+    const generator = b.allocateRegister();
+    const value = b.allocateRegister();
+    b.emit("Star", local(value));
+    b.emit("Mov", GENERATOR, local(generator));
+    b.emit("InvokeIntrinsic", "_AsyncFunctionResolve", local(generator), 2);
+    b.releaseRegisters(top);
   }
 
   /** A named function expression's own name starts out as the running closure. */
@@ -549,6 +645,7 @@ export class FunctionGenerator {
       }
     }
     if (command.kind === "return") {
+      if (this.isAsync) this.resolvePromise();
       if (position !== undefined) b.setStatementPosition(position);
       b.emit("Return");
     } else if (command.kind === "rethrow") {
@@ -900,6 +997,8 @@ export class FunctionGenerator {
         return this.visitUpdate(node);
       case "TemplateLiteral":
         return this.visitTemplateLiteral(node);
+      case "AwaitExpression":
+        return this.visitAwait(node);
       case "FunctionExpression":
       case "ArrowFunctionExpression":
         if (node.type === "FunctionExpression" && node.id) this.buildClosure(node, node.id.name, node.id.name);
@@ -920,6 +1019,54 @@ export class FunctionGenerator {
       default:
         throw new NotYetSupported(node);
     }
+  }
+
+  private visitAwait(node: AwaitExpression): void {
+    // At the `await` keyword, even inside parentheses.
+    const position = node.range?.[0] ?? 0;
+    this.builder.setExpressionPosition(position);
+    this.visitForAccumulatorValue(node.argument);
+    this.buildAwait(position);
+  }
+
+  /**
+   * V8's BuildAwait: hands the value to the promise machinery, suspends the generator and, once it
+   * is resumed with the settled value, either continues with it or rethrows it.
+   */
+  private buildAwait(position: number): void {
+    const b = this.builder;
+    const table = this.suspendTable;
+    if (!table) throw new Error("await in a function that has no suspend points");
+    const top = b.registerTop;
+    const generator = b.allocateRegister();
+    const value = b.allocateRegister();
+    b.emit("Star", local(value));
+    b.emit("Mov", GENERATOR, local(generator));
+    b.emit("InvokeIntrinsic", "_AsyncFunctionAwait", local(generator), 2);
+    b.releaseRegisters(top);
+
+    // BuildSuspendPoint: every live register is saved, and restored when execution resumes here.
+    const suspendId = this.suspendCount++;
+    const live = b.registerTop;
+    b.setExpressionPosition(position);
+    b.emit("SuspendGenerator", GENERATOR, local(0), live, suspendId);
+    b.bindJumpTableEntry(table, suspendId);
+    b.emit("ResumeGenerator", GENERATOR, local(0), live);
+
+    const input = b.allocateRegister();
+    const resumeMode = b.allocateRegister();
+    b.emit("Star", local(input));
+    b.emit("InvokeIntrinsic", "_GeneratorGetResumeMode", GENERATOR, 1);
+    b.emit("Star", local(resumeMode));
+    b.emit("LdaZero"); // JSGeneratorObject::kNext
+    b.emit("TestReferenceEqual", local(resumeMode));
+    const resumeNext = this.newLabels();
+    b.jump("JumpIfTrue", resumeNext.new());
+    // Resumed with a throw completion: rethrow the received value.
+    b.emit("Ldar", local(input));
+    b.emit("ReThrow");
+    resumeNext.bind();
+    b.emit("Ldar", local(input));
   }
 
   private visitLiteralValue(literal: LiteralValue): void {
@@ -1186,8 +1333,8 @@ export class FunctionGenerator {
       if (isCompileTimeValue(value)) continue;
       const name = this.propertyNameOf(property);
       if (name === undefined || elementIndexOf(property) !== undefined) throw new NotYetSupported(property);
-      // A method's function literal starts at its name, not at its parameter list.
-      b.setExpressionPosition(property.method ? startOf(property.key) : this.positionOf(value));
+      // A method's function literal starts where the method does (its `async` keyword, else its name), not at its parameter list.
+      b.setExpressionPosition(property.method ? (property.range?.[0] ?? startOf(property.key)) : this.positionOf(value));
       // A method keeps its own name in the header; any other anonymous function is named `path.key`.
       const qualified = path === "" ? name : `${path}.${name}`;
       this.visitForAccumulatorValue(value, name, property.method ? name : qualified);

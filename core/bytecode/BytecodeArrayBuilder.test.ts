@@ -595,6 +595,21 @@ describe("BytecodeArrayBuilder: jump tables", () => {
     expect(texts(b)[1]).toBe("SwitchOnSmiNoFeedback [0], [3], [1] { 1: @7, 3: @6 }");
   });
 
+  it("switches on the generator state with no case base, resuming at the bound suspend points", () => {
+    const b = new BytecodeArrayBuilder({ parameterCount: 1, localCount: 1 });
+    const table = b.allocateJumpTable(2, 0);
+    b.switchOnGeneratorState(local(0), table);
+    b.emit("LdaUndefined");
+    b.emit("Return");
+    b.bindJumpTableEntry(table, 0);
+    b.emit("Return");
+    b.bindJumpTableEntry(table, 1);
+    b.emit("Return");
+    expect(texts(b)[0]).toBe("SwitchOnGeneratorState r0, [0], [2] { 0: @6, 1: @7 }");
+    b.build();
+    expect(b.constantPool.printEntries()).toEqual(["6", "7"]);
+  });
+
   it("flushes the register optimizer before the switch, so a register that only stood in for another is real at every target", () => {
     const b = new BytecodeArrayBuilder({ parameterCount: 1, optimizeRegisters: true });
     const table = b.allocateJumpTable(1, 0);
