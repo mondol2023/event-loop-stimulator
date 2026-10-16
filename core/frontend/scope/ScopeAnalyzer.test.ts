@@ -236,11 +236,11 @@ describe("allocation: registers, context slots, parameters", () => {
     expect(variable(tree.root, "a").captured).toBe(true);
   });
 
-  it("a named function expression's own name resolves to the closure and is not a register", () => {
+  it("a named function expression's own name is a register copied from the closure", () => {
     const tree = analyze("const f = function g() { return g; };");
     const g = refs(tree, "g")[0]?.resolved as Variable;
     expect(g.kind).toBe("function-name");
-    expect(g.allocation.kind).toBe("closure");
+    expect(g.allocation).toEqual({ kind: "register", index: 0 });
   });
 
   it("a parameter or var named like the function expression shadows its name", () => {

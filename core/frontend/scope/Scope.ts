@@ -23,14 +23,12 @@ export type VariableKind = "var" | "let" | "const" | "function" | "param" | "cat
  *   allocation order (a scope's own locals, then inner scopes in tree order);
  * - `context`: a slot (0-based, before V8's fixed header slots) of the context
  *   of the scope that declares it, iff an inner function references it;
- * - `parameter`: argument `index` (0-based, receiver excluded);
- * - `closure`: the callee itself, for an uncaptured `function-name`.
+ * - `parameter`: argument `index` (0-based, receiver excluded).
  */
 export type Allocation =
   | { readonly kind: "register"; readonly index: number }
   | { readonly kind: "context"; readonly index: number }
   | { readonly kind: "parameter"; readonly index: number }
-  | { readonly kind: "closure" }
   /** No code names the variable (no reference, no initializer): V8 gives it no storage at all. */
   | { readonly kind: "unused" };
 

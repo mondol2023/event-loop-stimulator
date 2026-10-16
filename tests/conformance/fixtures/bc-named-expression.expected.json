@@ -1,0 +1,368 @@
+{
+  "schema": 1,
+  "fixture": "bc-named-expression",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 18,
+      "parameterCount": 6,
+      "registerCount": 2,
+      "frameSize": 16
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star0"
+      },
+      {
+        "offset": 5,
+        "text": "CreateClosure [1], [1], #2"
+      },
+      {
+        "offset": 9,
+        "text": "Star1"
+      },
+      {
+        "offset": 10,
+        "position": {
+          "at": 164,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r0, [0]"
+      },
+      {
+        "offset": 13,
+        "position": {
+          "at": 267,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r1, [2]"
+      },
+      {
+        "offset": 16,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 17,
+        "position": {
+          "at": 280,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo outer>",
+      "<SharedFunctionInfo viaClosure>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "0": {
+        "name": "outer",
+        "header": {
+          "length": 13,
+          "parameterCount": 1,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 84,
+              "kind": "S"
+            },
+            "text": "CreateClosure [0], [0], #2"
+          },
+          {
+            "offset": 4,
+            "text": "Star0"
+          },
+          {
+            "offset": 5,
+            "position": {
+              "at": 146,
+              "kind": "S"
+            },
+            "text": "LdaSmi [3]"
+          },
+          {
+            "offset": 7,
+            "text": "Star2"
+          },
+          {
+            "offset": 8,
+            "position": {
+              "at": 153,
+              "kind": "E"
+            },
+            "text": "CallUndefinedReceiver1 r0, r2, [0]"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 161,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<SharedFunctionInfo inner>"
+        ],
+        "handlerTable": [],
+        "children": {
+          "0": {
+            "name": "inner",
+            "header": {
+              "length": 28,
+              "parameterCount": 2,
+              "registerCount": 4,
+              "frameSize": 32
+            },
+            "instructions": [
+              {
+                "offset": 0,
+                "text": "Mov <closure>, r0"
+              },
+              {
+                "offset": 3,
+                "position": {
+                  "at": 104,
+                  "kind": "S"
+                },
+                "text": "LdaSmi [2]"
+              },
+              {
+                "offset": 5,
+                "position": {
+                  "at": 113,
+                  "kind": "E"
+                },
+                "text": "TestLessThan a0, [0]"
+              },
+              {
+                "offset": 8,
+                "text": "JumpIfFalse [6] (@14)"
+              },
+              {
+                "offset": 10,
+                "text": "LdaSmi [1]"
+              },
+              {
+                "offset": 12,
+                "text": "Jump [15] (@27)"
+              },
+              {
+                "offset": 14,
+                "text": "Ldar a0"
+              },
+              {
+                "offset": 16,
+                "position": {
+                  "at": 135,
+                  "kind": "E"
+                },
+                "text": "SubSmi [1], [2]"
+              },
+              {
+                "offset": 19,
+                "text": "Star3"
+              },
+              {
+                "offset": 20,
+                "position": {
+                  "at": 127,
+                  "kind": "E"
+                },
+                "text": "CallUndefinedReceiver1 r0, r3, [3]"
+              },
+              {
+                "offset": 24,
+                "position": {
+                  "at": 125,
+                  "kind": "E"
+                },
+                "text": "Mul a0, [1]"
+              },
+              {
+                "offset": 27,
+                "position": {
+                  "at": 140,
+                  "kind": "S"
+                },
+                "text": "Return"
+              }
+            ],
+            "constantPool": [],
+            "handlerTable": [],
+            "children": {}
+          }
+        }
+      },
+      "1": {
+        "name": "viaClosure",
+        "header": {
+          "length": 13,
+          "parameterCount": 1,
+          "registerCount": 2,
+          "frameSize": 16
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 209,
+              "kind": "S"
+            },
+            "text": "CreateClosure [0], [0], #2"
+          },
+          {
+            "offset": 4,
+            "text": "Star0"
+          },
+          {
+            "offset": 5,
+            "position": {
+              "at": 258,
+              "kind": "S"
+            },
+            "text": "CallUndefinedReceiver0 r0, [0]"
+          },
+          {
+            "offset": 8,
+            "text": "Star1"
+          },
+          {
+            "offset": 9,
+            "position": {
+              "at": 261,
+              "kind": "E"
+            },
+            "text": "CallUndefinedReceiver0 r1, [2]"
+          },
+          {
+            "offset": 12,
+            "position": {
+              "at": 264,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<SharedFunctionInfo self>"
+        ],
+        "handlerTable": [],
+        "children": {
+          "0": {
+            "name": "self",
+            "header": {
+              "length": 14,
+              "parameterCount": 1,
+              "registerCount": 1,
+              "frameSize": 8
+            },
+            "instructions": [
+              {
+                "offset": 0,
+                "position": {
+                  "at": 222,
+                  "kind": "E"
+                },
+                "text": "CreateFunctionContext [0], [1]"
+              },
+              {
+                "offset": 3,
+                "text": "PushContext r0"
+              },
+              {
+                "offset": 5,
+                "text": "Ldar <closure>"
+              },
+              {
+                "offset": 7,
+                "text": "StaCurrentContextSlot [2]"
+              },
+              {
+                "offset": 9,
+                "position": {
+                  "at": 227,
+                  "kind": "S"
+                },
+                "text": "CreateClosure [1], [0], #2"
+              },
+              {
+                "offset": 13,
+                "position": {
+                  "at": 245,
+                  "kind": "S"
+                },
+                "text": "Return"
+              }
+            ],
+            "constantPool": [
+              "<ScopeInfo FUNCTION_SCOPE>",
+              "<SharedFunctionInfo>"
+            ],
+            "handlerTable": [],
+            "children": {
+              "1": {
+                "name": "",
+                "header": {
+                  "length": 3,
+                  "parameterCount": 1,
+                  "registerCount": 0,
+                  "frameSize": 0
+                },
+                "instructions": [
+                  {
+                    "offset": 0,
+                    "position": {
+                      "at": 240,
+                      "kind": "S"
+                    },
+                    "text": "LdaImmutableCurrentContextSlot [2]"
+                  },
+                  {
+                    "offset": 2,
+                    "position": {
+                      "at": 244,
+                      "kind": "S"
+                    },
+                    "text": "Return"
+                  }
+                ],
+                "constantPool": [],
+                "handlerTable": [],
+                "children": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

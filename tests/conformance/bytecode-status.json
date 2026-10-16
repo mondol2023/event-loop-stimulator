@@ -66,6 +66,9 @@
   "bc-loops": {
     "status": "exact"
   },
+  "bc-named-expression": {
+    "status": "exact"
+  },
   "bc-receiver-capture": {
     "status": "exact"
   },

@@ -588,11 +588,13 @@ class Analyzer {
 
   /** V8 gives context slots to the receiver first, then to plain parameters last to first, then to the other locals. */
   private allocationOrder(scope: Scope): readonly Variable[] {
-    if (!scope.hasSimpleParameters) return scope.variables;
+    // V8 allocates the function's own name after every other local.
+    const name = scope.variables.filter((v) => v.kind === "function-name");
+    if (!scope.hasSimpleParameters) return [...scope.variables.filter((v) => v.kind !== "function-name"), ...name];
     const receiver = scope.variables.filter((v) => v.kind === "this");
     const parameters = scope.variables.filter((v) => v.kind === "param").reverse();
-    const rest = scope.variables.filter((v) => v.kind !== "this" && v.kind !== "param");
-    return [...receiver, ...parameters, ...rest];
+    const rest = scope.variables.filter((v) => v.kind !== "this" && v.kind !== "param" && v.kind !== "function-name");
+    return [...receiver, ...parameters, ...rest, ...name];
   }
 
   private allocateScope(scope: Scope, registers: { next: number }): void {
@@ -601,8 +603,6 @@ class Analyzer {
         variable.allocation = { kind: "unused" };
       } else if (variable.captured) {
         variable.allocation = { kind: "context", index: scope.contextSlots++ };
-      } else if (variable.kind === "function-name") {
-        variable.allocation = { kind: "closure" };
       } else if (variable.kind === "param" && variable.parameterIndex !== undefined && scope.hasSimpleParameters) {
         // With defaults the named parameter is a local that V8 initializes from the raw argument.
         variable.allocation = { kind: "parameter", index: variable.parameterIndex };

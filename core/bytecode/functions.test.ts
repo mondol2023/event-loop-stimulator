@@ -1142,3 +1142,74 @@ exits(1);
     );
   });
 });
+
+describe("a named function expression's own name", () => {
+  const source = `// A named function expression sees its own name.
+function outer() {
+  const fact = function inner(n) { return n < 2 ? 1 : n * inner(n - 1); };
+  return fact(3);
+}
+outer();
+function viaClosure() {
+  const g = function self() { return () => self; };
+  return g()();
+}
+viaClosure();
+`;
+
+  it("is a register copied from the closure, or a context slot when captured", () => {
+    expectFunctions(
+      source,
+      {},
+      {
+        registerCount: 3,
+        instructions: ["84 S> CreateClosure [0], [0], #2", "Star0", "146 S> LdaSmi [3]", "Star2", "153 E> CallUndefinedReceiver1 r0, r2, [0]", "161 S> Return"],
+        children: [
+          {
+            registerCount: 4,
+            instructions: [
+              "Mov <closure>, r0",
+              "104 S> LdaSmi [2]",
+              "113 E> TestLessThan a0, [0]",
+              "JumpIfFalse [6] (@14)",
+              "LdaSmi [1]",
+              "Jump [15] (@27)",
+              "Ldar a0",
+              "135 E> SubSmi [1], [2]",
+              "Star3",
+              "127 E> CallUndefinedReceiver1 r0, r3, [3]",
+              "125 E> Mul a0, [1]",
+              "140 S> Return",
+            ],
+          },
+        ],
+      },
+      {
+        registerCount: 2,
+        instructions: [
+          "209 S> CreateClosure [0], [0], #2",
+          "Star0",
+          "258 S> CallUndefinedReceiver0 r0, [0]",
+          "Star1",
+          "261 E> CallUndefinedReceiver0 r1, [2]",
+          "264 S> Return",
+        ],
+        children: [
+          {
+            registerCount: 1,
+            instructions: [
+              "222 E> CreateFunctionContext [0], [1]",
+              "PushContext r0",
+              "Ldar <closure>",
+              "StaCurrentContextSlot [2]",
+              "227 S> CreateClosure [1], [0], #2",
+              "245 S> Return",
+            ],
+            constantPool: ["<ScopeInfo FUNCTION_SCOPE>", "<SharedFunctionInfo>"],
+            children: [{ registerCount: 0, instructions: ["240 S> LdaImmutableCurrentContextSlot [2]", "244 S> Return"] }],
+          },
+        ],
+      },
+    );
+  });
+});

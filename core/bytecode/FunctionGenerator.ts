@@ -27,7 +27,7 @@ import type { ReferenceInfo, Scope, ScopeTree, Variable } from "@/core/frontend/
 import type { FunctionId } from "@/core/shared/ids";
 import { BytecodeArrayBuilder, type Label } from "./BytecodeArrayBuilder";
 import { BytecodeLabels } from "./BytecodeLabels";
-import { CURRENT_CONTEXT, type Opcode, THIS, argument, local } from "./bytecodes";
+import { CLOSURE, CURRENT_CONTEXT, type Opcode, THIS, argument, local } from "./bytecodes";
 import { type LiteralValue, isSmi, literalOf, toBooleanOf } from "./literals";
 import { endOf, operatorPosition, startOf } from "./sourceText";
 
@@ -236,18 +236,33 @@ export class FunctionGenerator {
     const b = this.builder;
     b.setExpressionPosition(entryPosition);
     const scope = this.currentScope;
-    if (!scope.needsContext) return;
+    if (!scope.needsContext) {
+      this.copyClosureName();
+      return;
+    }
     b.emit("CreateFunctionContext", b.constantPool.add({ kind: "scope-info", scope: "FUNCTION_SCOPE" }), scope.contextSlots);
     this.pushContext(scope);
     if (scope.thisVariable) {
       b.emit("Ldar", THIS);
       b.emit("StaCurrentContextSlot", this.slotOf(scope.thisVariable));
     }
+    this.copyClosureName();
     // With defaults the parameters are set by their initializers instead.
     const parameters = scope.hasSimpleParameters ? scope.variables.filter((v) => v.kind === "param" && v.allocation.kind === "context") : [];
     for (const parameter of parameters.sort((a, c) => (a.parameterIndex ?? 0) - (c.parameterIndex ?? 0))) {
       b.emit("Ldar", argument(parameter.parameterIndex ?? 0));
       b.emit("StaCurrentContextSlot", this.slotOf(parameter));
+    }
+  }
+
+  /** A named function expression's own name starts out as the running closure. */
+  private copyClosureName(): void {
+    const variable = this.currentScope.variables.find((v) => v.kind === "function-name");
+    const allocation = variable?.allocation;
+    if (allocation?.kind === "register") this.builder.emit("Mov", CLOSURE, local(allocation.index));
+    else if (variable && allocation?.kind === "context") {
+      this.builder.emit("Ldar", CLOSURE);
+      this.builder.emit("StaCurrentContextSlot", this.slotOf(variable));
     }
   }
 
