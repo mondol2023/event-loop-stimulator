@@ -1,0 +1,902 @@
+{
+  "schema": 1,
+  "fixture": "bc-optional",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "{ b: 1 } 1 undefined undefined { b: 1 } 1 undefined\n2 2 undefined undefined 1\n3 4\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 306,
+      "parameterCount": 6,
+      "registerCount": 13,
+      "frameSize": 104
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star3"
+      },
+      {
+        "offset": 5,
+        "position": {
+          "at": 78,
+          "kind": "S"
+        },
+        "text": "CreateObjectLiteral [1], [0], #12"
+      },
+      {
+        "offset": 9,
+        "text": "Star4"
+      },
+      {
+        "offset": 10,
+        "position": {
+          "at": 93,
+          "kind": "E"
+        },
+        "text": "CreateClosure [2], [1], #2"
+      },
+      {
+        "offset": 14,
+        "text": "DefineNamedOwnProperty r4, [3], [1]"
+      },
+      {
+        "offset": 18,
+        "text": "Mov r4, r0"
+      },
+      {
+        "offset": 21,
+        "position": {
+          "at": 139,
+          "kind": "S"
+        },
+        "text": "LdaNull"
+      },
+      {
+        "offset": 22,
+        "text": "Star1"
+      },
+      {
+        "offset": 23,
+        "position": {
+          "at": 153,
+          "kind": "S"
+        },
+        "text": "LdaConstant [4]"
+      },
+      {
+        "offset": 25,
+        "text": "Star2"
+      },
+      {
+        "offset": 26,
+        "position": {
+          "at": 158,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [5], [3]"
+      },
+      {
+        "offset": 29,
+        "text": "Star5"
+      },
+      {
+        "offset": 30,
+        "position": {
+          "at": 166,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [6], [5]"
+      },
+      {
+        "offset": 34,
+        "text": "Star4"
+      },
+      {
+        "offset": 35,
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 37,
+        "text": "Mov r0, r6"
+      },
+      {
+        "offset": 40,
+        "text": "JumpIfUndefinedOrNull [8] (@48)"
+      },
+      {
+        "offset": 42,
+        "position": {
+          "at": 171,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r6, [4], [7]"
+      },
+      {
+        "offset": 46,
+        "text": "Jump [3] (@49)"
+      },
+      {
+        "offset": 48,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 49,
+        "text": "Star6"
+      },
+      {
+        "offset": 50,
+        "position": {
+          "at": 178,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r0, [4], [7]"
+      },
+      {
+        "offset": 54,
+        "text": "Star7"
+      },
+      {
+        "offset": 55,
+        "text": "JumpIfUndefinedOrNull [8] (@63)"
+      },
+      {
+        "offset": 57,
+        "position": {
+          "at": 179,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r7, [7], [9]"
+      },
+      {
+        "offset": 61,
+        "text": "Jump [3] (@64)"
+      },
+      {
+        "offset": 63,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 64,
+        "text": "Star7"
+      },
+      {
+        "offset": 65,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 67,
+        "text": "Mov r1, r8"
+      },
+      {
+        "offset": 70,
+        "text": "JumpIfUndefinedOrNull [8] (@78)"
+      },
+      {
+        "offset": 72,
+        "position": {
+          "at": 191,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r8, [4], [11]"
+      },
+      {
+        "offset": 76,
+        "text": "Jump [3] (@79)"
+      },
+      {
+        "offset": 78,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 79,
+        "text": "Star8"
+      },
+      {
+        "offset": 80,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 82,
+        "text": "Mov r1, r9"
+      },
+      {
+        "offset": 85,
+        "text": "JumpIfUndefinedOrNull [13] (@98)"
+      },
+      {
+        "offset": 87,
+        "position": {
+          "at": 203,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r9, [4], [11]"
+      },
+      {
+        "offset": 91,
+        "text": "Star9"
+      },
+      {
+        "offset": 92,
+        "position": {
+          "at": 206,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r9, [7], [13]"
+      },
+      {
+        "offset": 96,
+        "text": "Jump [3] (@99)"
+      },
+      {
+        "offset": 98,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 99,
+        "text": "Star9"
+      },
+      {
+        "offset": 100,
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 102,
+        "text": "Mov r0, r10"
+      },
+      {
+        "offset": 105,
+        "text": "JumpIfUndefinedOrNull [9] (@114)"
+      },
+      {
+        "offset": 107,
+        "text": "Ldar r2"
+      },
+      {
+        "offset": 109,
+        "position": {
+          "at": 213,
+          "kind": "E"
+        },
+        "text": "GetKeyedProperty r10, [15]"
+      },
+      {
+        "offset": 112,
+        "text": "Jump [3] (@115)"
+      },
+      {
+        "offset": 114,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 115,
+        "text": "Star10"
+      },
+      {
+        "offset": 116,
+        "position": {
+          "at": 220,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r0, [8], [17]"
+      },
+      {
+        "offset": 120,
+        "text": "Star11"
+      },
+      {
+        "offset": 121,
+        "text": "JumpIfUndefinedOrNull [8] (@129)"
+      },
+      {
+        "offset": 123,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 124,
+        "position": {
+          "at": 226,
+          "kind": "E"
+        },
+        "text": "GetKeyedProperty r11, [19]"
+      },
+      {
+        "offset": 127,
+        "text": "Jump [3] (@130)"
+      },
+      {
+        "offset": 129,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 130,
+        "text": "Star11"
+      },
+      {
+        "offset": 131,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 133,
+        "text": "Mov r1, r12"
+      },
+      {
+        "offset": 136,
+        "text": "JumpIfUndefinedOrNull [9] (@145)"
+      },
+      {
+        "offset": 138,
+        "text": "Ldar r2"
+      },
+      {
+        "offset": 140,
+        "position": {
+          "at": 240,
+          "kind": "E"
+        },
+        "text": "GetKeyedProperty r12, [21]"
+      },
+      {
+        "offset": 143,
+        "text": "Jump [3] (@146)"
+      },
+      {
+        "offset": 145,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 146,
+        "text": "Star12"
+      },
+      {
+        "offset": 147,
+        "position": {
+          "at": 166,
+          "kind": "E"
+        },
+        "text": "CallProperty r4, r5-r12, [23]"
+      },
+      {
+        "offset": 152,
+        "position": {
+          "at": 246,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [5], [3]"
+      },
+      {
+        "offset": 155,
+        "text": "Star5"
+      },
+      {
+        "offset": 156,
+        "position": {
+          "at": 254,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [6], [5]"
+      },
+      {
+        "offset": 160,
+        "text": "Star4"
+      },
+      {
+        "offset": 161,
+        "position": {
+          "at": 260,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r0, [3], [25]"
+      },
+      {
+        "offset": 165,
+        "text": "Star6"
+      },
+      {
+        "offset": 166,
+        "text": "Mov r0, r7"
+      },
+      {
+        "offset": 169,
+        "text": "JumpIfUndefinedOrNull [8] (@177)"
+      },
+      {
+        "offset": 171,
+        "position": {
+          "at": 263,
+          "kind": "E"
+        },
+        "text": "CallProperty0 r6, r7, [27]"
+      },
+      {
+        "offset": 175,
+        "text": "Jump [3] (@178)"
+      },
+      {
+        "offset": 177,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 178,
+        "text": "Star6"
+      },
+      {
+        "offset": 179,
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 181,
+        "text": "Mov r0, r8"
+      },
+      {
+        "offset": 184,
+        "text": "JumpIfUndefinedOrNull [13] (@197)"
+      },
+      {
+        "offset": 186,
+        "position": {
+          "at": 268,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r8, [3], [25]"
+      },
+      {
+        "offset": 190,
+        "text": "Star7"
+      },
+      {
+        "offset": 191,
+        "position": {
+          "at": 270,
+          "kind": "E"
+        },
+        "text": "CallProperty0 r7, r8, [29]"
+      },
+      {
+        "offset": 195,
+        "text": "Jump [3] (@198)"
+      },
+      {
+        "offset": 197,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 198,
+        "text": "Star7"
+      },
+      {
+        "offset": 199,
+        "text": "Ldar r1"
+      },
+      {
+        "offset": 201,
+        "text": "Mov r1, r9"
+      },
+      {
+        "offset": 204,
+        "text": "JumpIfUndefinedOrNull [13] (@217)"
+      },
+      {
+        "offset": 206,
+        "position": {
+          "at": 282,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r9, [3], [31]"
+      },
+      {
+        "offset": 210,
+        "text": "Star8"
+      },
+      {
+        "offset": 211,
+        "position": {
+          "at": 284,
+          "kind": "E"
+        },
+        "text": "CallProperty0 r8, r9, [33]"
+      },
+      {
+        "offset": 215,
+        "text": "Jump [3] (@218)"
+      },
+      {
+        "offset": 217,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 218,
+        "text": "Star8"
+      },
+      {
+        "offset": 219,
+        "position": {
+          "at": 291,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r0, [9], [35]"
+      },
+      {
+        "offset": 223,
+        "text": "Star9"
+      },
+      {
+        "offset": 224,
+        "text": "Mov r0, r10"
+      },
+      {
+        "offset": 227,
+        "text": "JumpIfUndefinedOrNull [8] (@235)"
+      },
+      {
+        "offset": 229,
+        "position": {
+          "at": 294,
+          "kind": "E"
+        },
+        "text": "CallProperty0 r9, r10, [37]"
+      },
+      {
+        "offset": 233,
+        "text": "Jump [3] (@236)"
+      },
+      {
+        "offset": 235,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 236,
+        "text": "Star9"
+      },
+      {
+        "offset": 237,
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 239,
+        "text": "Mov r0, r10"
+      },
+      {
+        "offset": 242,
+        "text": "JumpIfUndefinedOrNull [8] (@250)"
+      },
+      {
+        "offset": 244,
+        "position": {
+          "at": 300,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r10, [4], [7]"
+      },
+      {
+        "offset": 248,
+        "text": "Jump [3] (@251)"
+      },
+      {
+        "offset": 250,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 251,
+        "text": "Star10"
+      },
+      {
+        "offset": 252,
+        "position": {
+          "at": 305,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r10, [7], [39]"
+      },
+      {
+        "offset": 256,
+        "text": "Star10"
+      },
+      {
+        "offset": 257,
+        "position": {
+          "at": 254,
+          "kind": "E"
+        },
+        "text": "CallProperty r4, r5-r10, [41]"
+      },
+      {
+        "offset": 262,
+        "position": {
+          "at": 360,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [5], [3]"
+      },
+      {
+        "offset": 265,
+        "text": "Star5"
+      },
+      {
+        "offset": 266,
+        "position": {
+          "at": 368,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r5, [6], [5]"
+      },
+      {
+        "offset": 270,
+        "text": "Star4"
+      },
+      {
+        "offset": 271,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 272,
+        "text": "Star7"
+      },
+      {
+        "offset": 273,
+        "position": {
+          "at": 377,
+          "kind": "E"
+        },
+        "text": "CreateObjectLiteral [10], [43], #41"
+      },
+      {
+        "offset": 277,
+        "text": "Star8"
+      },
+      {
+        "offset": 278,
+        "position": {
+          "at": 372,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r3, r7, r8, [44]"
+      },
+      {
+        "offset": 283,
+        "text": "Star6"
+      },
+      {
+        "offset": 284,
+        "position": {
+          "at": 399,
+          "kind": "E"
+        },
+        "text": "CreateClosure [11], [2], #2"
+      },
+      {
+        "offset": 288,
+        "text": "Star8"
+      },
+      {
+        "offset": 289,
+        "text": "LdaSmi [4]"
+      },
+      {
+        "offset": 291,
+        "text": "Star9"
+      },
+      {
+        "offset": 292,
+        "position": {
+          "at": 399,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver2 r3, r8, r9, [46]"
+      },
+      {
+        "offset": 297,
+        "text": "Star7"
+      },
+      {
+        "offset": 298,
+        "position": {
+          "at": 368,
+          "kind": "E"
+        },
+        "text": "CallProperty2 r4, r5, r6, r7, [48]"
+      },
+      {
+        "offset": 304,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 305,
+        "position": {
+          "at": 418,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo call>",
+      "<ObjectBoilerplateDescription[6]>",
+      "<SharedFunctionInfo f>",
+      "<String[1]: #f>",
+      "<String[1]: #a>",
+      "<String[7]: #console>",
+      "<String[3]: #log>",
+      "<String[1]: #b>",
+      "<String[4]: #list>",
+      "<String[1]: #g>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<SharedFunctionInfo>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "0": {
+        "name": "call",
+        "header": {
+          "length": 33,
+          "parameterCount": 3,
+          "registerCount": 1,
+          "frameSize": 8
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 334,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 2,
+            "text": "Mov a0, r0"
+          },
+          {
+            "offset": 5,
+            "text": "JumpIfUndefinedOrNull [8] (@13)"
+          },
+          {
+            "offset": 7,
+            "position": {
+              "at": 345,
+              "kind": "E"
+            },
+            "text": "CallUndefinedReceiver1 r0, a1, [0]"
+          },
+          {
+            "offset": 11,
+            "text": "Jump [3] (@14)"
+          },
+          {
+            "offset": 13,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 14,
+            "text": "JumpIfUndefinedOrNull [4] (@18)"
+          },
+          {
+            "offset": 16,
+            "text": "Jump [16] (@32)"
+          },
+          {
+            "offset": 18,
+            "text": "Ldar a1"
+          },
+          {
+            "offset": 20,
+            "text": "Mov a1, r0"
+          },
+          {
+            "offset": 23,
+            "text": "JumpIfUndefinedOrNull [8] (@31)"
+          },
+          {
+            "offset": 25,
+            "position": {
+              "at": 353,
+              "kind": "E"
+            },
+            "text": "GetNamedProperty r0, [0], [2]"
+          },
+          {
+            "offset": 29,
+            "text": "Jump [3] (@32)"
+          },
+          {
+            "offset": 31,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 32,
+            "position": {
+              "at": 357,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<String[1]: #y>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "2": {
+        "name": "f",
+        "header": {
+          "length": 3,
+          "parameterCount": 1,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 99,
+              "kind": "S"
+            },
+            "text": "LdaSmi [2]"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 108,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "11": {
+        "name": "",
+        "header": {
+          "length": 3,
+          "parameterCount": 2,
+          "registerCount": 0,
+          "frameSize": 0
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 411,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 412,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}

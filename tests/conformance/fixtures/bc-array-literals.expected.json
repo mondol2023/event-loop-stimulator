@@ -1,0 +1,655 @@
+{
+  "schema": 1,
+  "fixture": "bc-array-literals",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "[] [ 1, 2, 3 ] [ 1.5, 2.5 ] [ 'a', 'b' ] [ 1, <1 empty item>, 3 ] [ <1 empty item>, 1 ] [ <2 empty items> ] [ 1, 2, 3 ] [ 1, 2, 1 ] [ [ 1 ], [ 2, [ 3 ] ] ] [ 1, 'a', null, true, undefined ] [ { a: 1 }, { b: 1 } ] 2\n[ 1, <1 empty item>, 2 ] [ -1, -0, 1e+21 ]\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 263,
+      "parameterCount": 6,
+      "registerCount": 30,
+      "frameSize": 240
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star14"
+      },
+      {
+        "offset": 5,
+        "position": {
+          "at": 113,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 7,
+        "text": "Star0"
+      },
+      {
+        "offset": 8,
+        "position": {
+          "at": 128,
+          "kind": "S"
+        },
+        "text": "CreateEmptyArrayLiteral [0]"
+      },
+      {
+        "offset": 10,
+        "text": "Star1"
+      },
+      {
+        "offset": 11,
+        "position": {
+          "at": 143,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [1], [1], #37"
+      },
+      {
+        "offset": 15,
+        "text": "Star2"
+      },
+      {
+        "offset": 16,
+        "position": {
+          "at": 168,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [2], [2], #37"
+      },
+      {
+        "offset": 20,
+        "text": "Star3"
+      },
+      {
+        "offset": 21,
+        "position": {
+          "at": 194,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [3], [3], #37"
+      },
+      {
+        "offset": 25,
+        "text": "Star4"
+      },
+      {
+        "offset": 26,
+        "position": {
+          "at": 218,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [4], [4], #37"
+      },
+      {
+        "offset": 30,
+        "text": "Star5"
+      },
+      {
+        "offset": 31,
+        "position": {
+          "at": 246,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [5], [5], #37"
+      },
+      {
+        "offset": 35,
+        "text": "Star6"
+      },
+      {
+        "offset": 36,
+        "position": {
+          "at": 269,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [6], [6], #37"
+      },
+      {
+        "offset": 40,
+        "text": "Star7"
+      },
+      {
+        "offset": 41,
+        "position": {
+          "at": 291,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [7], [7], #37"
+      },
+      {
+        "offset": 45,
+        "text": "Star15"
+      },
+      {
+        "offset": 46,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 47,
+        "text": "Star r16"
+      },
+      {
+        "offset": 49,
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 51,
+        "position": {
+          "at": 292,
+          "kind": "E"
+        },
+        "text": "StaInArrayLiteral r15, r16, [8]"
+      },
+      {
+        "offset": 55,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 57,
+        "text": "Star r16"
+      },
+      {
+        "offset": 59,
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 61,
+        "position": {
+          "at": 297,
+          "kind": "E"
+        },
+        "text": "AddSmi [1], [10]"
+      },
+      {
+        "offset": 64,
+        "text": "StaInArrayLiteral r15, r16, [8]"
+      },
+      {
+        "offset": 68,
+        "text": "Mov r15, r8"
+      },
+      {
+        "offset": 71,
+        "position": {
+          "at": 325,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [8], [11], #37"
+      },
+      {
+        "offset": 75,
+        "text": "Star15"
+      },
+      {
+        "offset": 76,
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 78,
+        "text": "Star r16"
+      },
+      {
+        "offset": 80,
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 82,
+        "position": {
+          "at": 332,
+          "kind": "E"
+        },
+        "text": "StaInArrayLiteral r15, r16, [12]"
+      },
+      {
+        "offset": 86,
+        "text": "Mov r15, r9"
+      },
+      {
+        "offset": 89,
+        "position": {
+          "at": 349,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [9], [14], #4"
+      },
+      {
+        "offset": 93,
+        "text": "Star10"
+      },
+      {
+        "offset": 94,
+        "position": {
+          "at": 378,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [10], [15], #37"
+      },
+      {
+        "offset": 98,
+        "text": "Star15"
+      },
+      {
+        "offset": 99,
+        "text": "LdaSmi [4]"
+      },
+      {
+        "offset": 101,
+        "text": "Star r16"
+      },
+      {
+        "offset": 103,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 104,
+        "position": {
+          "at": 399,
+          "kind": "E"
+        },
+        "text": "StaInArrayLiteral r15, r16, [16]"
+      },
+      {
+        "offset": 108,
+        "text": "Mov r15, r11"
+      },
+      {
+        "offset": 111,
+        "position": {
+          "at": 425,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [11], [18], #4"
+      },
+      {
+        "offset": 115,
+        "text": "Star15"
+      },
+      {
+        "offset": 116,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 118,
+        "text": "Star r16"
+      },
+      {
+        "offset": 120,
+        "text": "CreateObjectLiteral [12], [19], #41"
+      },
+      {
+        "offset": 124,
+        "text": "Star r17"
+      },
+      {
+        "offset": 126,
+        "text": "Ldar r0"
+      },
+      {
+        "offset": 128,
+        "position": {
+          "at": 441,
+          "kind": "E"
+        },
+        "text": "DefineNamedOwnProperty r17, [13], [20]"
+      },
+      {
+        "offset": 132,
+        "text": "Ldar r17"
+      },
+      {
+        "offset": 134,
+        "text": "StaInArrayLiteral r15, r16, [22]"
+      },
+      {
+        "offset": 138,
+        "text": "Mov r15, r12"
+      },
+      {
+        "offset": 141,
+        "position": {
+          "at": 463,
+          "kind": "S"
+        },
+        "text": "CreateArrayLiteral [14], [24], #37"
+      },
+      {
+        "offset": 145,
+        "text": "Star15"
+      },
+      {
+        "offset": 146,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 147,
+        "text": "Star r16"
+      },
+      {
+        "offset": 149,
+        "text": "CreateClosure [15], [1], #2"
+      },
+      {
+        "offset": 153,
+        "text": "StaInArrayLiteral r15, r16, [25]"
+      },
+      {
+        "offset": 157,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 159,
+        "text": "Star r16"
+      },
+      {
+        "offset": 161,
+        "text": "CreateClosure [16], [2], #2"
+      },
+      {
+        "offset": 165,
+        "text": "StaInArrayLiteral r15, r16, [25]"
+      },
+      {
+        "offset": 169,
+        "text": "Mov r15, r13"
+      },
+      {
+        "offset": 172,
+        "position": {
+          "at": 490,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [17], [27]"
+      },
+      {
+        "offset": 175,
+        "text": "Star r16"
+      },
+      {
+        "offset": 177,
+        "position": {
+          "at": 498,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r16, [18], [29]"
+      },
+      {
+        "offset": 181,
+        "text": "Star15"
+      },
+      {
+        "offset": 182,
+        "position": {
+          "at": 622,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r13, [19], [31]"
+      },
+      {
+        "offset": 186,
+        "text": "Star r29"
+      },
+      {
+        "offset": 188,
+        "text": "Mov r1, r17"
+      },
+      {
+        "offset": 191,
+        "text": "Mov r2, r18"
+      },
+      {
+        "offset": 194,
+        "text": "Mov r3, r19"
+      },
+      {
+        "offset": 197,
+        "text": "Mov r4, r20"
+      },
+      {
+        "offset": 200,
+        "text": "Mov r5, r21"
+      },
+      {
+        "offset": 203,
+        "text": "Mov r6, r22"
+      },
+      {
+        "offset": 206,
+        "text": "Mov r7, r23"
+      },
+      {
+        "offset": 209,
+        "text": "Mov r8, r24"
+      },
+      {
+        "offset": 212,
+        "text": "Mov r9, r25"
+      },
+      {
+        "offset": 215,
+        "text": "Mov r10, r26"
+      },
+      {
+        "offset": 218,
+        "text": "Mov r11, r27"
+      },
+      {
+        "offset": 221,
+        "text": "Mov r12, r28"
+      },
+      {
+        "offset": 224,
+        "position": {
+          "at": 498,
+          "kind": "E"
+        },
+        "text": "CallProperty r15, r16-r29, [33]"
+      },
+      {
+        "offset": 229,
+        "position": {
+          "at": 675,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [17], [27]"
+      },
+      {
+        "offset": 232,
+        "text": "Star r16"
+      },
+      {
+        "offset": 234,
+        "position": {
+          "at": 683,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r16, [18], [29]"
+      },
+      {
+        "offset": 238,
+        "text": "Star15"
+      },
+      {
+        "offset": 239,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 241,
+        "text": "Star r18"
+      },
+      {
+        "offset": 243,
+        "position": {
+          "at": 687,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r14, r18, [35]"
+      },
+      {
+        "offset": 247,
+        "text": "Star r17"
+      },
+      {
+        "offset": 249,
+        "text": "CreateArrayLiteral [20], [37], #37"
+      },
+      {
+        "offset": 253,
+        "text": "Star r18"
+      },
+      {
+        "offset": 255,
+        "position": {
+          "at": 683,
+          "kind": "E"
+        },
+        "text": "CallProperty2 r15, r16, r17, r18, [38]"
+      },
+      {
+        "offset": 261,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 262,
+        "position": {
+          "at": 712,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo make>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[3]>>",
+      "<ArrayBoilerplateDescription PACKED_DOUBLE_ELEMENTS, <FixedDoubleArray[2]>>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[2]>>",
+      "<ArrayBoilerplateDescription HOLEY_SMI_ELEMENTS, <FixedArray[3]>>",
+      "<ArrayBoilerplateDescription HOLEY_SMI_ELEMENTS, <FixedArray[2]>>",
+      "<ArrayBoilerplateDescription HOLEY_SMI_ELEMENTS, <FixedArray[2]>>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[3]>>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[3]>>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[2]>>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[5]>>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[2]>>",
+      "<ObjectBoilerplateDescription[2]>",
+      "<String[1]: #b>",
+      "<ArrayBoilerplateDescription PACKED_SMI_ELEMENTS, <FixedArray[2]>>",
+      "<SharedFunctionInfo functions>",
+      "<SharedFunctionInfo functions>",
+      "<String[7]: #console>",
+      "<String[3]: #log>",
+      "<String[6]: #length>",
+      "<ArrayBoilerplateDescription PACKED_DOUBLE_ELEMENTS, <FixedDoubleArray[3]>>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "0": {
+        "name": "make",
+        "header": {
+          "length": 28,
+          "parameterCount": 2,
+          "registerCount": 2,
+          "frameSize": 16
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 652,
+              "kind": "S"
+            },
+            "text": "CreateArrayLiteral [0], [0], #37"
+          },
+          {
+            "offset": 4,
+            "text": "Star0"
+          },
+          {
+            "offset": 5,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 6,
+            "text": "Star1"
+          },
+          {
+            "offset": 7,
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 9,
+            "position": {
+              "at": 660,
+              "kind": "E"
+            },
+            "text": "StaInArrayLiteral r0, r1, [1]"
+          },
+          {
+            "offset": 13,
+            "text": "LdaSmi [2]"
+          },
+          {
+            "offset": 15,
+            "text": "Star1"
+          },
+          {
+            "offset": 16,
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 667,
+              "kind": "E"
+            },
+            "text": "AddSmi [1], [3]"
+          },
+          {
+            "offset": 21,
+            "text": "StaInArrayLiteral r0, r1, [1]"
+          },
+          {
+            "offset": 25,
+            "text": "Ldar r0"
+          },
+          {
+            "offset": 27,
+            "position": {
+              "at": 672,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<ArrayBoilerplateDescription HOLEY_SMI_ELEMENTS, <FixedArray[3]>>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}

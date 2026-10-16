@@ -11,6 +11,8 @@ import type {
   Identifier,
   IfStatement,
   LogicalExpression,
+  MemberExpression,
+  NewExpression,
   Node,
   Pattern,
   ReturnStatement,
@@ -28,6 +30,7 @@ import type { FunctionId } from "@/core/shared/ids";
 import { BytecodeArrayBuilder, type Label } from "./BytecodeArrayBuilder";
 import { BytecodeLabels } from "./BytecodeLabels";
 import { CLOSURE, CURRENT_CONTEXT, type Opcode, THIS, argument, local } from "./bytecodes";
+import type { FeedbackSlotKind } from "./FeedbackVectorSpec";
 import { type LiteralValue, isSmi, literalOf, toBooleanOf } from "./literals";
 import { endOf, operatorPosition, startOf } from "./sourceText";
 
@@ -79,6 +82,12 @@ type ContextScope = { readonly scope: Scope; readonly outer: ContextScope | unde
 
 /** `Context::MIN_CONTEXT_SLOTS`: the slots every context has before its variables. */
 const MIN_CONTEXT_SLOTS = 2;
+
+/** V8's AssignmentLhsData: what an assignment or `++` writes to, with the registers its parts were evaluated into. */
+type Reference =
+  | { readonly kind: "variable" }
+  | { readonly kind: "named"; readonly objectExpression: Node; readonly object: number; readonly name: string }
+  | { readonly kind: "keyed"; readonly object: number; readonly key: number };
 
 type Entered = { readonly previous: ResultScope; readonly scope: ResultScope; readonly top: number };
 
@@ -701,6 +710,10 @@ export class FunctionGenerator {
         return;
       case "CallExpression":
         return this.visitCall(node);
+      case "NewExpression":
+        return this.visitNew(node);
+      case "MemberExpression":
+        return this.visitMember(node);
       default:
         throw new NotYetSupported(node);
     }
@@ -750,23 +763,44 @@ export class FunctionGenerator {
     b.emit("CreateClosure", index, b.feedback.addClosureCell(), FAST_NEW_CLOSURE);
   }
 
-  /** V8's call position: the callee for a plain name, else the `(`. */
+  /**
+   * V8's call position: when the token before `(` is an identifier (`f(` or `o.f(`) the call sits at
+   * that name, for anything else (`o[k](`, `(f)(`, `f()(`) at the `(`.
+   */
   private callPosition(node: SimpleCallExpression): number {
     const callee = node.callee;
     if (callee.type === "Identifier") return startOf(callee);
+    if (callee.type === "MemberExpression" && !callee.computed && callee.property.type === "Identifier" && !this.isParenthesized(callee)) {
+      return startOf(callee.property);
+    }
     return operatorPosition(this.source, endOf(callee));
   }
 
-  /** A call whose receiver is `undefined`: the callee is a name or any other expression, not a property. */
+  private isParenthesized(node: Node): boolean {
+    return (node as { extra?: { parenthesized?: boolean } }).extra?.parenthesized === true;
+  }
+
+  /** A call: the callee is a name or any other expression (receiver `undefined`), or a property (receiver is its object). */
   private visitCall(node: SimpleCallExpression): void {
     const callee = node.callee;
-    if (callee.type === "Super" || callee.type === "MemberExpression" || node.optional) throw new NotYetSupported(node);
+    if (callee.type === "Super" || node.optional) throw new NotYetSupported(node);
     const b = this.builder;
     const top = b.registerTop;
     const calleeRegister = b.allocateRegister();
-    this.visitForAccumulatorValue(callee);
-    b.emit("Star", local(calleeRegister));
     const args: number[] = [];
+    const member = callee.type === "MemberExpression" ? callee : undefined;
+    if (member) {
+      if (member.optional || member.object.type === "Super") throw new NotYetSupported(node);
+      // The receiver is the first register of the argument list; the callee is loaded from it.
+      this.visitForAccumulatorValue(member.object);
+      const receiver = b.allocateRegister();
+      b.emit("Star", local(receiver));
+      args.push(receiver);
+      this.loadProperty(receiver, member);
+    } else {
+      this.visitForAccumulatorValue(callee);
+    }
+    b.emit("Star", local(calleeRegister));
     for (const argument of node.arguments) {
       if (argument.type === "SpreadElement") throw new NotYetSupported(argument);
       this.visitForAccumulatorValue(argument);
@@ -776,13 +810,104 @@ export class FunctionGenerator {
     }
     const slot = b.feedback.addSlot("call");
     b.setExpressionPosition(this.callPosition(node));
-    const receiver = local(calleeRegister);
-    const [first, second] = args.map(local);
-    if (args.length === 0) b.emit("CallUndefinedReceiver0", receiver, slot);
-    else if (args.length === 1) b.emit("CallUndefinedReceiver1", receiver, first as number, slot);
-    else if (args.length === 2) b.emit("CallUndefinedReceiver2", receiver, first as number, second as number, slot);
-    else b.emit("CallUndefinedReceiver", receiver, first as number, args.length, slot);
+    const target = local(calleeRegister);
+    const regs = args.map(local);
+    const [first = 0, second = 0, third = 0] = regs;
+    if (member) {
+      if (regs.length === 1) b.emit("CallProperty0", target, first, slot);
+      else if (regs.length === 2) b.emit("CallProperty1", target, first, second, slot);
+      else if (regs.length === 3) b.emit("CallProperty2", target, first, second, third, slot);
+      else b.emit("CallProperty", target, first, regs.length, slot);
+    } else if (regs.length === 0) b.emit("CallUndefinedReceiver0", target, slot);
+    else if (regs.length === 1) b.emit("CallUndefinedReceiver1", target, first, slot);
+    else if (regs.length === 2) b.emit("CallUndefinedReceiver2", target, first, second, slot);
+    else b.emit("CallUndefinedReceiver", target, first, regs.length, slot);
     b.releaseRegisters(top);
+  }
+
+  /** V8's VisitCallNew: the constructor is also the new target, left in the accumulator for `Construct`. */
+  private visitNew(node: NewExpression): void {
+    if (node.callee.type === "Super") throw new NotYetSupported(node);
+    const b = this.builder;
+    const top = b.registerTop;
+    const constructor = this.visitForRegisterValue(node.callee);
+    const args: number[] = [];
+    for (const argument of node.arguments) {
+      if (argument.type === "SpreadElement") throw new NotYetSupported(argument);
+      this.visitForAccumulatorValue(argument);
+      const register = b.allocateRegister();
+      b.emit("Star", local(register));
+      args.push(register);
+    }
+    b.setExpressionPosition(startOf(node));
+    b.emit("Ldar", local(constructor));
+    const slot = b.feedback.addSlot("call");
+    b.emit("Construct", local(constructor), local(args[0] ?? constructor), args.length, slot);
+    b.releaseRegisters(top);
+  }
+
+  // Properties.
+
+  /** A property name V8's parser makes a named access of: `o.a` and `o["a"]`, but not `o[0]`. */
+  private namedKeyOf(node: MemberExpression): string | undefined {
+    if (node.property.type === "PrivateIdentifier") throw new NotYetSupported(node);
+    if (!node.computed) return node.property.type === "Identifier" ? node.property.name : undefined;
+    const property = node.property;
+    if (property.type !== "Literal" || typeof property.value !== "string") return undefined;
+    return isArrayIndex(property.value) ? undefined : property.value;
+  }
+
+  /** V8's `Property::position()`: the name of `o.a`, the `[` of `o[k]`. */
+  private memberPosition(node: MemberExpression): number {
+    return node.computed ? operatorPosition(this.source, endOf(node.object)) : startOf(node.property);
+  }
+
+  private visitMember(node: MemberExpression): void {
+    if (node.optional || node.object.type === "Super") throw new NotYetSupported(node);
+    const object = this.visitForRegisterValue(node.object);
+    this.loadProperty(object, node);
+  }
+
+  /** Loads `node`'s property of the object in `object` into the accumulator (V8's VisitPropertyLoad). */
+  private loadProperty(object: number, node: MemberExpression): void {
+    const b = this.builder;
+    const name = this.namedKeyOf(node);
+    if (name !== undefined) {
+      const slot = this.cachedPropertySlot("load", node.object, name);
+      b.setExpressionPosition(this.memberPosition(node));
+      b.emit("GetNamedProperty", local(object), this.stringConstant(name), slot);
+    } else {
+      this.visitForAccumulatorValue(node.property as Expression);
+      b.setExpressionPosition(this.memberPosition(node));
+      b.emit("GetKeyedProperty", local(object), b.feedback.addSlot("load"));
+    }
+  }
+
+  /**
+   * V8's GetCachedLoadICSlot / GetCachedStoreICSlot: accesses of the same name on the same variable
+   * share one feedback slot. The key is the variable's storage index, as in V8, so unrelated
+   * variables with the same index and any two globals share a slot too.
+   */
+  private cachedPropertySlot(kind: "load" | "store", object: Node, name: string): number {
+    if (object.type !== "Identifier") return this.builder.feedback.addSlot(kind);
+    const variable = this.scopes.referenceOf.get(object)?.resolved;
+    let index = -1;
+    if (variable && variable !== "global") {
+      const allocation = variable.allocation;
+      index = allocation.kind === "context" ? allocation.index + MIN_CONTEXT_SLOTS : allocation.kind === "unused" ? -1 : allocation.index;
+    }
+    return this.cachedSlot(`${kind}-property:${index}:${name}`, kind);
+  }
+
+  /** `delete o.a` and `delete o[k]`: the key goes to the accumulator, the object stays in a register. */
+  private visitDelete(node: UnaryExpression): void {
+    const operand = node.argument;
+    if (operand.type !== "MemberExpression" || operand.optional || operand.object.type === "Super") throw new NotYetSupported(node);
+    const object = this.visitForRegisterValue(operand.object);
+    const name = this.namedKeyOf(operand);
+    if (name !== undefined) this.builder.emit("LdaConstant", this.stringConstant(name));
+    else this.visitForAccumulatorValue(operand.property as Expression);
+    this.builder.emit(this.currentScope.strict ? "DeletePropertyStrict" : "DeletePropertySloppy", local(object));
   }
 
   // Variables.
@@ -793,7 +918,7 @@ export class FunctionGenerator {
     return reference;
   }
 
-  private cachedSlot(key: string, kind: "global-load" | "global-store"): number {
+  private cachedSlot(key: string, kind: FeedbackSlotKind): number {
     let slot = this.slotCache.get(key);
     if (slot === undefined) {
       slot = this.builder.feedback.addSlot(kind);
@@ -954,6 +1079,8 @@ export class FunctionGenerator {
         this.visitForEffect(node.argument);
         b.emit("LdaUndefined");
         return;
+      case "delete":
+        return this.visitDelete(node);
       case "+":
       case "-":
       case "~": {
@@ -1359,8 +1486,62 @@ export class FunctionGenerator {
 
   // Assignment.
 
+  /** V8's PrepareAssignmentLhs for a property: the object (and for `o[k]` the key) wait in registers. */
+  private prepareMember(target: MemberExpression, keyBeforeVisit = false): Reference {
+    if (target.optional || target.object.type === "Super") throw new NotYetSupported(target);
+    const object = this.visitForRegisterValue(target.object);
+    const name = this.namedKeyOf(target);
+    if (name !== undefined) return { kind: "named", objectExpression: target.object, object, name };
+    if (keyBeforeVisit) {
+      // `o[k]++`: the key's register is taken before the key is evaluated.
+      const key = this.builder.allocateRegister();
+      this.visitForAccumulatorValue(target.property as Expression);
+      this.builder.emit("Star", local(key));
+      return { kind: "keyed", object, key };
+    }
+    return { kind: "keyed", object, key: this.visitForRegisterValue(target.property as Expression) };
+  }
+
+  /** The current value of the target, in the accumulator (V8's BuildLoadCurrentValueInAccumulator). */
+  private loadReference(reference: Reference, target: Identifier | MemberExpression): void {
+    const b = this.builder;
+    switch (reference.kind) {
+      case "variable":
+        this.loadIdentifier(target as Identifier, false);
+        return;
+      case "named":
+        b.emit("GetNamedProperty", local(reference.object), this.stringConstant(reference.name), this.cachedPropertySlot("load", reference.objectExpression, reference.name));
+        return;
+      case "keyed":
+        b.emit("Ldar", local(reference.key));
+        b.emit("GetKeyedProperty", local(reference.object), b.feedback.addSlot("load"));
+        return;
+    }
+  }
+
+  /** Stores the accumulator into the target; a property store keeps the value in the accumulator for whoever reads the result. */
+  private storeReference(reference: Reference, target: Identifier | MemberExpression, keepValue: boolean): void {
+    const b = this.builder;
+    if (reference.kind === "variable") {
+      this.assignToVariable(target as Identifier, "assign");
+      return;
+    }
+    let value = -1;
+    if (keepValue) {
+      value = b.allocateRegister();
+      b.emit("Star", local(value));
+    }
+    if (reference.kind === "named") {
+      b.emit("SetNamedProperty", local(reference.object), this.stringConstant(reference.name), this.cachedPropertySlot("store", reference.objectExpression, reference.name));
+    } else {
+      b.emit("SetKeyedProperty", local(reference.object), local(reference.key), b.feedback.addSlot("store"));
+    }
+    if (keepValue) b.emit("Ldar", local(value));
+  }
+
   private visitAssignment(node: AssignmentExpression): void {
     const target = node.left;
+    if (target.type === "MemberExpression") return this.visitMemberAssignment(node, target);
     if (target.type !== "Identifier") throw new NotYetSupported(target);
     const b = this.builder;
     const position = this.operatorAt(target);
@@ -1407,8 +1588,66 @@ export class FunctionGenerator {
     this.assignToVariable(target, "assign");
   }
 
+  /** `o.a = v`, `o[k] = v` and their compound forms (logical assignment to a property is not compiled yet). */
+  private visitMemberAssignment(node: AssignmentExpression, target: MemberExpression): void {
+    const b = this.builder;
+    const operator = node.operator;
+    const position = this.operatorAt(target);
+    const keepValue = this.result.kind !== "effect";
+    if (operator === "=") {
+      const reference = this.prepareMember(target);
+      this.visitForAccumulatorValue(node.right);
+      b.setExpressionPosition(position);
+      this.storeReference(reference, target, keepValue);
+      return;
+    }
+    const binary = operator.slice(0, -1);
+    if (!(binary in ARITHMETIC) || operator === "&&=" || operator === "||=" || operator === "??=") throw new NotYetSupported(node);
+    const reference = this.prepareMember(target);
+    this.loadReference(reference, target);
+    const slot = b.feedback.addSlot("binary-op");
+    const smi = this.smiLiteralOf(node.right);
+    if (smi !== undefined) {
+      b.emit(SMI_ARITHMETIC[binary] as Opcode, smi, slot);
+    } else {
+      const old = b.allocateRegister();
+      b.emit("Star", local(old));
+      this.visitForAccumulatorValue(node.right);
+      b.emit(ARITHMETIC[binary] as Opcode, local(old), slot);
+    }
+    b.setExpressionPosition(position);
+    this.storeReference(reference, target, keepValue);
+  }
+
+  private visitMemberUpdate(node: UpdateExpression, target: MemberExpression): void {
+    const b = this.builder;
+    const postfixValue = !node.prefix && this.result.kind !== "effect";
+    const reference = this.prepareMember(target, true);
+    this.loadReference(reference, target);
+    const slot = b.feedback.addSlot("binary-op");
+    let old = -1;
+    if (postfixValue) {
+      old = b.allocateRegister();
+      b.emit("ToNumeric", slot);
+      b.emit("Star", local(old));
+    }
+    b.emit(node.operator === "++" ? "Inc" : "Dec", slot);
+    b.setExpressionPosition(this.updatePosition(node));
+    this.storeReference(reference, target, this.result.kind !== "effect");
+    if (postfixValue) b.emit("Ldar", local(old));
+  }
+
+  /** V8's CountOperation position: the operator of `x++`, the last token of the operand of `++x`. */
+  private updatePosition(node: UpdateExpression): number {
+    const target = node.argument;
+    if (!node.prefix) return operatorPosition(this.source, endOf(target));
+    if (target.type === "MemberExpression") return target.computed ? operatorPosition(this.source, endOf(target.property)) : startOf(target.property);
+    return startOf(target);
+  }
+
   private visitUpdate(node: UpdateExpression): void {
     const target = node.argument;
+    if (target.type === "MemberExpression") return this.visitMemberUpdate(node, target);
     if (target.type !== "Identifier") throw new NotYetSupported(target);
     const b = this.builder;
     const postfixValue = !node.prefix && this.result.kind !== "effect";
@@ -1460,4 +1699,9 @@ export class FunctionGenerator {
     }
     this.setResultIsString();
   }
+}
+
+/** Whether V8 reads a string key as an array index (a canonical integer below 2**32 - 1), which makes the access keyed. */
+function isArrayIndex(text: string): boolean {
+  return /^(0|[1-9]\d*)$/.test(text) && Number(text) < 4294967295;
 }
