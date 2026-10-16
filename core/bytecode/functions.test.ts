@@ -1070,3 +1070,75 @@ twoBlocks(1);
     );
   });
 });
+
+describe("a loop variable a closure captures", () => {
+  // V8 gives each iteration a context of its own through a copying desugaring that is not built yet.
+  it("is refused rather than compiled as a function-level slot", () => {
+    expect(() => compile("function f(n) { let g; for (let i = 0; i < n; i = i + 1) { g = () => i; } return g; } f(1);")).toThrow(
+      "ForStatement is not compiled to bytecode yet",
+    );
+  });
+});
+
+describe("leaving a block context by break or continue", () => {
+  it("pops to the loop's context before the jump", () => {
+    expectFunctions(
+      `// break and continue leave the contexts of the blocks they jump out of.
+function exits(n) {
+  let k = 0;
+  while (k < n) {
+    {
+      let c = k;
+      const f = () => c;
+      if (f() > 2) break;
+      if (f() > 1) continue;
+      k = k + 1;
+    }
+  }
+  return k;
+}
+exits(1);
+`,
+      {},
+      {
+        registerCount: 4,
+        instructions: [
+          "103 S> LdaZero",
+          "Star0",
+          "117 S> Ldar a0",
+          "117 E> TestLessThan r0, [0]",
+          "JumpIfFalse [60] (@67)",
+          "CreateBlockContext [0]",
+          "PushContext r2",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "144 S> Ldar r0",
+          "144 E> StaCurrentContextSlot [2]",
+          "163 S> CreateClosure [1], [0], #2",
+          "Star1",
+          "182 S> CallUndefinedReceiver0 r1, [1]",
+          "Star3",
+          "LdaSmi [2]",
+          "186 E> TestGreaterThan r3, [3]",
+          "JumpIfFalse [6] (@40)",
+          "191 S> PopContext r2",
+          "Jump [29] (@67)",
+          "208 S> CallUndefinedReceiver0 r1, [4]",
+          "Star3",
+          "LdaSmi [1]",
+          "212 E> TestGreaterThan r3, [6]",
+          "JumpIfFalse [6] (@55)",
+          "217 S> PopContext r2",
+          "Jump [10] (@63)",
+          "233 S> Ldar r0",
+          "239 E> AddSmi [1], [7]",
+          "Star0",
+          "PopContext r2",
+          "108 E> JumpLoop [61], [0], [8] (@2)",
+          "256 S> Ldar r0",
+          "265 S> Return",
+        ],
+      },
+    );
+  });
+});

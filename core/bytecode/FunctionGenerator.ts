@@ -67,6 +67,8 @@ type Loop = {
   readonly continueLabels: BytecodeLabels;
   /** Bound just before the loop's closing jump; an inner loop with the same header jumps here. */
   readonly backEdge: BytecodeLabels;
+  /** The context in use outside the loop body; break and continue pop back to it. */
+  readonly context: ContextScope;
 };
 
 /** `BytecodeArray::kMaxOsrUrgency - 1`: the deepest loop level a `JumpLoop` reports. */
@@ -372,13 +374,9 @@ export class FunctionGenerator {
       case "ForStatement":
         return this.visitFor(node);
       case "BreakStatement":
-        this.builder.setStatementPosition(startOf(node));
-        this.builder.jump("Jump", this.innermostLoop().breakLabels.new());
-        return;
+        return this.jumpOutOfLoop(node, "breakLabels");
       case "ContinueStatement":
-        this.builder.setStatementPosition(startOf(node));
-        this.builder.jump("Jump", this.innermostLoop().continueLabels.new());
-        return;
+        return this.jumpOutOfLoop(node, "continueLabels");
       case "ReturnStatement":
         return this.visitReturn(node);
       case "ThrowStatement":
@@ -440,7 +438,7 @@ export class FunctionGenerator {
   // Loops and jump targets.
 
   private beginLoop(): Loop {
-    const loop: Loop = { header: this.builder.newLabel(), continueLabels: this.newLabels(), backEdge: this.newLabels(), breakLabels: this.newLabels() };
+    const loop: Loop = { header: this.builder.newLabel(), continueLabels: this.newLabels(), backEdge: this.newLabels(), breakLabels: this.newLabels(), context: this.context };
     this.loops.push(loop);
     return loop;
   }
@@ -448,6 +446,14 @@ export class FunctionGenerator {
   private endLoop(loop: Loop): void {
     this.loops.pop();
     loop.breakLabels.bind();
+  }
+
+  /** `break` or `continue`: leaves the block contexts opened since the loop began (one pop reaches the loop's own), then jumps. */
+  private jumpOutOfLoop(node: Node, target: "breakLabels" | "continueLabels"): void {
+    const loop = this.innermostLoop();
+    this.builder.setStatementPosition(startOf(node));
+    if (this.context !== loop.context) this.builder.emit("PopContext", loop.context.register);
+    this.builder.jump("Jump", loop[target].new());
   }
 
   private innermostLoop(): Loop {
@@ -501,6 +507,8 @@ export class FunctionGenerator {
   }
 
   private visitFor(node: ForStatement): void {
+    // Each iteration gets a context of its own (V8 copies the bindings), which is not built yet.
+    if (this.scopes.scopeOf.get(node)?.perIteration) throw new NotYetSupported(node);
     const init = node.init;
     if (init?.type === "VariableDeclaration") this.visitVariableDeclaration(init);
     else if (init) {

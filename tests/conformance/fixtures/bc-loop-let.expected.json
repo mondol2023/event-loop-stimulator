@@ -1,0 +1,487 @@
+{
+  "schema": 1,
+  "fixture": "bc-loop-let",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 26,
+      "parameterCount": 6,
+      "registerCount": 4,
+      "frameSize": 32
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star0"
+      },
+      {
+        "offset": 5,
+        "text": "CreateClosure [1], [1], #2"
+      },
+      {
+        "offset": 9,
+        "text": "Star1"
+      },
+      {
+        "offset": 10,
+        "position": {
+          "at": 192,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 12,
+        "text": "Star3"
+      },
+      {
+        "offset": 13,
+        "position": {
+          "at": 192,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r0, r3, [0]"
+      },
+      {
+        "offset": 17,
+        "position": {
+          "at": 322,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 19,
+        "text": "Star3"
+      },
+      {
+        "offset": 20,
+        "position": {
+          "at": 322,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r1, r3, [2]"
+      },
+      {
+        "offset": 24,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 25,
+        "position": {
+          "at": 335,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo perIteration>",
+      "<SharedFunctionInfo plainLoop>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "0": {
+        "name": "perIteration",
+        "header": {
+          "length": 97,
+          "parameterCount": 2,
+          "registerCount": 7,
+          "frameSize": 56
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 107,
+              "kind": "S"
+            },
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 1,
+            "text": "Star0"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 128,
+              "kind": "S"
+            },
+            "text": "LdaZero"
+          },
+          {
+            "offset": 3,
+            "text": "Star4"
+          },
+          {
+            "offset": 4,
+            "text": "Star1"
+          },
+          {
+            "offset": 5,
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 7,
+            "text": "Star2"
+          },
+          {
+            "offset": 8,
+            "position": {
+              "at": 173,
+              "kind": "E"
+            },
+            "text": "CreateBlockContext [0]"
+          },
+          {
+            "offset": 10,
+            "text": "PushContext r5"
+          },
+          {
+            "offset": 12,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 13,
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 15,
+            "text": "Ldar r1"
+          },
+          {
+            "offset": 17,
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 19,
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 21,
+            "text": "TestEqual r2, [0]"
+          },
+          {
+            "offset": 24,
+            "text": "JumpIfFalse [6] (@30)"
+          },
+          {
+            "offset": 26,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 27,
+            "text": "Star2"
+          },
+          {
+            "offset": 28,
+            "text": "Jump [9] (@37)"
+          },
+          {
+            "offset": 30,
+            "position": {
+              "at": 140,
+              "kind": "S"
+            },
+            "text": "LdaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 32,
+            "position": {
+              "at": 144,
+              "kind": "E"
+            },
+            "text": "AddSmi [1], [1]"
+          },
+          {
+            "offset": 35,
+            "position": {
+              "at": 140,
+              "kind": "E"
+            },
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 37,
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 39,
+            "text": "Star3"
+          },
+          {
+            "offset": 40,
+            "position": {
+              "at": 133,
+              "kind": "S"
+            },
+            "text": "LdaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 42,
+            "text": "Star6"
+          },
+          {
+            "offset": 43,
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 45,
+            "position": {
+              "at": 133,
+              "kind": "E"
+            },
+            "text": "TestLessThan r6, [2]"
+          },
+          {
+            "offset": 48,
+            "text": "JumpIfFalse [4] (@52)"
+          },
+          {
+            "offset": 50,
+            "text": "Jump [6] (@56)"
+          },
+          {
+            "offset": 52,
+            "text": "PopContext r5"
+          },
+          {
+            "offset": 54,
+            "text": "Jump [40] (@94)"
+          },
+          {
+            "offset": 56,
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 58,
+            "text": "TestEqual r3, [3]"
+          },
+          {
+            "offset": 61,
+            "text": "JumpIfFalse [16] (@77)"
+          },
+          {
+            "offset": 63,
+            "position": {
+              "at": 155,
+              "kind": "S"
+            },
+            "text": "CreateClosure [1], [0], #2"
+          },
+          {
+            "offset": 67,
+            "text": "Star0"
+          },
+          {
+            "offset": 68,
+            "text": "LdaZero"
+          },
+          {
+            "offset": 69,
+            "text": "Star3"
+          },
+          {
+            "offset": 70,
+            "text": "LdaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 72,
+            "text": "Star1"
+          },
+          {
+            "offset": 73,
+            "position": {
+              "at": 115,
+              "kind": "E"
+            },
+            "text": "JumpLoop [17], [1], [4] (@56)"
+          },
+          {
+            "offset": 77,
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 79,
+            "text": "TestEqual r3, [5]"
+          },
+          {
+            "offset": 82,
+            "text": "JumpIfFalse [6] (@88)"
+          },
+          {
+            "offset": 84,
+            "text": "PopContext r5"
+          },
+          {
+            "offset": 86,
+            "text": "Jump [8] (@94)"
+          },
+          {
+            "offset": 88,
+            "text": "PopContext r5"
+          },
+          {
+            "offset": 90,
+            "text": "JumpLoop [82], [0], [6] (@8)"
+          },
+          {
+            "offset": 94,
+            "position": {
+              "at": 177,
+              "kind": "S"
+            },
+            "text": "Ldar r0"
+          },
+          {
+            "offset": 96,
+            "position": {
+              "at": 189,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<ScopeInfo BLOCK_SCOPE>",
+          "<SharedFunctionInfo last>"
+        ],
+        "handlerTable": [],
+        "children": {}
+      },
+      "1": {
+        "name": "plainLoop",
+        "header": {
+          "length": 27,
+          "parameterCount": 2,
+          "registerCount": 2,
+          "frameSize": 16
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 246,
+              "kind": "S"
+            },
+            "text": "LdaZero"
+          },
+          {
+            "offset": 1,
+            "text": "Star0"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 264,
+              "kind": "S"
+            },
+            "text": "LdaZero"
+          },
+          {
+            "offset": 3,
+            "text": "Star1"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 269,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 6,
+            "position": {
+              "at": 269,
+              "kind": "E"
+            },
+            "text": "TestLessThan r1, [0]"
+          },
+          {
+            "offset": 9,
+            "text": "JumpIfFalse [15] (@24)"
+          },
+          {
+            "offset": 11,
+            "position": {
+              "at": 291,
+              "kind": "S"
+            },
+            "text": "Mov r1, r0"
+          },
+          {
+            "offset": 14,
+            "position": {
+              "at": 276,
+              "kind": "S"
+            },
+            "text": "Ldar r0"
+          },
+          {
+            "offset": 16,
+            "position": {
+              "at": 280,
+              "kind": "E"
+            },
+            "text": "AddSmi [1], [1]"
+          },
+          {
+            "offset": 19,
+            "text": "Star1"
+          },
+          {
+            "offset": 20,
+            "position": {
+              "at": 251,
+              "kind": "E"
+            },
+            "text": "JumpLoop [16], [0], [2] (@4)"
+          },
+          {
+            "offset": 24,
+            "position": {
+              "at": 307,
+              "kind": "S"
+            },
+            "text": "Ldar r0"
+          },
+          {
+            "offset": 26,
+            "position": {
+              "at": 319,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,337 @@
+{
+  "schema": 1,
+  "fixture": "bc-block-exit",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 14,
+      "parameterCount": 6,
+      "registerCount": 3,
+      "frameSize": 24
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star0"
+      },
+      {
+        "offset": 5,
+        "position": {
+          "at": 268,
+          "kind": "S"
+        },
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 7,
+        "text": "Star2"
+      },
+      {
+        "offset": 8,
+        "position": {
+          "at": 268,
+          "kind": "E"
+        },
+        "text": "CallUndefinedReceiver1 r0, r2, [0]"
+      },
+      {
+        "offset": 12,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 13,
+        "position": {
+          "at": 277,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo exits>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "0": {
+        "name": "exits",
+        "header": {
+          "length": 70,
+          "parameterCount": 2,
+          "registerCount": 4,
+          "frameSize": 32
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 103,
+              "kind": "S"
+            },
+            "text": "LdaZero"
+          },
+          {
+            "offset": 1,
+            "text": "Star0"
+          },
+          {
+            "offset": 2,
+            "position": {
+              "at": 117,
+              "kind": "S"
+            },
+            "text": "Ldar a0"
+          },
+          {
+            "offset": 4,
+            "position": {
+              "at": 117,
+              "kind": "E"
+            },
+            "text": "TestLessThan r0, [0]"
+          },
+          {
+            "offset": 7,
+            "text": "JumpIfFalse [60] (@67)"
+          },
+          {
+            "offset": 9,
+            "text": "CreateBlockContext [0]"
+          },
+          {
+            "offset": 11,
+            "text": "PushContext r2"
+          },
+          {
+            "offset": 13,
+            "text": "LdaTheHole"
+          },
+          {
+            "offset": 14,
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 16,
+            "position": {
+              "at": 144,
+              "kind": "S"
+            },
+            "text": "Ldar r0"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 144,
+              "kind": "E"
+            },
+            "text": "StaCurrentContextSlot [2]"
+          },
+          {
+            "offset": 20,
+            "position": {
+              "at": 163,
+              "kind": "S"
+            },
+            "text": "CreateClosure [1], [0], #2"
+          },
+          {
+            "offset": 24,
+            "text": "Star1"
+          },
+          {
+            "offset": 25,
+            "position": {
+              "at": 182,
+              "kind": "S"
+            },
+            "text": "CallUndefinedReceiver0 r1, [1]"
+          },
+          {
+            "offset": 28,
+            "text": "Star3"
+          },
+          {
+            "offset": 29,
+            "text": "LdaSmi [2]"
+          },
+          {
+            "offset": 31,
+            "position": {
+              "at": 186,
+              "kind": "E"
+            },
+            "text": "TestGreaterThan r3, [3]"
+          },
+          {
+            "offset": 34,
+            "text": "JumpIfFalse [6] (@40)"
+          },
+          {
+            "offset": 36,
+            "position": {
+              "at": 191,
+              "kind": "S"
+            },
+            "text": "PopContext r2"
+          },
+          {
+            "offset": 38,
+            "text": "Jump [29] (@67)"
+          },
+          {
+            "offset": 40,
+            "position": {
+              "at": 208,
+              "kind": "S"
+            },
+            "text": "CallUndefinedReceiver0 r1, [4]"
+          },
+          {
+            "offset": 43,
+            "text": "Star3"
+          },
+          {
+            "offset": 44,
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 46,
+            "position": {
+              "at": 212,
+              "kind": "E"
+            },
+            "text": "TestGreaterThan r3, [6]"
+          },
+          {
+            "offset": 49,
+            "text": "JumpIfFalse [6] (@55)"
+          },
+          {
+            "offset": 51,
+            "position": {
+              "at": 217,
+              "kind": "S"
+            },
+            "text": "PopContext r2"
+          },
+          {
+            "offset": 53,
+            "text": "Jump [10] (@63)"
+          },
+          {
+            "offset": 55,
+            "position": {
+              "at": 233,
+              "kind": "S"
+            },
+            "text": "Ldar r0"
+          },
+          {
+            "offset": 57,
+            "position": {
+              "at": 239,
+              "kind": "E"
+            },
+            "text": "AddSmi [1], [7]"
+          },
+          {
+            "offset": 60,
+            "text": "Star0"
+          },
+          {
+            "offset": 61,
+            "text": "PopContext r2"
+          },
+          {
+            "offset": 63,
+            "position": {
+              "at": 108,
+              "kind": "E"
+            },
+            "text": "JumpLoop [61], [0], [8] (@2)"
+          },
+          {
+            "offset": 67,
+            "position": {
+              "at": 256,
+              "kind": "S"
+            },
+            "text": "Ldar r0"
+          },
+          {
+            "offset": 69,
+            "position": {
+              "at": 265,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [
+          "<ScopeInfo BLOCK_SCOPE>",
+          "<SharedFunctionInfo f>"
+        ],
+        "handlerTable": [],
+        "children": {
+          "1": {
+            "name": "f",
+            "header": {
+              "length": 5,
+              "parameterCount": 1,
+              "registerCount": 0,
+              "frameSize": 0
+            },
+            "instructions": [
+              {
+                "offset": 0,
+                "position": {
+                  "at": 169,
+                  "kind": "S"
+                },
+                "text": "LdaImmutableCurrentContextSlot [2]"
+              },
+              {
+                "offset": 2,
+                "text": "ThrowReferenceErrorIfHole [0]"
+              },
+              {
+                "offset": 4,
+                "position": {
+                  "at": 170,
+                  "kind": "S"
+                },
+                "text": "Return"
+              }
+            ],
+            "constantPool": [
+              "<String[1]: #c>"
+            ],
+            "handlerTable": [],
+            "children": {}
+          }
+        }
+      }
+    }
+  }
+}

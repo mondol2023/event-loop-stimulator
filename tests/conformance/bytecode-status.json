@@ -17,6 +17,9 @@
   "bc-block-contexts": {
     "status": "exact"
   },
+  "bc-block-exit": {
+    "status": "exact"
+  },
   "bc-break-continue": {
     "status": "exact"
   },
@@ -53,6 +56,9 @@
   },
   "bc-logical-globals": {
     "status": "exact"
+  },
+  "bc-loop-let": {
+    "status": "pending"
   },
   "bc-loop-merge": {
     "status": "exact"
