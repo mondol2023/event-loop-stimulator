@@ -14,6 +14,9 @@
   "await-thenable-two-extra-ticks": {
     "status": "pending"
   },
+  "bc-block-contexts": {
+    "status": "exact"
+  },
   "bc-break-continue": {
     "status": "exact"
   },
@@ -58,6 +61,9 @@
     "status": "exact"
   },
   "bc-receiver-capture": {
+    "status": "exact"
+  },
+  "bc-sibling-blocks": {
     "status": "exact"
   },
   "bc-tdz-assign": {

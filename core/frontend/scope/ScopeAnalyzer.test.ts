@@ -186,13 +186,13 @@ describe("allocation: registers, context slots, parameters", () => {
     expect(f.contextSlots).toBe(0);
   });
 
-  it("registers are numbered function-wide: own locals first, then inner blocks in tree order", () => {
+  it("registers are numbered function-wide: own locals first, then inner blocks last to first (as V8 prints it)", () => {
     const tree = analyze("let a = 1;\n{ let b = 2; }\n{ let c = 3; }\nlet d = 4;");
     const [blockB, blockC] = tree.scopes.filter((s) => s.kind === "block");
     expect(variable(tree.root, "a").allocation).toEqual({ kind: "register", index: 0 });
     expect(variable(tree.root, "d").allocation).toEqual({ kind: "register", index: 1 });
-    expect(variable(blockB as Scope, "b").allocation).toEqual({ kind: "register", index: 2 });
-    expect(variable(blockC as Scope, "c").allocation).toEqual({ kind: "register", index: 3 });
+    expect(variable(blockC as Scope, "c").allocation).toEqual({ kind: "register", index: 2 });
+    expect(variable(blockB as Scope, "b").allocation).toEqual({ kind: "register", index: 3 });
     expect(tree.root.stackSlots).toBe(4);
   });
 

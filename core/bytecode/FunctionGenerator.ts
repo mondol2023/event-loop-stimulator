@@ -2,6 +2,7 @@ import type {
   ArrowFunctionExpression,
   AssignmentExpression,
   BinaryExpression,
+  BlockStatement,
   ConditionalExpression,
   Expression,
   ForStatement,
@@ -145,7 +146,7 @@ export interface FunctionCompiler {
   compile(node: FunctionLiteral, name: string): FunctionId;
 }
 
-/** `CreateClosureFlags::FastNewClosureBit`: set when the closure is created directly in a function scope. */
+/** `CreateClosureFlags::FastNewClosureBit`: set for every closure made inside a function. */
 const FAST_NEW_CLOSURE = 2;
 
 export type FunctionGeneratorOptions = {
@@ -166,6 +167,7 @@ export class FunctionGenerator {
   private readonly scopes: ScopeTree;
   private readonly functions: FunctionCompiler;
   private currentScope: Scope;
+  private readonly functionScope: Scope;
   private context: ContextScope;
   /** Bindings already checked for the hole on the straight-line path being compiled; a second check would be redundant. */
   private checked = new Set<Variable>();
@@ -180,6 +182,7 @@ export class FunctionGenerator {
     this.scopes = options.scopes;
     this.functions = options.functions;
     this.currentScope = options.scope;
+    this.functionScope = options.scope;
     this.context = { scope: options.scope, outer: undefined, register: CURRENT_CONTEXT };
     this.builder = new BytecodeArrayBuilder({
       parameterCount: options.parameterCount,
@@ -295,6 +298,8 @@ export class FunctionGenerator {
   private visitDeclarations(statements: readonly Statement[]): void {
     for (const statement of statements) {
       if (statement.type === "FunctionDeclaration") {
+        // A sloppy block function is also copied to a function-level var, which is not built yet.
+        if (this.functionScope.variables.some((v) => v.annexB && v.name === statement.id.name)) throw new NotYetSupported(statement);
         this.hoisted.add(statement);
         this.buildClosure(statement, statement.id.name);
         this.assignToVariable(statement.id, "init");
@@ -307,6 +312,31 @@ export class FunctionGenerator {
         }
       }
     }
+  }
+
+  /** V8's VisitBlock: a block whose bindings a closure captures runs in a context of its own, popped when it falls through. */
+  private visitBlock(node: BlockStatement): void {
+    const scope = this.scopes.scopeOf.get(node);
+    if (!scope) {
+      this.visitStatements(node.body);
+      return;
+    }
+    const b = this.builder;
+    const enclosingScope = this.currentScope;
+    const outer = this.context;
+    this.currentScope = scope;
+    if (scope.needsContext) {
+      b.emit("CreateBlockContext", b.constantPool.add({ kind: "scope-info", scope: "BLOCK_SCOPE" }));
+      this.pushContext(scope);
+    }
+    this.visitDeclarations(node.body);
+    this.visitStatements(node.body);
+    if (scope.needsContext) {
+      b.emit("PopContext", outer.register);
+      outer.register = CURRENT_CONTEXT;
+      this.context = outer;
+    }
+    this.currentScope = enclosingScope;
   }
 
   private visitStatements(statements: readonly Statement[]): void {
@@ -334,8 +364,7 @@ export class FunctionGenerator {
         this.visitVariableDeclaration(node);
         return;
       case "BlockStatement":
-        this.visitStatements(node.body);
-        return;
+        return this.visitBlock(node);
       case "IfStatement":
         return this.visitIf(node);
       case "WhileStatement":
@@ -695,8 +724,7 @@ export class FunctionGenerator {
     const id = this.functions.compile(node, name);
     this.children.push(id);
     const index = b.constantPool.add({ kind: "sfi", name, functionId: id });
-    const flags = this.currentScope.kind === "function" ? FAST_NEW_CLOSURE : 0;
-    b.emit("CreateClosure", index, b.feedback.addClosureCell(), flags);
+    b.emit("CreateClosure", index, b.feedback.addClosureCell(), FAST_NEW_CLOSURE);
   }
 
   /** V8's call position: the callee for a plain name, else the `(`. */

@@ -1,0 +1,304 @@
+{
+  "schema": 1,
+  "fixture": "bc-sibling-blocks",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 18,
+      "parameterCount": 6,
+      "registerCount": 2,
+      "frameSize": 16
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 0,
+          "kind": "E"
+        },
+        "text": "CreateClosure [0], [0], #2"
+      },
+      {
+        "offset": 4,
+        "text": "Star0"
+      },
+      {
+        "offset": 5,
+        "text": "CreateClosure [1], [1], #2"
+      },
+      {
+        "offset": 9,
+        "text": "Star1"
+      },
+      {
+        "offset": 10,
+        "position": {
+          "at": 169,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r0, [0]"
+      },
+      {
+        "offset": 13,
+        "position": {
+          "at": 307,
+          "kind": "S"
+        },
+        "text": "CallUndefinedReceiver0 r1, [2]"
+      },
+      {
+        "offset": 16,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 17,
+        "position": {
+          "at": 319,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<SharedFunctionInfo sib>",
+      "<SharedFunctionInfo nestedSib>"
+    ],
+    "handlerTable": [],
+    "children": {
+      "0": {
+        "name": "sib",
+        "header": {
+          "length": 18,
+          "parameterCount": 1,
+          "registerCount": 3,
+          "frameSize": 24
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 94,
+              "kind": "S"
+            },
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 2,
+            "text": "Star2"
+          },
+          {
+            "offset": 3,
+            "position": {
+              "at": 103,
+              "kind": "S"
+            },
+            "text": "AddSmi [1], [0]"
+          },
+          {
+            "offset": 6,
+            "text": "Star2"
+          },
+          {
+            "offset": 7,
+            "position": {
+              "at": 122,
+              "kind": "S"
+            },
+            "text": "LdaSmi [2]"
+          },
+          {
+            "offset": 9,
+            "text": "Star1"
+          },
+          {
+            "offset": 10,
+            "position": {
+              "at": 131,
+              "kind": "S"
+            },
+            "text": "AddSmi [1], [1]"
+          },
+          {
+            "offset": 13,
+            "text": "Star1"
+          },
+          {
+            "offset": 14,
+            "position": {
+              "at": 150,
+              "kind": "S"
+            },
+            "text": "LdaSmi [3]"
+          },
+          {
+            "offset": 16,
+            "text": "Star0"
+          },
+          {
+            "offset": 17,
+            "position": {
+              "at": 166,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      },
+      "1": {
+        "name": "nestedSib",
+        "header": {
+          "length": 33,
+          "parameterCount": 1,
+          "registerCount": 5,
+          "frameSize": 40
+        },
+        "instructions": [
+          {
+            "offset": 0,
+            "position": {
+              "at": 209,
+              "kind": "S"
+            },
+            "text": "LdaSmi [1]"
+          },
+          {
+            "offset": 2,
+            "text": "Star0"
+          },
+          {
+            "offset": 3,
+            "position": {
+              "at": 224,
+              "kind": "S"
+            },
+            "text": "LdaSmi [2]"
+          },
+          {
+            "offset": 5,
+            "text": "Star2"
+          },
+          {
+            "offset": 6,
+            "position": {
+              "at": 237,
+              "kind": "S"
+            },
+            "text": "LdaSmi [3]"
+          },
+          {
+            "offset": 8,
+            "text": "Star4"
+          },
+          {
+            "offset": 9,
+            "position": {
+              "at": 246,
+              "kind": "S"
+            },
+            "text": "AddSmi [1], [0]"
+          },
+          {
+            "offset": 12,
+            "text": "Star4"
+          },
+          {
+            "offset": 13,
+            "position": {
+              "at": 261,
+              "kind": "S"
+            },
+            "text": "LdaSmi [4]"
+          },
+          {
+            "offset": 15,
+            "text": "Star3"
+          },
+          {
+            "offset": 16,
+            "position": {
+              "at": 264,
+              "kind": "S"
+            },
+            "text": "Ldar r2"
+          },
+          {
+            "offset": 18,
+            "position": {
+              "at": 270,
+              "kind": "E"
+            },
+            "text": "Add r3, [1]"
+          },
+          {
+            "offset": 21,
+            "text": "Star3"
+          },
+          {
+            "offset": 22,
+            "position": {
+              "at": 289,
+              "kind": "S"
+            },
+            "text": "LdaSmi [5]"
+          },
+          {
+            "offset": 24,
+            "text": "Star1"
+          },
+          {
+            "offset": 25,
+            "position": {
+              "at": 292,
+              "kind": "S"
+            },
+            "text": "Ldar r0"
+          },
+          {
+            "offset": 27,
+            "position": {
+              "at": 298,
+              "kind": "E"
+            },
+            "text": "Add r1, [2]"
+          },
+          {
+            "offset": 30,
+            "text": "Star1"
+          },
+          {
+            "offset": 31,
+            "text": "LdaUndefined"
+          },
+          {
+            "offset": 32,
+            "position": {
+              "at": 305,
+              "kind": "S"
+            },
+            "text": "Return"
+          }
+        ],
+        "constantPool": [],
+        "handlerTable": [],
+        "children": {}
+      }
+    }
+  }
+}

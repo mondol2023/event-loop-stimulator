@@ -615,7 +615,8 @@ class Analyzer {
     if (loop === "ForStatement" || loop === "ForInStatement" || loop === "ForOfStatement") {
       scope.perIteration = scope.variables.some((v) => v.captured);
     }
-    for (const child of scope.children) {
+    // V8 links a new inner scope at the head of its parent's list, so siblings are allocated last to first.
+    for (const child of [...scope.children].reverse()) {
       if (child.kind === "function") this.allocateFunction(child);
       else this.allocateScope(child, registers);
     }

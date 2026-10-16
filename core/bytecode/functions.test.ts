@@ -862,3 +862,211 @@ dflt()();
     );
   });
 });
+
+describe("sibling scopes", () => {
+  // The same source as tests/conformance/fixtures/bc-sibling-blocks.cjs; the wrapper is not examined.
+  const source = `// V8 hands out stack registers to sibling scopes last to first.
+function sib() {
+  { let a = 1; a = a + 1; }
+  { let b = 2; b = b + 1; }
+  let top = 3;
+  return top;
+}
+sib();
+function nestedSib() {
+  let x = 1;
+  { let y = 2; { let z = 3; z = z + 1; } let w = 4; w = w + y; }
+  { let v = 5; v = v + x; }
+}
+nestedSib();
+`;
+
+  it("gives registers to the last sibling first, each scope's own locals before its inner scopes", () => {
+    expectFunctions(
+      source,
+      {},
+      {
+        name: "sib",
+        registerCount: 3,
+        instructions: [
+          "94 S> LdaSmi [1]",
+          "Star2",
+          "103 S> AddSmi [1], [0]",
+          "Star2",
+          "122 S> LdaSmi [2]",
+          "Star1",
+          "131 S> AddSmi [1], [1]",
+          "Star1",
+          "150 S> LdaSmi [3]",
+          "Star0",
+          "166 S> Return",
+        ],
+      },
+      {
+        name: "nestedSib",
+        registerCount: 5,
+        instructions: [
+          "209 S> LdaSmi [1]",
+          "Star0",
+          "224 S> LdaSmi [2]",
+          "Star2",
+          "237 S> LdaSmi [3]",
+          "Star4",
+          "246 S> AddSmi [1], [0]",
+          "Star4",
+          "261 S> LdaSmi [4]",
+          "Star3",
+          "264 S> Ldar r2",
+          "270 E> Add r3, [1]",
+          "Star3",
+          "289 S> LdaSmi [5]",
+          "Star1",
+          "292 S> Ldar r0",
+          "298 E> Add r1, [2]",
+          "Star1",
+          "LdaUndefined",
+          "305 S> Return",
+        ],
+      },
+    );
+  });
+});
+
+describe("block contexts", () => {
+  // The same source as tests/conformance/fixtures/bc-block-contexts.cjs; the wrapper is not examined.
+  const source = `// Blocks whose bindings a closure captures get a context of their own.
+function blockCapture(c) {
+  let outer = 1;
+  if (c) {
+    let inner = 2;
+    const f = () => inner + outer;
+    return f();
+  }
+  return outer;
+}
+blockCapture(1);
+function blockPlain(c) {
+  if (c) {
+    let a = 1;
+    const b = a + 1;
+    return b;
+  }
+  return 0;
+}
+blockPlain(1);
+function blockTdz(c) {
+  {
+    const g = () => later;
+    let later = 5;
+    return g();
+  }
+}
+blockTdz(1);
+function twoBlocks(c) {
+  { let p = 1; const f = () => p; f(); }
+  { let q = 2; const g = () => q; g(); }
+}
+twoBlocks(1);
+`;
+
+  it("pushes a context for a block whose bindings a closure captures, and pops it when the block falls through", () => {
+    expectFunctions(
+      source,
+      {},
+      {
+        name: "blockCapture",
+        registerCount: 3,
+        instructions: [
+          "93 E> CreateFunctionContext [0], [1]",
+          "PushContext r1",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "113 S> LdaSmi [1]",
+          "113 E> StaCurrentContextSlot [2]",
+          "118 S> Ldar a0",
+          "JumpIfToBooleanFalse [22] (@36)",
+          "CreateBlockContext [1]",
+          "PushContext r2",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "143 S> LdaSmi [2]",
+          "143 E> StaCurrentContextSlot [2]",
+          "160 S> CreateClosure [2], [0], #2",
+          "Star0",
+          "192 S> CallUndefinedReceiver0 r0, [0]",
+          "196 S> Return",
+          "203 S> LdaImmutableCurrentContextSlot [2]",
+          "216 S> Return",
+        ],
+        constantPool: ["<ScopeInfo FUNCTION_SCOPE>", "<ScopeInfo BLOCK_SCOPE>", "<SharedFunctionInfo f>"],
+        // The closure reads the block's slot at depth 0 and the function's one hop out.
+        children: [
+          {
+            name: "f",
+            registerCount: 1,
+            instructions: [
+              "172 S> LdaImmutableCurrentContextSlot [2]",
+              "ThrowReferenceErrorIfHole [0]",
+              "Star0",
+              "LdaImmutableContextSlot <context>, [2], [1]",
+              "174 E> ThrowReferenceErrorIfHole [1]",
+              "172 E> Add r0, [0]",
+              "179 S> Return",
+            ],
+          },
+        ],
+      },
+      {},
+      {
+        name: "blockTdz",
+        registerCount: 2,
+        instructions: [
+          "372 E> CreateBlockContext [0]",
+          "PushContext r1",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "396 S> CreateClosure [1], [0], #2",
+          "Star0",
+          "425 S> LdaSmi [5]",
+          "425 E> StaCurrentContextSlot [2]",
+          "439 S> CallUndefinedReceiver0 r0, [0]",
+          "443 S> Return",
+        ],
+        children: [{ registerCount: 0, instructions: ["402 S> LdaImmutableCurrentContextSlot [2]", "ThrowReferenceErrorIfHole [0]", "407 S> Return"] }],
+      },
+      {
+        name: "twoBlocks",
+        registerCount: 3,
+        // Each block keeps its own scope info, and the register that holds the outer context is reused.
+        instructions: [
+          "481 E> CreateBlockContext [0]",
+          "PushContext r2",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "499 S> LdaSmi [1]",
+          "499 E> StaCurrentContextSlot [2]",
+          "512 S> CreateClosure [1], [0], #2",
+          "Star1",
+          "521 S> CallUndefinedReceiver0 r1, [0]",
+          "PopContext r2",
+          "CreateBlockContext [2]",
+          "PushContext r2",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "540 S> LdaSmi [2]",
+          "540 E> StaCurrentContextSlot [2]",
+          "553 S> CreateClosure [3], [1], #2",
+          "Star0",
+          "562 S> CallUndefinedReceiver0 r0, [2]",
+          "PopContext r2",
+          "LdaUndefined",
+          "569 S> Return",
+        ],
+        children: [
+          { registerCount: 0, instructions: ["518 S> LdaImmutableCurrentContextSlot [2]", "ThrowReferenceErrorIfHole [0]", "519 S> Return"] },
+          { registerCount: 0, instructions: ["559 S> LdaImmutableCurrentContextSlot [2]", "ThrowReferenceErrorIfHole [0]", "560 S> Return"] },
+        ],
+      },
+    );
+  });
+});
