@@ -108,4 +108,9 @@ Opcode sequences match `--print-bytecode`. Operand-level differences are listed 
 - `bc-tdz-assign`, `assignFirst`: after an assignment to a not-yet-initialized binding inside a branch, V8 flushes the merge with `Ldar` of the temporary holding the value; we reload the binding. Same value, different register operand. The register optimizer's flush rule behind this is not yet understood.
 - `bc-defaults`, `viaClosure`'s arrow: the header name of an arrow in a default initializer (`read = () => x`) is `x` in V8, the identifier read inside it, while its constant-pool entry stays `read`. We print `read` in both. Instructions are identical.
 
+Not yet reproduced (the generator refuses them, so the fixture stays `pending`):
+
+- `bc-loop-let`, `perIteration`: a `for (let …)` loop whose variable a closure captures. V8 copies the binding into a fresh block context each iteration with a flag and a temporary; the generator throws `NotYetSupported` rather than emit a single function-level slot.
+- `while (z, c)`: the statement position of a comma-expression loop test differs from V8's.
+
 One case is known and not reproduced: when a forward jump is still pending while the constant pool crosses 256 entries, V8 moves later entries to the next index slice to keep the jump's reserved index free; this generator appends them in order. A listing could differ only in a function with more than 256 constants and a jump over the crossing.
