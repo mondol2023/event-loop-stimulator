@@ -39,3 +39,10 @@ export function asFunctionId(n: number): FunctionId {
   }
   return n as FunctionId;
 }
+
+/** Identity of a heap object, sequential from 1 in allocation order. */
+export type ObjectId = Brand<number, "ObjectId">;
+/** Identity of a hidden class (V8 `Map`). */
+export type MapId = Brand<number, "MapId">;
+/** Identity of a queued task or job. */
+export type TaskId = Brand<number, "TaskId">;
