@@ -148,6 +148,17 @@ describe("arrays", () => {
     expect(array().map).not.toBe(array(1.5).map);
   });
 
+  it("keeps an element whose value is undefined, distinct from a hole", () => {
+    const { ctx, array } = world();
+    const a = array(undefined, TheHole, null);
+    expect(OrdinaryGetOwnProperty(a, "0")).toEqual({ value: undefined, writable: true, enumerable: true, configurable: true });
+    expect(OrdinaryGetOwnProperty(a, "1")).toBeUndefined();
+    expect(OrdinaryOwnPropertyKeys(a)).toEqual(["0", "2", "length"]);
+    OrdinarySet(ctx, a, "1", undefined);
+    expect(OrdinaryGetOwnProperty(a, "1")?.value).toBeUndefined();
+    expect(OrdinaryGetOwnProperty(a, "1")).toBeDefined();
+  });
+
   it("moves PACKED_SMI to DOUBLE to tagged on writes, never back", () => {
     const { ctx, array } = world();
     const a = array(1, 2, 3);

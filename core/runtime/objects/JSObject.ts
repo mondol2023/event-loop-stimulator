@@ -100,7 +100,8 @@ export class JSObject extends HeapObject {
   getOwnElement(index: number): JSValue | TheHoleValue {
     const e = this.elements;
     if (e.dictionary) return e.dictionary.has(index) ? e.dictionary.get(index) : TheHole;
-    return index < e.dense.length ? (e.dense[index] ?? TheHole) : TheHole;
+    // An element can be `undefined` itself; only an index past the vector is a hole here.
+    return index < e.dense.length ? (e.dense[index] as JSValue | TheHoleValue) : TheHole;
   }
 
   elementIndices(): number[] {
