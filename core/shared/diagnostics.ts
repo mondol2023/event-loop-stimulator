@@ -3,14 +3,17 @@
 /** A half-open range of UTF-16 code-unit offsets into the source: `end` is exclusive. */
 export type SourceRange = { readonly start: number; readonly end: number };
 
-export type DiagnosticCode =
-  | "E_SYNTAX"
-  | "E_TS_UNSUPPORTED"
-  | "E_EXCLUDED_FEATURE"
-  | "E_EXCLUDED_API"
-  | "E_NOT_YET_SUPPORTED"
-  | "E_LIMIT_SOURCE_SIZE"
-  | "E_LIMIT_LINES";
+export const DIAGNOSTIC_CODES = [
+  "E_SYNTAX",
+  "E_TS_UNSUPPORTED",
+  "E_EXCLUDED_FEATURE",
+  "E_EXCLUDED_API",
+  "E_NOT_YET_SUPPORTED",
+  "E_LIMIT_SOURCE_SIZE",
+  "E_LIMIT_LINES",
+] as const;
+
+export type DiagnosticCode = (typeof DIAGNOSTIC_CODES)[number];
 
 export type Diagnostic = {
   readonly code: DiagnosticCode;

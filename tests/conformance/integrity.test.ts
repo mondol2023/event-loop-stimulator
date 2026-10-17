@@ -88,6 +88,32 @@ describe("checkIntegrity and discoverFixtures on a temp tree", () => {
     expect(() => discoverFixtures(root)).toThrow(/fixtures\/a\.meta\.json/);
   });
 
+  it("rejects a refused fixture without a diagnostic, naming the meta file", () => {
+    put("fixtures/a.cts", "enum E { A }");
+    put("fixtures/a.meta.json", { expect: "refused" });
+    expect(() => discoverFixtures(root)).toThrow(/fixtures\/a\.meta\.json.*diagnostic/s);
+  });
+
+  it("accepts a refused fixture that names its diagnostic, and an extract: feedback fixture", () => {
+    put("fixtures/a.cts", "enum E { A }");
+    put("fixtures/a.meta.json", { expect: "refused", diagnostic: "E_TS_UNSUPPORTED" });
+    put("internals/b.cjs", "1");
+    put("internals/b.meta.json", { extract: "feedback", nodeArgs: ["--allow-natives-syntax"] });
+    const metas = discoverFixtures(root).map((f) => f.meta);
+    expect(metas).toEqual([
+      { expect: "refused", diagnostic: "E_TS_UNSUPPORTED" },
+      { extract: "feedback", nodeArgs: ["--allow-natives-syntax"] },
+    ]);
+  });
+
+  it("rejects a diagnostic that is not a DiagnosticCode, and an unknown extract mode", () => {
+    put("fixtures/a.cts", "1");
+    put("fixtures/a.meta.json", { expect: "refused", diagnostic: "E_NOPE" });
+    expect(() => discoverFixtures(root)).toThrow(/fixtures\/a\.meta\.json/);
+    put("fixtures/a.meta.json", { extract: "everything" });
+    expect(() => discoverFixtures(root)).toThrow(/fixtures\/a\.meta\.json/);
+  });
+
   it("rejects a .cjs and a .cts with the same stem, naming both files", () => {
     put("fixtures/dup.cjs", "1");
     put("fixtures/dup.cts", "1");

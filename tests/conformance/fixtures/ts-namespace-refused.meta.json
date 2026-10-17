@@ -1,3 +1,4 @@
 {
-  "expect": "refused"
+  "expect": "refused",
+  "diagnostic": "E_TS_UNSUPPORTED"
 }

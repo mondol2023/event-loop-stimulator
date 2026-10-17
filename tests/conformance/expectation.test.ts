@@ -52,6 +52,14 @@ describe("buildExpectation", () => {
     expect(seen).toEqual({ lang: "js", nodeArgs: ["--expose-gc"] });
   });
 
+  it("applies extractFeedback to stdout only for a fixture that asks for it", () => {
+    const raw = " - shared_info: 0x1 <SharedFunctionInfo f>\n - slot #0 LoadProperty MONOMORPHIC {\n - slot #2 Call MONOMORPHIC\n";
+    const asks = buildExpectation(fixture({ kind: "internals", meta: { extract: "feedback" } }), target, () => ok(raw));
+    expect(asks.outcomes[0]?.stdout).toBe("function f\nslot #0 LoadProperty MONOMORPHIC\n");
+    const plain = buildExpectation(fixture({ kind: "internals" }), target, () => ok(raw));
+    expect(plain.outcomes[0]?.stdout).toBe(raw);
+  });
+
   it("runs a nondeterministic fixture 25 times by default and stores each distinct outcome, sorted", () => {
     let n = 0;
     const outputs = ["b\n", "a\n", "b\n", "c\n"];

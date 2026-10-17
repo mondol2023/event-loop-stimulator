@@ -138,6 +138,93 @@ describe("compareToExpectation (nondeterministic)", () => {
   });
 });
 
+describe("compareToExpectation (simulation stops)", () => {
+  it("fails a run that stopped even when its output matches", () => {
+    const r = compareToExpectation(sim({ stop: { kind: "limit", detail: "ticks" } }), det);
+    expect(r).toEqual({
+      ok: false,
+      diff: "simulation stopped (limit: ticks); real node ran to completion",
+    });
+  });
+
+  it("names an unsupported stop's reason", () => {
+    const r = compareToExpectation(sim({ stop: { kind: "unsupported", detail: "%j directive" } }), det);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.diff).toBe("simulation stopped (unsupported: %j directive); real node ran to completion");
+  });
+
+  it("fails a stopped nondeterministic run too", () => {
+    const nd = expectation(
+      [
+        { stdout: "a\nb\n", stderr: "", exitCode: 0 },
+        { stdout: "b\na\n", stderr: "", exitCode: 0 },
+      ],
+      true,
+    );
+    const r = compareToExpectation(
+      sim({ stop: { kind: "limit", detail: "work" }, warnings: ["ordering is not guaranteed by Node"] }),
+      nd,
+      {},
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.diff).toContain("simulation stopped");
+  });
+});
+
+describe("compareToExpectation (refused fixtures, D1)", () => {
+  const refusedMeta = { expect: "refused", diagnostic: "E_TS_UNSUPPORTED" } as const;
+  const refused = expectation([
+    { stdout: "", stderr: "main.cjs:2\n  > enum Color {\n\nSyntaxError [ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]\n", exitCode: 1 },
+  ]);
+  const refusal = (o: Partial<SimOutput> = {}) =>
+    sim({ stdout: "", stderr: "E_TS_UNSUPPORTED: TypeScript enum is not supported in strip-only mode\n", exitCode: 1, ...o });
+
+  it("passes when real node failed and we refuse with exit 1 and the declared code", () => {
+    expect(compareToExpectation(refusal(), refused, refusedMeta)).toEqual({ ok: true });
+  });
+
+  it("does not compare stderr bytes against node's loader output", () => {
+    const r = compareToExpectation(refusal({ stderr: "E_TS_UNSUPPORTED: any message at all\n" }), refused, refusedMeta);
+    expect(r).toEqual({ ok: true });
+  });
+
+  it("fails when we exit 0", () => {
+    const r = compareToExpectation(refusal({ exitCode: 0 }), refused, refusedMeta);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.diff).toContain("exit code");
+  });
+
+  it("fails on a different diagnostic code", () => {
+    const r = compareToExpectation(refusal({ stderr: "E_SYNTAX: nope\n" }), refused, refusedMeta);
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.diff).toContain("E_SYNTAX");
+      expect(r.diff).toContain("E_TS_UNSUPPORTED");
+    }
+  });
+
+  it("fails when stderr is not `<code>: <message>` lines", () => {
+    expect(compareToExpectation(refusal({ stderr: "SyntaxError: x\n" }), refused, refusedMeta).ok).toBe(false);
+    expect(compareToExpectation(refusal({ stderr: "" }), refused, refusedMeta).ok).toBe(false);
+  });
+
+  it("fails when real node did not exit non-zero (the fixture is not a refusal)", () => {
+    const ran = expectation([{ stdout: "1\n", stderr: "", exitCode: 0 }]);
+    const r = compareToExpectation(refusal(), ran, refusedMeta);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.diff).toContain("real node");
+  });
+
+  it("fails a refused run that also stopped", () => {
+    const r = compareToExpectation(refusal({ stop: { kind: "limit", detail: "ticks" } }), refused, refusedMeta);
+    expect(r.ok).toBe(false);
+  });
+
+  it("without meta, a fixture is compared byte for byte as before", () => {
+    expect(compareToExpectation(refusal(), refused).ok).toBe(false);
+  });
+});
+
 describe("pendingSimulatorTodos", () => {
   it("is empty while no simulator is set (todos are allowed)", () => {
     expect(pendingSimulatorTodos(undefined, ["a", "b"])).toEqual([]);

@@ -1,4 +1,5 @@
 import type { Expectation } from "../../scripts/conformance/expectation.mts";
+import type { FixtureMeta } from "../../scripts/conformance/fixtures.mts";
 import { lineColumn } from "../../core/shared/diagnostics";
 import type { SimOutput, Simulator } from "./support/simulator";
 
@@ -50,12 +51,42 @@ function diffOutcome(sim: SimOutput, expected: Outcome): string[] {
   return problems;
 }
 
+const REFUSAL_LINE = /^([A-Z][A-Z0-9_]*): .+$/;
+
+/**
+ * D1: a refused fixture is judged by refusal, not by stderr bytes (node's
+ * stderr is its internal TypeScript loader's, which the simulator must not
+ * reproduce). Real node exited non-zero; we exit 1 with `<code>: <message>`
+ * lines whose first code is the fixture's declared diagnostic.
+ */
+function compareRefusal(sim: SimOutput, e: Expectation, diagnostic: string): Comparison {
+  const problems: string[] = [];
+  if (!e.outcomes.every((o) => o.exitCode !== 0)) {
+    problems.push(`fixture "${e.fixture}" is declared refused, but real node did not exit non-zero`);
+  }
+  if (sim.exitCode !== 1) problems.push(`exit code: expected 1 (refusal), got ${sim.exitCode}`);
+  const lines = sim.stderr.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  const codes = lines.map((l) => REFUSAL_LINE.exec(l)?.[1]);
+  if (lines.length === 0 || codes.some((c) => c === undefined)) {
+    problems.push(`stderr is not "<code>: <message>" lines: ${show(sim.stderr)}`);
+  } else if (codes[0] !== diagnostic) {
+    problems.push(`diagnostic: expected ${diagnostic}, got ${codes[0]}`);
+  }
+  return problems.length === 0 ? { ok: true } : { ok: false, diff: problems.join("\n") };
+}
+
 /**
  * Byte-equal to the single recorded outcome. For a nondeterministic fixture
  * the output must equal ONE of the recorded outcomes (all three channels of
  * the same one) AND the run must have warned that the order is not guaranteed.
+ * A run that stopped early never conforms (D3), and a refused fixture follows D1.
  */
-export function compareToExpectation(sim: SimOutput, e: Expectation): Comparison {
+export function compareToExpectation(sim: SimOutput, e: Expectation, meta: FixtureMeta = {}): Comparison {
+  if (sim.stop) {
+    return { ok: false, diff: `simulation stopped (${sim.stop.kind}: ${sim.stop.detail}); real node ran to completion` };
+  }
+  if (meta.expect === "refused" && meta.diagnostic !== undefined) return compareRefusal(sim, e, meta.diagnostic);
   if (!e.nondeterministic) {
     const problems = diffOutcome(sim, e.outcomes[0] as Outcome);
     return problems.length === 0 ? { ok: true } : { ok: false, diff: problems.join("\n") };

@@ -1,12 +1,16 @@
 // The contract Phase 3's IgnitionInterpreter + Node event loop implements, and
 // the single slot the conformance suite reads it from.
 
+/** Why a run ended early (Decision D3). Real node would have run on, so a stopped run never conforms. */
+export type SimulationStopSummary = { readonly kind: "limit" | "unsupported"; readonly detail: string };
+
 export type SimOutput = {
   readonly stdout: string;
   readonly stderr: string;
   readonly exitCode: number;
   /** Fidelity warnings the run produced (e.g. a nondeterministic ordering); never part of stdout/stderr. */
   readonly warnings: readonly string[];
+  readonly stop?: SimulationStopSummary;
 };
 
 export interface Simulator {

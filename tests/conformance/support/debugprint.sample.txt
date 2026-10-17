@@ -1,0 +1,88 @@
+DebugPrint: 000002FAB33EB569: [Function]
+ - map: 0x03e7fd441241 <Map[64](HOLEY_ELEMENTS)> [FastProperties]
+ - prototype: 0x03e7fd44b8c1 <JSFunction (sfi = 000000D088185D39)>
+ - elements: 0x012b2b100cf9 <FixedArray[0]> [HOLEY_ELEMENTS]
+ - function prototype: 
+ - initial_map: 
+ - shared_info: 0x015dee416a89 <SharedFunctionInfo f>
+ - name: 0x012b2b105579 <String[1]: #f>
+ - builtin: InterpreterEntryTrampoline
+ - formal_parameter_count: 4
+ - kind: NormalFunction
+ - context: 0x02fab33eb501 <FunctionContext[3]>
+ - code: 0x02bb79a291b9 <Code BUILTIN InterpreterEntryTrampoline>
+ - dispatch_handle: 0x2f4500
+ - interpreted
+ - bytecode: 0x005f598033d1 <BytecodeArray[33]>
+ - source code: (o, k, flag) {
+  o.a = 1;
+  var x = o[k];
+  g(x);
+  if (flag) {
+    return o.b;
+  }
+  return o.a;
+}
+ - properties: 0x012b2b100cf9 <FixedArray[0]>
+ - All own properties (excluding elements): {
+    0000012B2B1094C9: [String] in ReadOnlySpace: #length: 0x012b2b1118c1 <AccessorInfo name= 0x012b2b1094c9 <String[6]: #length>, data= 0x012b2b100011 <undefined>> (const accessor descriptor, attrs: [__C]), location: descriptor
+    0000012B2B101891: [String] in ReadOnlySpace: #name: 0x012b2b111891 <AccessorInfo name= 0x012b2b101891 <String[4]: #name>, data= 0x012b2b100011 <undefined>> (const accessor descriptor, attrs: [__C]), location: descriptor
+    0000012B2B1064A9: [String] in ReadOnlySpace: #arguments: 0x012b2b111831 <AccessorInfo name= 0x012b2b1064a9 <String[9]: #arguments>, data= 0x012b2b100011 <undefined>> (const accessor descriptor, attrs: [___]), location: descriptor
+    0000012B2B1067C1: [String] in ReadOnlySpace: #caller: 0x012b2b111861 <AccessorInfo name= 0x012b2b1067c1 <String[6]: #caller>, data= 0x012b2b100011 <undefined>> (const accessor descriptor, attrs: [___]), location: descriptor
+    0000012B2B101871: [String] in ReadOnlySpace: #prototype: 0x012b2b1118f1 <AccessorInfo name= 0x012b2b101871 <String[9]: #prototype>, data= 0x012b2b100011 <undefined>> (const accessor descriptor, attrs: [W__]), location: descriptor
+ }
+ - feedback vector: 0000015DEE4172F1: [FeedbackVector]
+ - map: 0x012b2b100e49 <Map(FEEDBACK_VECTOR_TYPE)>
+ - length: 10
+ - shared function info: 0x015dee416a89 <SharedFunctionInfo f>
+ - tiering_in_progress: 0
+ - osr_tiering_in_progress: 0
+ - invocation count: 2
+ - closure feedback cell array: 0000012B2B103BA9: [ClosureFeedbackCellArray] in ReadOnlySpace
+ - map: 0x012b2b100e01 <Map(CLOSURE_FEEDBACK_CELL_ARRAY_TYPE)>
+ - length: 0
+ - elements:
+
+ - slot #0 SetNamedSloppy MONOMORPHIC
+   0x015dee417199 <Map[32](HOLEY_ELEMENTS)>: StoreHandler(Smi)(kind = kField, descriptor = 0, is in object = 1, representation = s, field index = 3)
+ {
+     [0]: [weak] 0x015dee417199 <Map[32](HOLEY_ELEMENTS)>
+     [1]: 3342336
+  }
+ - slot #2 LoadKeyed MONOMORPHIC
+   0x012b2b105501 <String[1]: #a>: LoadHandler(<unexpected>)(0x015dee417199 <Map[32](HOLEY_ELEMENTS)>) {
+     [2]: 0x012b2b105501 <String[1]: #a>
+     [3]: 0x02fab33eb5f9 <WeakFixedArray[2]>
+  }
+ - slot #4 Call MONOMORPHIC {
+     [4]: [weak] 0x02fab33eb529 <JSFunction g (sfi = 0000015DEE416A41)>
+     [5]: 8
+  }
+ - slot #6 LoadProperty UNINITIALIZED {
+     [6]: 0x012b2b101931 <Symbol: (uninitialized_symbol)>
+     [7]: 0x012b2b101931 <Symbol: (uninitialized_symbol)>
+  }
+ - slot #8 LoadProperty MONOMORPHIC
+   [weak] 0x015dee417199 <Map[32](HOLEY_ELEMENTS)>: LoadHandler(Smi)(kind = kField, is in object = 1, is double = 0, field index = 3) {
+     [8]: [weak] 0x015dee417199 <Map[32](HOLEY_ELEMENTS)>
+     [9]: 1668
+  }
+000003E7FD441241: [Map]
+ - map: 0x03e7fd440079 <MetaMap (0x03e7fd440109 <NativeContext[302]>)>
+ - type: JS_FUNCTION_TYPE
+ - instance size: 64
+ - inobject properties: 0
+ - unused property fields: 0
+ - elements kind: HOLEY_ELEMENTS
+ - enum length: invalid
+ - callable
+ - constructor
+ - has_prototype_slot
+ - back pointer: 0x012b2b100011 <undefined>
+ - prototype_validity cell: 0x012b2b1012c9 <Cell value= 1>
+ - instance descriptors (own) #5: 0x03e7fd441289 <DescriptorArray[5]>
+ - prototype: 0x03e7fd44b8c1 <JSFunction (sfi = 000000D088185D39)>
+ - constructor: 0x03e7fd4411d9 <JSFunction Function (sfi = 0000012B2B1127F1)>
+ - dependent code: 0x012b2b100d19 <Other heap object (WEAK_ARRAY_LIST_TYPE)>
+ - construction counter: 0
+

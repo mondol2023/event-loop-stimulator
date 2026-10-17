@@ -1,4 +1,5 @@
 import { z } from "../../core/shared/zod.ts";
+import { extractFeedback } from "./feedback.mts";
 import type { Fixture } from "./fixtures.mts";
 import type { RealRun, RealRunOptions } from "./run-real.mts";
 import type { Target } from "./target.mts";
@@ -109,7 +110,8 @@ export function buildExpectation(
   const distinct = new Map<string, Outcome>();
   for (let i = 0; i < runs; i++) {
     const r = run(fixture.source, opts);
-    const outcome: Outcome = { stdout: r.stdout, stderr: r.stderr, exitCode: r.exitCode };
+    const stdout = fixture.meta.extract === "feedback" ? extractFeedback(r.stdout) : r.stdout;
+    const outcome: Outcome = { stdout, stderr: r.stderr, exitCode: r.exitCode };
     distinct.set(JSON.stringify([outcome.exitCode, outcome.stdout, outcome.stderr]), outcome);
   }
   const outcomes = [...distinct.values()].sort(compareOutcomes);

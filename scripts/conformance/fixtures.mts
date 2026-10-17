@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { DIAGNOSTIC_CODES } from "../../core/shared/diagnostics.ts";
 import { z } from "../../core/shared/zod.ts";
 import { parseExpectation } from "./expectation.mts";
 import type { Target } from "./target.mts";
@@ -16,10 +17,18 @@ export const FixtureMetaSchema = z
   .object({
     nondeterministic: z.boolean().optional(),
     expect: z.enum(["run", "refused"]).optional(),
+    // The code the simulator must refuse with (D1); node's own stderr for a refusal is loader-internal.
+    diagnostic: z.enum(DIAGNOSTIC_CODES).optional(),
     runs: z.number().int().positive().optional(),
     nodeArgs: z.array(z.string()).optional(),
+    // Keep only the %DebugPrint feedback lines (D2) so an `internals` fixture is comparable by bytes.
+    extract: z.enum(["feedback"]).optional(),
   })
-  .strict();
+  .strict()
+  .refine((m) => m.expect !== "refused" || m.diagnostic !== undefined, {
+    message: 'a fixture that expects "refused" must name the diagnostic it is refused with',
+    path: ["diagnostic"],
+  });
 
 export type FixtureMeta = z.infer<typeof FixtureMetaSchema>;
 
