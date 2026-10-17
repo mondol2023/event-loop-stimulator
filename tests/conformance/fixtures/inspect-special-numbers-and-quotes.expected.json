@@ -1,0 +1,491 @@
+{
+  "schema": 1,
+  "fixture": "inspect-special-numbers-and-quotes",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "-0\n[ -0, 0, NaN, Infinity, -Infinity ]\n{ a: -0, b: NaN, c: Infinity }\n[ \"it's\", 'say \"hi\"', `both ' and \"`, 'back`tick\\'\"' ]\n{ '3': 4, 'a-b': 1, valid_id: 2, 'with space': 5, '': 6 }\ntop level string is not quoted\n[ 'nested string is quoted' ]\n[ undefined, null, true ]\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 203,
+      "parameterCount": 6,
+      "registerCount": 4,
+      "frameSize": 32
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 79,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 3,
+        "text": "Star1"
+      },
+      {
+        "offset": 4,
+        "position": {
+          "at": 87,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 8,
+        "text": "Star0"
+      },
+      {
+        "offset": 9,
+        "text": "LdaConstant [2]"
+      },
+      {
+        "offset": 11,
+        "text": "Star2"
+      },
+      {
+        "offset": 12,
+        "position": {
+          "at": 87,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [4]"
+      },
+      {
+        "offset": 17,
+        "position": {
+          "at": 96,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 20,
+        "text": "Star1"
+      },
+      {
+        "offset": 21,
+        "position": {
+          "at": 104,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 25,
+        "text": "Star0"
+      },
+      {
+        "offset": 26,
+        "text": "CreateArrayLiteral [3], [6], #37"
+      },
+      {
+        "offset": 30,
+        "text": "Star2"
+      },
+      {
+        "offset": 31,
+        "text": "LdaSmi [2]"
+      },
+      {
+        "offset": 33,
+        "text": "Star3"
+      },
+      {
+        "offset": 34,
+        "position": {
+          "at": 116,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [4], [7]"
+      },
+      {
+        "offset": 37,
+        "text": "StaInArrayLiteral r2, r3, [9]"
+      },
+      {
+        "offset": 41,
+        "text": "LdaSmi [3]"
+      },
+      {
+        "offset": 43,
+        "text": "Star3"
+      },
+      {
+        "offset": 44,
+        "position": {
+          "at": 121,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [5], [11]"
+      },
+      {
+        "offset": 47,
+        "text": "StaInArrayLiteral r2, r3, [9]"
+      },
+      {
+        "offset": 51,
+        "text": "LdaSmi [4]"
+      },
+      {
+        "offset": 53,
+        "text": "Star3"
+      },
+      {
+        "offset": 54,
+        "position": {
+          "at": 132,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [5], [11]"
+      },
+      {
+        "offset": 57,
+        "position": {
+          "at": 131,
+          "kind": "E"
+        },
+        "text": "Negate [13]"
+      },
+      {
+        "offset": 59,
+        "text": "StaInArrayLiteral r2, r3, [9]"
+      },
+      {
+        "offset": 63,
+        "position": {
+          "at": 104,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [14]"
+      },
+      {
+        "offset": 68,
+        "position": {
+          "at": 144,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 71,
+        "text": "Star1"
+      },
+      {
+        "offset": 72,
+        "position": {
+          "at": 152,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 76,
+        "text": "Star0"
+      },
+      {
+        "offset": 77,
+        "text": "CreateObjectLiteral [6], [16], #41"
+      },
+      {
+        "offset": 81,
+        "text": "Star2"
+      },
+      {
+        "offset": 82,
+        "position": {
+          "at": 168,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [4], [7]"
+      },
+      {
+        "offset": 85,
+        "text": "DefineNamedOwnProperty r2, [7], [17]"
+      },
+      {
+        "offset": 89,
+        "position": {
+          "at": 176,
+          "kind": "E"
+        },
+        "text": "LdaGlobal [5], [11]"
+      },
+      {
+        "offset": 92,
+        "text": "DefineNamedOwnProperty r2, [8], [19]"
+      },
+      {
+        "offset": 96,
+        "position": {
+          "at": 152,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [21]"
+      },
+      {
+        "offset": 101,
+        "position": {
+          "at": 189,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 104,
+        "text": "Star1"
+      },
+      {
+        "offset": 105,
+        "position": {
+          "at": 197,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 109,
+        "text": "Star0"
+      },
+      {
+        "offset": 110,
+        "text": "CreateArrayLiteral [9], [23], #37"
+      },
+      {
+        "offset": 114,
+        "text": "Star2"
+      },
+      {
+        "offset": 115,
+        "position": {
+          "at": 197,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [24]"
+      },
+      {
+        "offset": 120,
+        "position": {
+          "at": 257,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 123,
+        "text": "Star1"
+      },
+      {
+        "offset": 124,
+        "position": {
+          "at": 265,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 128,
+        "text": "Star0"
+      },
+      {
+        "offset": 129,
+        "text": "CreateObjectLiteral [10], [26], #41"
+      },
+      {
+        "offset": 133,
+        "text": "Star2"
+      },
+      {
+        "offset": 134,
+        "position": {
+          "at": 265,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [27]"
+      },
+      {
+        "offset": 139,
+        "position": {
+          "at": 327,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 142,
+        "text": "Star1"
+      },
+      {
+        "offset": 143,
+        "position": {
+          "at": 335,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 147,
+        "text": "Star0"
+      },
+      {
+        "offset": 148,
+        "text": "LdaConstant [11]"
+      },
+      {
+        "offset": 150,
+        "text": "Star2"
+      },
+      {
+        "offset": 151,
+        "position": {
+          "at": 335,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [29]"
+      },
+      {
+        "offset": 156,
+        "position": {
+          "at": 374,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 159,
+        "text": "Star1"
+      },
+      {
+        "offset": 160,
+        "position": {
+          "at": 382,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 164,
+        "text": "Star0"
+      },
+      {
+        "offset": 165,
+        "text": "CreateArrayLiteral [12], [31], #37"
+      },
+      {
+        "offset": 169,
+        "text": "Star2"
+      },
+      {
+        "offset": 170,
+        "position": {
+          "at": 382,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [32]"
+      },
+      {
+        "offset": 175,
+        "position": {
+          "at": 416,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 178,
+        "text": "Star1"
+      },
+      {
+        "offset": 179,
+        "position": {
+          "at": 424,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 183,
+        "text": "Star0"
+      },
+      {
+        "offset": 184,
+        "text": "CreateArrayLiteral [13], [34], #37"
+      },
+      {
+        "offset": 188,
+        "text": "Star2"
+      },
+      {
+        "offset": 189,
+        "text": "LdaZero"
+      },
+      {
+        "offset": 190,
+        "text": "Star3"
+      },
+      {
+        "offset": 191,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 192,
+        "position": {
+          "at": 429,
+          "kind": "E"
+        },
+        "text": "StaInArrayLiteral r2, r3, [35]"
+      },
+      {
+        "offset": 196,
+        "position": {
+          "at": 424,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [37]"
+      },
+      {
+        "offset": 201,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 202,
+        "position": {
+          "at": 453,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<String[7]: #console>",
+      "<String[3]: #log>",
+      "<HeapNumber -0.0>",
+      "<ArrayBoilerplateDescription PACKED_DOUBLE_ELEMENTS, <FixedDoubleArray[5]>>",
+      "<String[3]: #NaN>",
+      "<String[8]: #Infinity>",
+      "<ObjectBoilerplateDescription[6]>",
+      "<String[1]: #b>",
+      "<String[1]: #c>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[4]>>",
+      "<ObjectBoilerplateDescription[10]>",
+      "<String[30]: #top level string is not quoted>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[1]>>",
+      "<ArrayBoilerplateDescription PACKED_ELEMENTS, <FixedArray[3]>>"
+    ],
+    "handlerTable": [],
+    "children": {}
+  }
+}

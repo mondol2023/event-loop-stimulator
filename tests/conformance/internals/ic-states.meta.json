@@ -1,0 +1,4 @@
+{
+  "nodeArgs": ["--allow-natives-syntax", "--no-lazy-feedback-allocation"],
+  "extract": "feedback"
+}

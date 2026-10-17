@@ -124,6 +124,9 @@
   "bc-try-finally": {
     "status": "exact"
   },
+  "builtin-callback-throws": {
+    "status": "exact"
+  },
   "closure-counter": {
     "status": "opcodes",
     "exceptions": [
@@ -143,6 +146,9 @@
     "status": "pending"
   },
   "console-error-warn": {
+    "status": "exact"
+  },
+  "console-format-directives": {
     "status": "exact"
   },
   "const-assign-error": {
@@ -170,10 +176,22 @@
   "error-in-timer-uncaught": {
     "status": "exact"
   },
+  "error-stack-property": {
+    "status": "exact"
+  },
   "finally-passthrough": {
     "status": "exact"
   },
+  "immediate-vs-timeout-in-io-free-callback": {
+    "status": "exact"
+  },
+  "inspect-circular-and-long-arrays": {
+    "status": "exact"
+  },
   "inspect-nesting-and-wrapping": {
+    "status": "exact"
+  },
+  "inspect-special-numbers-and-quotes": {
     "status": "exact"
   },
   "interval-clear": {
@@ -230,6 +248,9 @@
   "strings-and-templates": {
     "status": "exact"
   },
+  "throw-in-finally-overrides": {
+    "status": "exact"
+  },
   "throw-non-error": {
     "status": "exact"
   },
@@ -237,6 +258,9 @@
     "status": "exact"
   },
   "timer-delay-coercion": {
+    "status": "exact"
+  },
+  "timer-in-timer-ordering": {
     "status": "exact"
   },
   "timer-overflow-warning": {

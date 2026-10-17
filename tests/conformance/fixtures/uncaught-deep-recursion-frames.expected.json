@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "fixture": "uncaught-deep-recursion-frames",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "",
+      "stderr": "main.cjs:4\n    throw new Error(\"deep\");\n    ^\n\nError: deep\n    at r (main.cjs:4:11)\n    at r (main.cjs:6:3)\n    at r (main.cjs:6:3)\n    at r (main.cjs:6:3)\n    at r (main.cjs:6:3)\n    at r (main.cjs:6:3)\n    at r (main.cjs:6:3)\n    at r (main.cjs:6:3)\n    at r (main.cjs:6:3)\n    at r (main.cjs:6:3)\n\nNode.js v24.19.0\n",
+      "exitCode": 1
+    }
+  ]
+}

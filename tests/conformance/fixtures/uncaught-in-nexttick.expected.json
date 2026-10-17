@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "fixture": "uncaught-in-nexttick",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "start\nend of script\n",
+      "stderr": "main.cjs:5\n  throw new Error(\"boom in nextTick\");\n  ^\n\nError: boom in nextTick\n    at main.cjs:5:9\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\n\nNode.js v24.19.0\n",
+      "exitCode": 1
+    }
+  ]
+}

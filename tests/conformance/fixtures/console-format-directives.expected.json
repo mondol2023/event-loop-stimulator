@@ -1,0 +1,731 @@
+{
+  "schema": 1,
+  "fixture": "console-format-directives",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "x is 1.5\n42 and 3.5\n styled\n100% 5\n%\na %% b\none two 3\nonly one %s\nNaN\nnull undefined\n12 true\n-0\nno directives 1 two\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "bytecode": {
+    "name": "",
+    "header": {
+      "length": 279,
+      "parameterCount": 6,
+      "registerCount": 6,
+      "frameSize": 48
+    },
+    "instructions": [
+      {
+        "offset": 0,
+        "position": {
+          "at": 96,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 3,
+        "text": "Star1"
+      },
+      {
+        "offset": 4,
+        "position": {
+          "at": 104,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 8,
+        "text": "Star0"
+      },
+      {
+        "offset": 9,
+        "text": "LdaConstant [2]"
+      },
+      {
+        "offset": 11,
+        "text": "Star2"
+      },
+      {
+        "offset": 12,
+        "text": "LdaConstant [3]"
+      },
+      {
+        "offset": 14,
+        "text": "Star3"
+      },
+      {
+        "offset": 15,
+        "text": "LdaConstant [4]"
+      },
+      {
+        "offset": 17,
+        "text": "Star4"
+      },
+      {
+        "offset": 18,
+        "position": {
+          "at": 104,
+          "kind": "E"
+        },
+        "text": "CallProperty r0, r1-r4, [4]"
+      },
+      {
+        "offset": 23,
+        "position": {
+          "at": 131,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 26,
+        "text": "Star1"
+      },
+      {
+        "offset": 27,
+        "position": {
+          "at": 139,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 31,
+        "text": "Star0"
+      },
+      {
+        "offset": 32,
+        "text": "LdaConstant [5]"
+      },
+      {
+        "offset": 34,
+        "text": "Star2"
+      },
+      {
+        "offset": 35,
+        "text": "LdaConstant [6]"
+      },
+      {
+        "offset": 37,
+        "text": "Star3"
+      },
+      {
+        "offset": 38,
+        "text": "LdaConstant [7]"
+      },
+      {
+        "offset": 40,
+        "text": "Star4"
+      },
+      {
+        "offset": 41,
+        "position": {
+          "at": 139,
+          "kind": "E"
+        },
+        "text": "CallProperty r0, r1-r4, [6]"
+      },
+      {
+        "offset": 46,
+        "position": {
+          "at": 173,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 49,
+        "text": "Star1"
+      },
+      {
+        "offset": 50,
+        "position": {
+          "at": 181,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 54,
+        "text": "Star0"
+      },
+      {
+        "offset": 55,
+        "text": "LdaConstant [8]"
+      },
+      {
+        "offset": 57,
+        "text": "Star2"
+      },
+      {
+        "offset": 58,
+        "text": "LdaConstant [9]"
+      },
+      {
+        "offset": 60,
+        "text": "Star3"
+      },
+      {
+        "offset": 61,
+        "position": {
+          "at": 181,
+          "kind": "E"
+        },
+        "text": "CallProperty2 r0, r1, r2, r3, [8]"
+      },
+      {
+        "offset": 67,
+        "position": {
+          "at": 212,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 70,
+        "text": "Star1"
+      },
+      {
+        "offset": 71,
+        "position": {
+          "at": 220,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 75,
+        "text": "Star0"
+      },
+      {
+        "offset": 76,
+        "text": "LdaConstant [10]"
+      },
+      {
+        "offset": 78,
+        "text": "Star2"
+      },
+      {
+        "offset": 79,
+        "text": "LdaSmi [5]"
+      },
+      {
+        "offset": 81,
+        "text": "Star3"
+      },
+      {
+        "offset": 82,
+        "position": {
+          "at": 220,
+          "kind": "E"
+        },
+        "text": "CallProperty2 r0, r1, r2, r3, [10]"
+      },
+      {
+        "offset": 88,
+        "position": {
+          "at": 236,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 91,
+        "text": "Star1"
+      },
+      {
+        "offset": 92,
+        "position": {
+          "at": 244,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 96,
+        "text": "Star0"
+      },
+      {
+        "offset": 97,
+        "text": "LdaConstant [11]"
+      },
+      {
+        "offset": 99,
+        "text": "Star2"
+      },
+      {
+        "offset": 100,
+        "position": {
+          "at": 244,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [12]"
+      },
+      {
+        "offset": 105,
+        "position": {
+          "at": 254,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 108,
+        "text": "Star1"
+      },
+      {
+        "offset": 109,
+        "position": {
+          "at": 262,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 113,
+        "text": "Star0"
+      },
+      {
+        "offset": 114,
+        "text": "LdaConstant [12]"
+      },
+      {
+        "offset": 116,
+        "text": "Star2"
+      },
+      {
+        "offset": 117,
+        "position": {
+          "at": 262,
+          "kind": "E"
+        },
+        "text": "CallProperty1 r0, r1, r2, [14]"
+      },
+      {
+        "offset": 122,
+        "position": {
+          "at": 277,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 125,
+        "text": "Star1"
+      },
+      {
+        "offset": 126,
+        "position": {
+          "at": 285,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 130,
+        "text": "Star0"
+      },
+      {
+        "offset": 131,
+        "text": "LdaConstant [13]"
+      },
+      {
+        "offset": 133,
+        "text": "Star2"
+      },
+      {
+        "offset": 134,
+        "text": "LdaConstant [14]"
+      },
+      {
+        "offset": 136,
+        "text": "Star3"
+      },
+      {
+        "offset": 137,
+        "text": "LdaConstant [15]"
+      },
+      {
+        "offset": 139,
+        "text": "Star4"
+      },
+      {
+        "offset": 140,
+        "text": "LdaSmi [3]"
+      },
+      {
+        "offset": 142,
+        "text": "Star5"
+      },
+      {
+        "offset": 143,
+        "position": {
+          "at": 285,
+          "kind": "E"
+        },
+        "text": "CallProperty r0, r1-r5, [16]"
+      },
+      {
+        "offset": 148,
+        "position": {
+          "at": 313,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 151,
+        "text": "Star1"
+      },
+      {
+        "offset": 152,
+        "position": {
+          "at": 321,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 156,
+        "text": "Star0"
+      },
+      {
+        "offset": 157,
+        "text": "LdaConstant [16]"
+      },
+      {
+        "offset": 159,
+        "text": "Star2"
+      },
+      {
+        "offset": 160,
+        "text": "LdaConstant [17]"
+      },
+      {
+        "offset": 162,
+        "text": "Star3"
+      },
+      {
+        "offset": 163,
+        "position": {
+          "at": 321,
+          "kind": "E"
+        },
+        "text": "CallProperty2 r0, r1, r2, r3, [18]"
+      },
+      {
+        "offset": 169,
+        "position": {
+          "at": 347,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 172,
+        "text": "Star1"
+      },
+      {
+        "offset": 173,
+        "position": {
+          "at": 355,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 177,
+        "text": "Star0"
+      },
+      {
+        "offset": 178,
+        "text": "LdaConstant [18]"
+      },
+      {
+        "offset": 180,
+        "text": "Star2"
+      },
+      {
+        "offset": 181,
+        "text": "LdaConstant [19]"
+      },
+      {
+        "offset": 183,
+        "text": "Star3"
+      },
+      {
+        "offset": 184,
+        "position": {
+          "at": 355,
+          "kind": "E"
+        },
+        "text": "CallProperty2 r0, r1, r2, r3, [20]"
+      },
+      {
+        "offset": 190,
+        "position": {
+          "at": 373,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 193,
+        "text": "Star1"
+      },
+      {
+        "offset": 194,
+        "position": {
+          "at": 381,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 198,
+        "text": "Star0"
+      },
+      {
+        "offset": 199,
+        "text": "LdaConstant [13]"
+      },
+      {
+        "offset": 201,
+        "text": "Star2"
+      },
+      {
+        "offset": 202,
+        "text": "LdaNull"
+      },
+      {
+        "offset": 203,
+        "text": "Star3"
+      },
+      {
+        "offset": 204,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 205,
+        "text": "Star4"
+      },
+      {
+        "offset": 206,
+        "position": {
+          "at": 381,
+          "kind": "E"
+        },
+        "text": "CallProperty r0, r1-r4, [22]"
+      },
+      {
+        "offset": 211,
+        "position": {
+          "at": 409,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 214,
+        "text": "Star1"
+      },
+      {
+        "offset": 215,
+        "position": {
+          "at": 417,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 219,
+        "text": "Star0"
+      },
+      {
+        "offset": 220,
+        "text": "LdaConstant [13]"
+      },
+      {
+        "offset": 222,
+        "text": "Star2"
+      },
+      {
+        "offset": 223,
+        "text": "LdaSmi [12]"
+      },
+      {
+        "offset": 225,
+        "text": "Star3"
+      },
+      {
+        "offset": 226,
+        "text": "LdaTrue"
+      },
+      {
+        "offset": 227,
+        "text": "Star4"
+      },
+      {
+        "offset": 228,
+        "position": {
+          "at": 417,
+          "kind": "E"
+        },
+        "text": "CallProperty r0, r1-r4, [24]"
+      },
+      {
+        "offset": 233,
+        "position": {
+          "at": 438,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 236,
+        "text": "Star1"
+      },
+      {
+        "offset": 237,
+        "position": {
+          "at": 446,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 241,
+        "text": "Star0"
+      },
+      {
+        "offset": 242,
+        "text": "LdaConstant [18]"
+      },
+      {
+        "offset": 244,
+        "text": "Star2"
+      },
+      {
+        "offset": 245,
+        "text": "LdaConstant [20]"
+      },
+      {
+        "offset": 247,
+        "text": "Star3"
+      },
+      {
+        "offset": 248,
+        "position": {
+          "at": 446,
+          "kind": "E"
+        },
+        "text": "CallProperty2 r0, r1, r2, r3, [26]"
+      },
+      {
+        "offset": 254,
+        "position": {
+          "at": 461,
+          "kind": "S"
+        },
+        "text": "LdaGlobal [0], [0]"
+      },
+      {
+        "offset": 257,
+        "text": "Star1"
+      },
+      {
+        "offset": 258,
+        "position": {
+          "at": 469,
+          "kind": "E"
+        },
+        "text": "GetNamedProperty r1, [1], [2]"
+      },
+      {
+        "offset": 262,
+        "text": "Star0"
+      },
+      {
+        "offset": 263,
+        "text": "LdaConstant [21]"
+      },
+      {
+        "offset": 265,
+        "text": "Star2"
+      },
+      {
+        "offset": 266,
+        "text": "LdaSmi [1]"
+      },
+      {
+        "offset": 268,
+        "text": "Star3"
+      },
+      {
+        "offset": 269,
+        "text": "LdaConstant [15]"
+      },
+      {
+        "offset": 271,
+        "text": "Star4"
+      },
+      {
+        "offset": 272,
+        "position": {
+          "at": 469,
+          "kind": "E"
+        },
+        "text": "CallProperty r0, r1-r4, [28]"
+      },
+      {
+        "offset": 277,
+        "text": "LdaUndefined"
+      },
+      {
+        "offset": 278,
+        "position": {
+          "at": 500,
+          "kind": "S"
+        },
+        "text": "Return"
+      }
+    ],
+    "constantPool": [
+      "<String[7]: #console>",
+      "<String[3]: #log>",
+      "<String[8]: #%s is %d>",
+      "<String[1]: #x>",
+      "<HeapNumber 1.5>",
+      "<String[9]: #%i and %f>",
+      "<HeapNumber 42.9>",
+      "<String[6]: #3.5abc>",
+      "<String[9]: #%c styled>",
+      "<String[9]: #color:red>",
+      "<String[4]: #100%>",
+      "<String[1]: #%>",
+      "<String[6]: #a %% b>",
+      "<String[2]: #%s>",
+      "<String[3]: #one>",
+      "<String[3]: #two>",
+      "<String[5]: #%s %s>",
+      "<String[8]: #only one>",
+      "<String[2]: #%d>",
+      "<String[3]: #abc>",
+      "<HeapNumber -0.0>",
+      "<String[13]: #no directives>"
+    ],
+    "handlerTable": [],
+    "children": {}
+  }
+}

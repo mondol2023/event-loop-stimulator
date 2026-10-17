@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "fixture": "unhandled-rejection-non-error",
+  "kind": "program",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "start\nend of script\n",
+      "stderr": "node:internal/process/promises:392\n      new UnhandledPromiseRejection(reason);\n      ^\n\nUnhandledPromiseRejection: This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). The promise rejected with the reason \"42\".\n    at throwUnhandledRejectionsMode (node:internal/process/promises:392:7)\n    at processPromiseRejections (node:internal/process/promises:475:17)\n    at process.processTicksAndRejections (node:internal/process/task_queues:106:37) {\n  code: 'ERR_UNHANDLED_REJECTION'\n}\n\nNode.js v24.19.0\n",
+      "exitCode": 1
+    }
+  ]
+}
