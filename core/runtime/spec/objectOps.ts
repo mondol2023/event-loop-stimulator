@@ -108,6 +108,14 @@ function store(ctx: ObjectOpsContext, obj: JSObject, key: string, value: JSValue
   obj.putNamed(ctx.maps, key, value, attributes);
 }
 
+/** HasProperty (OrdinaryHasProperty): the key is an own property of `obj` or of something on its prototype chain. */
+export function HasProperty(obj: JSObject, key: string): boolean {
+  for (let o: JSObject | null = obj; o !== null; o = o.prototype) {
+    if (OrdinaryGetOwnProperty(o, key)) return true;
+  }
+  return false;
+}
+
 export function OrdinaryGet(obj: JSObject, key: string): JSValue {
   for (let o: JSObject | null = obj; o !== null; o = o.prototype) {
     const desc = OrdinaryGetOwnProperty(o, key);

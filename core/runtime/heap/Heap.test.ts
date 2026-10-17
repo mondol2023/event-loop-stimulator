@@ -28,4 +28,20 @@ describe("Heap", () => {
     expect((halt as SimulationHalt).stop).toEqual({ kind: "limit", limit: "heapObjects" });
     expect(heap.allocatedCount).toBe(1024);
   });
+
+  it("gives intrinsics negative ids and leaves the program's count and ids alone", () => {
+    const heap = new Heap();
+    const first = heap.allocateIntrinsic((id) => new Dummy(id));
+    const second = heap.allocateIntrinsic((id) => new Dummy(id));
+    const user = heap.allocate((id) => new Dummy(id));
+    expect([first.id, second.id, user.id]).toEqual([-1, -2, 1]);
+    expect(heap.allocatedCount).toBe(1);
+  });
+
+  it("does not count intrinsics against the 1,024-object limit", () => {
+    const heap = new Heap();
+    for (let i = 0; i < 2000; i++) heap.allocateIntrinsic((id) => new Dummy(id));
+    for (let i = 0; i < HEAP_OBJECT_LIMIT; i++) heap.allocate((id) => new Dummy(id));
+    expect(heap.allocatedCount).toBe(1024);
+  });
 });

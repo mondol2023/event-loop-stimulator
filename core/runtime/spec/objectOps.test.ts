@@ -10,6 +10,7 @@ import {
   OrdinaryDefineOwnProperty,
   OrdinaryDelete,
   OrdinaryGet,
+  HasProperty,
   OrdinaryGetOwnProperty,
   OrdinaryOwnPropertyKeys,
   OrdinarySet,
@@ -234,5 +235,27 @@ describe("arrays", () => {
     OrdinarySet(ctx, a, "-1", 1);
     expect(OrdinaryGet(a, "length")).toBe(0);
     expect(OrdinaryOwnPropertyKeys(a)).toEqual(["length", "4294967295", "01", "-1"]);
+  });
+});
+
+describe("HasProperty", () => {
+  it("finds own and inherited properties, including ones whose value is undefined", () => {
+    const { object } = world();
+    const proto = object({ inherited: undefined });
+    const o = object({ own: 1 }, proto);
+    expect(HasProperty(o, "own")).toBe(true);
+    expect(HasProperty(o, "inherited")).toBe(true);
+    expect(HasProperty(o, "missing")).toBe(false);
+  });
+
+  it("sees array indices and length but not holes", () => {
+    const { array } = world();
+    const a = array(1, TheHole, 3);
+    expect([HasProperty(a, "0"), HasProperty(a, "1"), HasProperty(a, "2"), HasProperty(a, "length")]).toEqual([
+      true,
+      false,
+      true,
+      true,
+    ]);
   });
 });

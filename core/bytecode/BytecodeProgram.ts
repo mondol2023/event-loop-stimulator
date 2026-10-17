@@ -32,6 +32,8 @@ export type BytecodeFunction = {
   readonly id: FunctionId;
   /** The function's own name, `""` for an anonymous function (and for the wrapper). */
   readonly name: string;
+  /** V8's SharedFunctionInfo language mode: strict code (`"use strict"`, or nested in strict code). */
+  readonly strict: boolean;
   /** Includes the receiver. */
   readonly parameterCount: number;
   readonly registerCount: number;
@@ -45,7 +47,11 @@ export type BytecodeFunction = {
   readonly children: readonly FunctionId[];
 };
 
-export type BytecodeProgram = { readonly functions: readonly BytecodeFunction[] };
+export type BytecodeProgram = {
+  readonly functions: readonly BytecodeFunction[];
+  /** The text the offsets in every `positions` table index into (V8 keeps it on the Script). */
+  readonly source: string;
+};
 
 /** The printer's view of a function. */
 export function toPrintable(fn: BytecodeFunction): PrintableFunction {
@@ -67,12 +73,19 @@ export function toPrintable(fn: BytecodeFunction): PrintableFunction {
 /** Seals a builder into the function it assembled. */
 export function finishFunction(
   builder: BytecodeArrayBuilder,
-  meta: { readonly id: FunctionId; readonly name: string; readonly children?: readonly FunctionId[]; readonly handlerTable?: readonly HandlerEntry[] },
+  meta: {
+    readonly id: FunctionId;
+    readonly name: string;
+    readonly strict: boolean;
+    readonly children?: readonly FunctionId[];
+    readonly handlerTable?: readonly HandlerEntry[];
+  },
 ): BytecodeFunction {
   const { array, positions, header, handlerTable } = builder.build();
   return {
     id: meta.id,
     name: meta.name,
+    strict: meta.strict,
     parameterCount: header.parameterCount,
     registerCount: header.registerCount,
     frameSize: header.frameSize,

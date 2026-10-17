@@ -50,7 +50,7 @@ class ProgramCompiler implements FunctionCompiler {
     });
     // V8 puts the implicit final `return undefined` on the last character of the file.
     wrapper.generateBody(this.program.ast.body as Statement[], Math.max(this.program.source.length - 1, 0));
-    this.functions[id] = finishFunction(wrapper.builder, { id: asFunctionId(id), name: "", children: wrapper.children });
+    this.functions[id] = finishFunction(wrapper.builder, { id: asFunctionId(id), name: "", strict: this.scopes.root.strict, children: wrapper.children });
   }
 
   compile(node: FunctionLiteral, name: string, debugName: string): FunctionId {
@@ -66,7 +66,7 @@ class ProgramCompiler implements FunctionCompiler {
       localCount: scope.stackSlots,
     });
     generator.generateFunction(node);
-    this.functions[id] = finishFunction(generator.builder, { id: asFunctionId(id), name: debugName, children: generator.children });
+    this.functions[id] = finishFunction(generator.builder, { id: asFunctionId(id), name: debugName, strict: scope.strict, children: generator.children });
     return asFunctionId(id);
   }
 
@@ -80,7 +80,7 @@ export function generateBytecode(program: ParsedProgram, scopes: ScopeTree): Res
   try {
     const compiler = new ProgramCompiler(program, scopes);
     compiler.compileWrapper();
-    return ok({ functions: compiler.functions.map((fn) => fn as BytecodeFunction) });
+    return ok({ functions: compiler.functions.map((fn) => fn as BytecodeFunction), source: program.source });
   } catch (error) {
     if (error instanceof NotYetSupported) return err([notYetSupported(error, program.source)]);
     throw error;
