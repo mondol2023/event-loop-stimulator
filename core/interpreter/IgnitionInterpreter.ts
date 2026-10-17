@@ -1,19 +1,24 @@
 import type { Instruction } from "@/core/bytecode/BytecodeArray";
-import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
+import type { BytecodeFunction, BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import type { Opcode } from "@/core/bytecode/bytecodes";
+import { FeedbackCell } from "@/core/runtime/objects/FeedbackCell";
+import { HeapObject } from "@/core/runtime/objects/HeapObject";
 import { JSFunction } from "@/core/runtime/objects/JSFunction";
 import type { CallTarget, Realm } from "@/core/runtime/Realm";
 import { OrdinarySet } from "@/core/runtime/spec/objectOps";
 import type { CallSite } from "@/core/runtime/stack";
 import type { JSValue } from "@/core/runtime/values/JSValue";
+import type { FunctionId } from "@/core/shared/ids";
+import { SimulationHalt } from "@/core/shared/simulationHalt";
 import type { Command } from "@/core/timeline/Command";
 import { callSiteOf } from "./callSites";
 import { type Completion, normal } from "./Completion";
 import { arithHandler } from "./dispatch/arith";
-import { callHandler } from "./dispatch/calls";
+import { callHandler, constructHandler, runtimeHandler } from "./dispatch/calls";
 import { compareHandler } from "./dispatch/compare";
 import type { DispatchContext } from "./dispatch/context";
 import { accumulatorValue } from "./dispatch/context";
+import { contextHandler } from "./dispatch/contexts";
 import { jumpHandler } from "./dispatch/jumps";
 import { loadHandler } from "./dispatch/loads";
 import { propertyHandler } from "./dispatch/properties";
@@ -22,6 +27,9 @@ import { Frame } from "./Frame";
 // Ignition, V8's bytecode interpreter, over the BytecodeArrays the generator produced: the
 // same ones the bytecode pane prints. The register file is the Frame; every dispatch is
 // reported to the observer before it executes.
+
+/** User JS frames that may be active at once, the wrapper included (PROMPT §7.1). */
+export const CALL_DEPTH_LIMIT = 64;
 
 export interface StepObserver {
   onCommand(c: Command): void;
@@ -69,6 +77,7 @@ export const UNREACHABLE_OPCODES = [
   "CallJSRuntime",
   "ConstructWithSpread",
   "ConstructForwardAllArgs",
+  "TestInstanceOf",
   "ToName",
   "ToObject",
   "CreateRegExpLiteral",
@@ -149,6 +158,7 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
         new JSFunction(id, realm.maps.rootFor("function", 0), realm.intrinsics.functionPrototype, {
           code,
           context: realm.emptyContext,
+          feedbackCell: new FeedbackCell(),
         }),
     );
     const exports = realm.newObject();
@@ -162,13 +172,28 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
   call(fn: JSFunction, receiver: JSValue, args: readonly JSValue[]): Completion {
     if (fn.native) return fn.native(this.realm, receiver, args);
     if (!fn.code) throw new Error("a function with neither bytecode nor a native behavior");
-    const frame = new Frame(fn, fn.code, receiver, args);
+    // The depth limit is the simulator's, never a RangeError (PROMPT §7.1).
+    if (this.#frames.length >= CALL_DEPTH_LIMIT) throw new SimulationHalt({ kind: "limit", limit: "callDepth" });
+    const frame = new Frame(fn, fn.code, fn.code.strict ? receiver : this.#sloppyThis(receiver), args);
     this.#frames.push(frame);
     try {
       return this.#run(frame);
     } finally {
       this.#frames.pop();
     }
+  }
+
+  functionCode(id: FunctionId): BytecodeFunction {
+    const code = this.#program.functions[id];
+    if (!code) throw new Error(`no function ${id} in the program`);
+    return code;
+  }
+
+  /** OrdinaryCallBindThis for a sloppy function: undefined and null become the global object. */
+  #sloppyThis(receiver: JSValue): JSValue {
+    if (receiver === undefined || receiver === null) return this.realm.globalObject;
+    if (receiver instanceof HeapObject) return receiver;
+    throw new SimulationHalt({ kind: "unsupported", reason: `a sloppy function called with a ${typeof receiver} receiver (wrapper objects are not modeled)` });
   }
 
   callSites(): readonly CallSite[] {
@@ -324,7 +349,6 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
       case "Return":
         return normal(accumulatorValue(frame));
 
-      // Task 9: closures, contexts, TDZ, constructors, runtime calls.
       case "CreateClosure":
       case "CreateBlockContext":
       case "CreateCatchContext":
@@ -338,10 +362,14 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
       case "StaContextSlot":
       case "StaCurrentContextSlot":
       case "ThrowReferenceErrorIfHole":
+        return contextHandler(this, frame, instr);
+
       case "Construct":
+        return constructHandler(this, frame, instr);
+
       case "CallRuntime":
-      case "TestInstanceOf":
-        throw new OpcodeNotImplemented(instr.opcode, 9);
+        return runtimeHandler(this, frame, instr);
+
 
       // Task 10: properties, literals, inline caches.
       case "GetKeyedProperty":

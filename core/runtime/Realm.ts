@@ -1,3 +1,4 @@
+import type { BytecodeFunction } from "@/core/bytecode/BytecodeProgram";
 import type { Completion } from "@/core/interpreter/Completion";
 import type { EntryPoint } from "@/core/host/nodeFrames";
 import { nodeFrameTail } from "@/core/host/nodeFrames";
@@ -6,7 +7,8 @@ import { type ConsoleMethod, type ConsoleRealm, type ConsoleStream, consoleMetho
 import type { FunctionKind, InspectRealm, PromiseDetails } from "./builtins/inspect";
 import { Heap } from "./heap/Heap";
 import { Context } from "./objects/Context";
-import { type JSFunction as JSFunctionType, JSFunction, type NativeFunction } from "./objects/JSFunction";
+import type { FeedbackCell } from "./objects/FeedbackCell";
+import { type JSFunction as JSFunctionType, JSFunction, type NativeConstruct, type NativeFunction } from "./objects/JSFunction";
 import { JSArray } from "./objects/JSArray";
 import { JSObject } from "./objects/JSObject";
 import { TransitionTree } from "./objects/TransitionTree";
@@ -101,16 +103,39 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
 
   /** A builtin function object, with `length` and `name` as V8's builtins have them. */
   nativeFunction(name: string, length: number, behavior: NativeFunction, kind: FunctionKind = "normal"): JSFunctionType {
+    return this.#nativeFunction(name, length, { native: behavior, kind });
+  }
+
+  /** A builtin that is also a constructor: `call` runs for `F()`, `construct` for `new F()`. */
+  nativeConstructor(name: string, length: number, call: NativeFunction, construct: NativeConstruct): JSFunctionType {
+    return this.#nativeFunction(name, length, { native: call, construct });
+  }
+
+  #nativeFunction(name: string, length: number, init: { native: NativeFunction; construct?: NativeConstruct; kind?: FunctionKind }): JSFunctionType {
     const fn = this.heap.allocateIntrinsic(
       (id) =>
         new JSFunction(id, this.maps.rootFor("function", 0), this.intrinsics.functionPrototype, {
-          native: behavior,
+          ...init,
           context: this.emptyContext,
-          kind,
         }),
     );
     this.#define(fn, "length", length, FUNCTION_INFO);
     this.#define(fn, "name", name, FUNCTION_INFO);
+    return fn;
+  }
+
+  /** A closure over `context` (CreateClosure): a JS-visible allocation, so it counts toward the heap limit. */
+  userFunction(code: BytecodeFunction, context: Context, feedbackCell: FeedbackCell): JSFunctionType {
+    const fn = this.heap.allocate(
+      (id) =>
+        new JSFunction(id, this.maps.rootFor("function", 0), this.intrinsics.functionPrototype, {
+          code,
+          context,
+          feedbackCell,
+        }),
+    );
+    this.#define(fn, "length", code.length, FUNCTION_INFO);
+    this.#define(fn, "name", code.name, FUNCTION_INFO);
     return fn;
   }
 

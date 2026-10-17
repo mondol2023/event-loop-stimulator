@@ -40,9 +40,8 @@ export function readRegister(frame: Frame, operand: number): RegisterValue {
   if (operand <= FIRST_LOCAL) return frame.registers[FIRST_LOCAL - operand];
   if (operand >= FIRST_ARGUMENT) return frame.args[operand - FIRST_ARGUMENT];
   if (operand === THIS) return frame.receiver;
-  if (operand === CURRENT_CONTEXT || operand === CLOSURE) {
-    throw new Error("the context and closure registers are read by the context opcodes (Task 9)");
-  }
+  if (operand === CURRENT_CONTEXT) return frame.context;
+  if (operand === CLOSURE) return frame.fn;
   throw new Error(`${operand} is not a register operand`);
 }
 

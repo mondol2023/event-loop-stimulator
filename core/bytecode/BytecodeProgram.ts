@@ -36,6 +36,8 @@ export type BytecodeFunction = {
   readonly strict: boolean;
   /** Includes the receiver. */
   readonly parameterCount: number;
+  /** The `length` property: the formals before the first default or rest parameter. */
+  readonly length: number;
   readonly registerCount: number;
   readonly frameSize: number;
   readonly array: BytecodeArray;
@@ -77,6 +79,7 @@ export function finishFunction(
     readonly id: FunctionId;
     readonly name: string;
     readonly strict: boolean;
+    readonly length: number;
     readonly children?: readonly FunctionId[];
     readonly handlerTable?: readonly HandlerEntry[];
   },
@@ -86,6 +89,7 @@ export function finishFunction(
     id: meta.id,
     name: meta.name,
     strict: meta.strict,
+    length: meta.length,
     parameterCount: header.parameterCount,
     registerCount: header.registerCount,
     frameSize: header.frameSize,

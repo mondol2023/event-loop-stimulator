@@ -50,7 +50,7 @@ class ProgramCompiler implements FunctionCompiler {
     });
     // V8 puts the implicit final `return undefined` on the last character of the file.
     wrapper.generateBody(this.program.ast.body as Statement[], Math.max(this.program.source.length - 1, 0));
-    this.functions[id] = finishFunction(wrapper.builder, { id: asFunctionId(id), name: "", strict: this.scopes.root.strict, children: wrapper.children });
+    this.functions[id] = finishFunction(wrapper.builder, { id: asFunctionId(id), name: "", strict: this.scopes.root.strict, length: WRAPPER_LENGTH, children: wrapper.children });
   }
 
   compile(node: FunctionLiteral, name: string, debugName: string): FunctionId {
@@ -66,7 +66,7 @@ class ProgramCompiler implements FunctionCompiler {
       localCount: scope.stackSlots,
     });
     generator.generateFunction(node);
-    this.functions[id] = finishFunction(generator.builder, { id: asFunctionId(id), name: debugName, strict: scope.strict, children: generator.children });
+    this.functions[id] = finishFunction(generator.builder, { id: asFunctionId(id), name: debugName, strict: scope.strict, length: formalLength(node), children: generator.children });
     return asFunctionId(id);
   }
 
@@ -74,6 +74,15 @@ class ProgramCompiler implements FunctionCompiler {
     this.functions.push(undefined);
     return this.functions.length - 1;
   }
+}
+
+/** `length` of the CommonJS wrapper: (exports, require, module, __filename, __dirname). */
+const WRAPPER_LENGTH = 5;
+
+/** ExpectedArgumentCount: the parameters before the first default or rest. */
+function formalLength(node: FunctionLiteral): number {
+  const first = node.params.findIndex((p) => p.type === "AssignmentPattern" || p.type === "RestElement");
+  return first === -1 ? node.params.length : first;
 }
 
 export function generateBytecode(program: ParsedProgram, scopes: ScopeTree): Result<BytecodeProgram, Diagnostic[]> {

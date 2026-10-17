@@ -27,7 +27,7 @@ function ours(change: (b: BytecodeArrayBuilder) => void): BytecodeFunction {
   const b = new BytecodeArrayBuilder({ parameterCount: 3 });
   b.allocateRegister();
   change(b);
-  return finishFunction(b, { id: asFunctionId(1), name: "add", strict: false });
+  return finishFunction(b, { id: asFunctionId(1), name: "add", strict: false, length: 2 });
 }
 
 function assembleAdd(b: BytecodeArrayBuilder, options: { addSmi?: number; extra?: boolean } = {}): void {

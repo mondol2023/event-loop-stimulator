@@ -22,7 +22,8 @@ export function compileOrThrow(source: string): BytecodeProgram {
   return result.program;
 }
 
-export function runSource(source: string): Run {
+/** `setup` installs test-only globals on the realm before the script runs. */
+export function runSource(source: string, setup?: (realm: Realm) => void): Run {
   const program = compileOrThrow(source);
   let stdout = "";
   let stderr = "";
@@ -35,6 +36,7 @@ export function runSource(source: string): Run {
     },
     entryPoint: () => "main",
   });
+  setup?.(realm);
   const completion = new IgnitionInterpreter(program, realm, observer).runScript();
   return { program, completion, stdout, stderr, commands };
 }

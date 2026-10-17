@@ -33,6 +33,22 @@ describe("straight-line interpreter against recorded fixtures", () => {
   }
 });
 
+describe("calls, closures, contexts and TDZ against recorded fixtures", () => {
+  for (const fixture of ["recursion-factorial", "bc-closures", "bc-tdz", "bc-tdz-assign", "bc-tdz-flow", "bc-const-assign"]) {
+    it(fixture, () => {
+      const want = recorded(fixture);
+      const run = runSource(source(fixture));
+      expect(run.completion.type).toBe(want.exitCode === 0 ? "normal" : "throw");
+      expect(run.stdout).toBe(want.stdout);
+      expect(run.stderr).toBe(want.stderr);
+    });
+  }
+
+  // Replayed once the opcodes they also need exist: literals (Task 10) and try/catch (Task 11).
+  it.todo("closure-counter, default-params, top-level-this-and-params, strict-mode-this (need Task 10 literals)");
+  it.todo("const-assign-error (needs Task 11 try/catch)");
+});
+
 describe("never-emitted opcodes", () => {
   it("no fixture the generator compiles contains one", () => {
     const never = new Set<string>(UNREACHABLE_OPCODES);
