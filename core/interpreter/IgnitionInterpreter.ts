@@ -4,6 +4,7 @@ import type { Opcode } from "@/core/bytecode/bytecodes";
 import { FeedbackCell } from "@/core/runtime/objects/FeedbackCell";
 import { HeapObject } from "@/core/runtime/objects/HeapObject";
 import { JSFunction } from "@/core/runtime/objects/JSFunction";
+import type { JSMessageObject } from "@/core/runtime/objects/JSMessageObject";
 import type { CallTarget, Realm } from "@/core/runtime/Realm";
 import { OrdinarySet } from "@/core/runtime/spec/objectOps";
 import type { CallSite } from "@/core/runtime/stack";
@@ -19,6 +20,7 @@ import { compareHandler } from "./dispatch/compare";
 import type { DispatchContext } from "./dispatch/context";
 import { accumulatorValue } from "./dispatch/context";
 import { contextHandler } from "./dispatch/contexts";
+import { enterHandler, exceptionHandler, messageAt } from "./dispatch/exceptions";
 import { jumpHandler } from "./dispatch/jumps";
 import { loadHandler } from "./dispatch/loads";
 import { propertyHandler } from "./dispatch/properties";
@@ -139,6 +141,11 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
   readonly #observer: StepObserver;
   /** Active frames, outermost first. */
   readonly #frames: Frame[] = [];
+  /**
+   * The isolate's pending message (Isolate::pending_message): where the exception in flight was
+   * thrown. It outlives an uncaught exception, so the host can print its code frame.
+   */
+  pendingMessage: JSMessageObject | undefined = undefined;
 
   constructor(program: BytecodeProgram, realm: Realm, observer: StepObserver) {
     this.#program = program;
@@ -221,8 +228,14 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
       });
       frame.next = instr.offset + instr.size;
       const done = this.#execute(frame, instr);
-      // Task 11 catches a thrown completion here, through the function's handler table.
-      if (done) return done;
+      if (done?.type === "throw") {
+        // An exception raised by this instruction (or by a builtin it called) has no message yet;
+        // one that unwound out of a callee keeps the callee's, and so does a ReThrow.
+        this.pendingMessage ??= messageAt(frame);
+        if (!enterHandler(frame, done.value)) return done;
+      } else if (done) {
+        return done;
+      }
       frame.offset = frame.next;
     }
   }
@@ -385,13 +398,11 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
       case "CallRuntime":
         return runtimeHandler(this, frame, instr);
 
-
-      // Task 11: exceptions and finally.
       case "Throw":
       case "ReThrow":
       case "SetPendingMessage":
       case "SwitchOnSmiNoFeedback":
-        throw new OpcodeNotImplemented(instr.opcode, 11);
+        return exceptionHandler(this, frame, instr);
 
       // Task 16: async functions.
       case "SwitchOnGeneratorState":

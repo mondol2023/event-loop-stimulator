@@ -1,6 +1,7 @@
 import type { Instruction } from "@/core/bytecode/BytecodeArray";
 import type { BytecodeFunction } from "@/core/bytecode/BytecodeProgram";
 import { Context } from "@/core/runtime/objects/Context";
+import { JSMessageObject } from "@/core/runtime/objects/JSMessageObject";
 import type { FunctionId } from "@/core/shared/ids";
 import type { Realm } from "@/core/runtime/Realm";
 import type { JSFunction } from "@/core/runtime/objects/JSFunction";
@@ -18,14 +19,16 @@ export interface DispatchContext {
   /** The bytecode of any function in the program (a `CreateClosure` constant names one). */
   functionCode(id: FunctionId): BytecodeFunction;
   call(fn: JSFunction, receiver: JSValue, args: readonly JSValue[]): Completion;
+  /** The isolate's pending message: set when an exception is thrown, cleared by a handler's `SetPendingMessage`. */
+  pendingMessage: JSMessageObject | undefined;
 }
 
 export type Handler = (ctx: DispatchContext, frame: Frame, instr: Instruction) => Completion | undefined;
 
-/** The accumulator as a JS value; the hole and a Context never reach an operator, so it is a bug if they do. */
+/** The accumulator as a JS value; the hole, a Context and a message never reach an operator, so it is a bug if they do. */
 export function accumulatorValue(frame: Frame): JSValue {
   const value = frame.accumulator;
-  if (isTheHole(value) || value instanceof Context) throw new Error("the accumulator holds a non-JS value where a JS value is required");
+  if (isTheHole(value) || value instanceof Context || value instanceof JSMessageObject) throw new Error("the accumulator holds a non-JS value where a JS value is required");
   return value;
 }
 

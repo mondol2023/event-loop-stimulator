@@ -10,8 +10,10 @@ import { Context } from "./objects/Context";
 import type { FeedbackCell } from "./objects/FeedbackCell";
 import { type JSFunction as JSFunctionType, JSFunction, type NativeConstruct, type NativeFunction } from "./objects/JSFunction";
 import { JSArray } from "./objects/JSArray";
+import { HeapObject } from "./objects/HeapObject";
 import { JSObject } from "./objects/JSObject";
 import { TransitionTree } from "./objects/TransitionTree";
+import { SimulationHalt } from "@/core/shared/simulationHalt";
 import type { SpecRealm } from "./spec/conversions";
 import { OrdinaryDefineOwnProperty } from "./spec/objectOps";
 import { captureStack, type CallSite } from "./stack";
@@ -23,6 +25,8 @@ import type { TheHoleValue } from "./values/TheHole";
 
 export type ErrorKind = "Error" | "TypeError" | "RangeError" | "ReferenceError" | "SyntaxError" | "AggregateError";
 const ERROR_KINDS: readonly ErrorKind[] = ["Error", "TypeError", "RangeError", "ReferenceError", "SyntaxError", "AggregateError"];
+/** The constructors installed so far; AggregateError (its `errors` list) arrives with the other builtins. */
+const NATIVE_ERROR_KINDS: readonly ErrorKind[] = ["Error", "TypeError", "RangeError", "ReferenceError", "SyntaxError"];
 
 /** What V8 asks of its embedder (the part of `v8::Isolate` callbacks the model needs so far). */
 export interface HostHooks {
@@ -93,6 +97,7 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     this.#define(this.globalObject, "NaN", NaN, CONSTANT);
     this.#define(this.globalObject, "Infinity", Infinity, CONSTANT);
     this.#define(this.globalObject, "console", this.#console(), HIDDEN);
+    for (const kind of NATIVE_ERROR_KINDS) this.#define(this.globalObject, kind, this.#errorConstructor(kind), HIDDEN);
   }
 
   /** Called by the interpreter that runs this realm's functions. */
@@ -177,6 +182,24 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     return console;
   }
 
+  /**
+   * The Error and NativeError constructors (ECMA-262 Error ( message ), NativeError ( message )):
+   * `F()` and `new F()` both create the error, capturing the stack where it is constructed.
+   */
+  #errorConstructor(kind: ErrorKind): JSFunctionType {
+    const create = (realm: Realm, args: readonly JSValue[]): Completion => {
+      const message = args[0];
+      // ToString of an object would run user code (toString / valueOf), which is not modeled here.
+      if (message instanceof HeapObject) throw new SimulationHalt({ kind: "unsupported", reason: `new ${kind} with an object message` });
+      return { type: "normal", value: realm.createError(kind, message === undefined ? undefined : String(message)) };
+    };
+    const constructor = this.nativeConstructor(kind, 1, (realm, _receiver, args) => create(realm, args), create);
+    const prototype = this.intrinsics.errorPrototypes[kind];
+    this.#define(constructor, "prototype", prototype, CONSTANT);
+    this.#define(prototype, "constructor", constructor, HIDDEN);
+    return constructor;
+  }
+
   // ---- SpecRealm ----
 
   call(fn: JSObject, receiver: JSValue, args: readonly JSValue[]): Completion {
@@ -192,7 +215,7 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   // ---- errors ----
 
   /** `new <kind>(message)` from inside the VM: the stack is captured here, at construction. */
-  createError(kind: ErrorKind, message: string): JSError {
+  createError(kind: ErrorKind, message: string | undefined): JSError {
     return createError(this, this.intrinsics.errorPrototypes[kind], message, captureStack(this.#stackSource()));
   }
 

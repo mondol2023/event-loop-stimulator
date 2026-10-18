@@ -45,8 +45,7 @@ describe("calls, closures, contexts and TDZ against recorded fixtures", () => {
   }
 
   // Replayed once the opcodes they also need exist: try/catch (Task 11) and Array.prototype.push (Task 14).
-  it.todo("default-params, strict-mode-this (need Task 11 try/catch and Task 14 push)");
-  it.todo("const-assign-error (needs Task 11 try/catch)");
+  it.todo("default-params (needs Task 14 push)");
 });
 
 describe("properties, literals and optional chaining against recorded fixtures", () => {
@@ -72,6 +71,28 @@ describe("properties, literals and optional chaining against recorded fixtures",
   it.todo("object-key-order (Object.keys and reduce: Task 14)");
   it.todo("object-delete-and-methods (try/catch: Task 11; Object.keys and push: Task 14)");
   it.todo("logical-nullish-optional (try/catch: Task 11, and the CallPrinter text of `x is not a function`)");
+});
+
+describe("exceptions, handler tables and finally against recorded fixtures", () => {
+  for (const fixture of [
+    "bc-try-catch",
+    "bc-try-finally",
+    "try-catch-finally-order",
+    "throw-in-finally-overrides",
+    "const-assign-error",
+    "strict-mode-this",
+  ]) {
+    it(fixture, () => {
+      const want = recorded(fixture);
+      const run = runSource(source(fixture));
+      expect(run.completion.type).toBe(want.exitCode === 0 ? "normal" : "throw");
+      expect(run.stdout).toBe(want.stdout);
+      expect(run.stderr).toBe(want.stderr);
+    });
+  }
+
+  // map, forEach and reduce arrive with Task 14; core/interpreter/exceptions.test.ts covers the unwinding with a stub builtin.
+  it.todo("builtin-callback-throws (Array.prototype.map/forEach/reduce: Task 14)");
 });
 
 describe("never-emitted opcodes", () => {
