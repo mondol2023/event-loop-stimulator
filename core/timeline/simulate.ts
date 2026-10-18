@@ -1,9 +1,11 @@
 import { CompilationManager, type Language } from "@/core/compile/CompilationManager";
 import { printUncaught } from "@/core/host/errorPrinter";
+import type { EntryPoint } from "@/core/host/nodeFrames";
 import { IgnitionInterpreter, NO_OBSERVER } from "@/core/interpreter/IgnitionInterpreter";
 import { Realm } from "@/core/runtime/Realm";
 import { inspect } from "@/core/runtime/builtins/inspect";
 import { positionOf } from "@/core/runtime/stack";
+import type { JSValue } from "@/core/runtime/values/JSValue";
 import type { Diagnostic } from "@/core/shared/diagnostics";
 import { SimulationHalt, type SimulationStop } from "@/core/shared/simulationHalt";
 import { sourceRangeForPos } from "@/core/views/types";
@@ -40,28 +42,36 @@ export function simulate(source: string, lang: Language, opts: SimulationOptions
 
   let stdout = "";
   let stderr = "";
+  let entryPoint: EntryPoint = "main";
   const realm = new Realm({
     write(stream, text) {
       if (stream === "stdout") stdout += text;
       else stderr += text;
     },
-    entryPoint: () => "main",
+    entryPoint: () => entryPoint,
   });
   const interpreter = new IgnitionInterpreter(program, realm, NO_OBSERVER);
 
+  /** src/node_errors.cc TriggerUncaughtException: the code frame comes from the pending message. */
+  const uncaught = (exception: JSValue): SimulationResult => {
+    const message = interpreter.pendingMessage;
+    const range = message ? sourceRangeForPos(program, message.pos) : undefined;
+    stderr += printUncaught(exception, {
+      source: program.source,
+      throwPosition: positionOf(program.source, range?.start ?? 0),
+      inspect: (value) => inspect(realm, value),
+    });
+    return { diagnostics: [], stdout, stderr, exitCode: 1, warnings: [] };
+  };
+
   try {
     const completion = interpreter.runScript();
-    if (completion.type === "throw") {
-      // src/node_errors.cc TriggerUncaughtException: the code frame comes from the pending message.
-      const message = interpreter.pendingMessage;
-      const range = message ? sourceRangeForPos(program, message.pos) : undefined;
-      stderr += printUncaught(completion.value, {
-        source: program.source,
-        throwPosition: positionOf(program.source, range?.start ?? 0),
-        inspect: (value) => inspect(realm, value),
-      });
-      return { diagnostics: [], stdout, stderr, exitCode: 1, warnings: [] };
-    }
+    if (completion.type === "throw") return uncaught(completion.value);
+    // The minimal host (no Node loop yet, Task 17): one microtask checkpoint after the script. A
+    // job that throws is an uncaught exception, and the jobs behind it never run.
+    entryPoint = "microtask";
+    const drained = realm.microtasks.drain(NO_OBSERVER);
+    if (drained.type === "throw") return uncaught(drained.value);
   } catch (e) {
     if (!(e instanceof SimulationHalt)) throw e;
     return { diagnostics: [], stdout, stderr, exitCode: 0, warnings: [], stop: e.stop };

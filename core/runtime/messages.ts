@@ -6,13 +6,19 @@ const MESSAGE_TEMPLATES = {
   kAccessedUninitializedVariable: "Cannot access '%' before initialization",
   kAllPromisesRejected: "All promises were rejected",
   kCalledNonCallable: "% is not a function",
+  kCalledOnNonObject: "% called on non-object",
   kConstAssign: "Assignment to constant variable.",
+  kIncompatibleMethodReceiver: "Method % called on incompatible receiver %",
   kInvalidArrayLength: "Invalid array length",
   kNonObjectPropertyLoadWithProperty: "Cannot read properties of % (reading '%')",
   kNonObjectPropertyStoreWithProperty: "Cannot set properties of % (setting '%')",
   kNotDefined: "% is not defined",
+  // The texts of the next two were probed on node 24.19.0; the template names are from memory of
+  // message-template.h (kResolverNotAFunction is certain, the "without new" name is not).
+  kPromiseConstructorWithoutNew: "Promise constructor cannot be invoked without 'new'",
   kPromiseCyclic: "Chaining cycle detected for promise %",
   kReduceNoInitial: "Reduce of empty array with no initial value",
+  kResolverNotAFunction: "Promise resolver % is not a function",
   kUndefinedOrNullToObject: "Cannot convert undefined or null to object",
 } as const;
 

@@ -85,13 +85,17 @@ const SYNC_FIXTURES = new Set([
   "var-hoisting",
 ]);
 
+// Programs whose only scheduling is promise jobs and queueMicrotask, drained once after the
+// script (Task 15's minimal host). Tasks 16 and 17 add async functions, nextTick and timers.
+const MICROTASK_FIXTURES = new Set(["promise-resolve-same-promise"]);
+
 // Synchronous too, but each still needs something later tasks own: the String global,
-// Object.prototype.toString, the CallPrinter TypeError text, the Promise global.
+// Object.prototype.toString, the CallPrinter TypeError text.
 // They stay todos with the async fixtures until then.
-const TODO_FIXTURES = PROGRAM_FIXTURES.filter((f) => !SYNC_FIXTURES.has(f.name)).map((f) => f.name);
+const TODO_FIXTURES = PROGRAM_FIXTURES.filter((f) => !SYNC_FIXTURES.has(f.name) && !MICROTASK_FIXTURES.has(f.name)).map((f) => f.name);
 
 describe("synchronous programs equal real node end to end", () => {
-  for (const fixture of PROGRAM_FIXTURES.filter((f) => SYNC_FIXTURES.has(f.name))) {
+  for (const fixture of PROGRAM_FIXTURES.filter((f) => SYNC_FIXTURES.has(f.name) || MICROTASK_FIXTURES.has(f.name))) {
     it(fixture.name, () => {
       const expectation = parseExpectation(JSON.parse(readFileSync(join(CONFORMANCE_ROOT, expectationFile(fixture)), "utf8")));
       const comparison = compareToExpectation(simulatorRun(fixture), expectation, fixture.meta);

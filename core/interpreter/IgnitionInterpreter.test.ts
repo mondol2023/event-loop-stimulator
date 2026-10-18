@@ -101,7 +101,7 @@ describe("dispatch commands", () => {
     const first = run.commands[0];
     expect(first).toMatchObject({ kind: "dispatch", pos: { functionId: 0, bytecodeOffset: 0 } });
     for (const command of run.commands) {
-      expect(command.kind).toBe("dispatch");
+      if (command.kind !== "dispatch") throw new Error(`a script with no jobs reported a ${command.kind}`);
       const fn = run.program.functions[command.pos.functionId];
       expect(fn?.array.instructionAt(command.pos.bytecodeOffset)?.opcode).toBe(command.opcode);
       // ADR-024: a missing range is allowed only before the first recorded position.

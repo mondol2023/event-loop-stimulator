@@ -1,6 +1,6 @@
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import { CompilationManager } from "@/core/compile/CompilationManager";
-import { Realm } from "@/core/runtime/Realm";
+import { type HostHooks, Realm } from "@/core/runtime/Realm";
 import type { Command } from "@/core/timeline/Command";
 import type { Completion } from "./Completion";
 import { IgnitionInterpreter, type StepObserver } from "./IgnitionInterpreter";
@@ -22,8 +22,11 @@ export function compileOrThrow(source: string): BytecodeProgram {
   return result.program;
 }
 
-/** `setup` installs test-only globals on the realm before the script runs. */
-export function runSource(source: string, setup?: (realm: Realm) => void): Run {
+/**
+ * `setup` installs test-only globals on the realm before the script runs; `hooks` adds embedder
+ * callbacks. The host is minimal: the microtask queue is drained once after the script (no Node loop).
+ */
+export function runSource(source: string, setup?: (realm: Realm) => void, hooks: Partial<HostHooks> = {}): Run {
   const program = compileOrThrow(source);
   let stdout = "";
   let stderr = "";
@@ -35,8 +38,10 @@ export function runSource(source: string, setup?: (realm: Realm) => void): Run {
       else stderr += text;
     },
     entryPoint: () => "main",
+    ...hooks,
   });
   setup?.(realm);
   const completion = new IgnitionInterpreter(program, realm, observer).runScript();
+  if (completion.type === "normal") realm.microtasks.drain(observer);
   return { program, completion, stdout, stderr, commands };
 }
