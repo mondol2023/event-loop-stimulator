@@ -1,6 +1,7 @@
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import { HeapObject } from "../objects/HeapObject";
 import { JSArray } from "../objects/JSArray";
+import { JSHostObject } from "../objects/JSHostObject";
 import { JSObject } from "../objects/JSObject";
 import { OrdinaryGet, OrdinaryGetOwnProperty, OrdinaryOwnPropertyKeys, toArrayIndex } from "../spec/objectOps";
 import type { JSValue } from "../values/JSValue";
@@ -203,6 +204,7 @@ function getStringWidth(str: string): number {
 function formatValue(ctx: Ctx, value: JSValue, recurseTimes: number): string {
   if (!(value instanceof HeapObject)) return value === null ? "null" : formatPrimitive(value, ctx);
   if (!(value instanceof JSObject)) unsupported("util.inspect of a heap value that is not an object");
+  if (value instanceof JSHostObject) unsupported(`util.inspect of a Node ${value.hostClass} object (its full shape is not modeled)`);
   if (ctx.seen.includes(value)) {
     let index = 1;
     if (ctx.circular === undefined) {

@@ -90,13 +90,44 @@ const SYNC_FIXTURES = new Set([
 // nextTick and timers.
 const MICROTASK_FIXTURES = new Set(["await-thenable-two-extra-ticks", "bc-async", "promise-resolve-same-promise", "return-vs-return-await"]);
 
+// Programs that need Node's loop (Task 17): nextTick, timers, immediates, the drain after each
+// callback, unhandled-rejection processing and uncaught errors in callbacks. The two
+// nondeterministic fixtures must match one recorded outcome and warn (loop-fixtures.test.ts
+// pins which outcome).
+const LOOP_FIXTURES = new Set([
+  "async-await-order",
+  "promise-vs-timeout",
+  "nexttick-vs-promise",
+  "queuemicrotask-order",
+  "drain-after-each-callback",
+  "timers-same-expiry-order",
+  "timer-delay-coercion",
+  "timer-overflow-warning",
+  "interval-clear",
+  "unhandled-rejection",
+  "unhandled-rejection-in-async",
+  "unhandled-rejection-non-error",
+  "rejection-handled-late",
+  "error-in-timer-uncaught",
+  "uncaught-after-await",
+  "uncaught-in-immediate",
+  "uncaught-in-interval-named",
+  "uncaught-in-microtask",
+  "uncaught-in-nexttick",
+  "timeout-vs-immediate-main",
+  "immediate-vs-timeout-in-io-free-callback",
+  "timer-in-timer-ordering",
+]);
+
+const RUNS_END_TO_END = (name: string): boolean => SYNC_FIXTURES.has(name) || MICROTASK_FIXTURES.has(name) || LOOP_FIXTURES.has(name);
+
 // Synchronous too, but each still needs something later tasks own: the String global,
 // Object.prototype.toString, the CallPrinter TypeError text.
 // They stay todos with the async fixtures until then.
-const TODO_FIXTURES = PROGRAM_FIXTURES.filter((f) => !SYNC_FIXTURES.has(f.name) && !MICROTASK_FIXTURES.has(f.name)).map((f) => f.name);
+const TODO_FIXTURES = PROGRAM_FIXTURES.filter((f) => !RUNS_END_TO_END(f.name)).map((f) => f.name);
 
 describe("synchronous programs equal real node end to end", () => {
-  for (const fixture of PROGRAM_FIXTURES.filter((f) => SYNC_FIXTURES.has(f.name) || MICROTASK_FIXTURES.has(f.name))) {
+  for (const fixture of PROGRAM_FIXTURES.filter((f) => RUNS_END_TO_END(f.name))) {
     it(fixture.name, () => {
       const expectation = parseExpectation(JSON.parse(readFileSync(join(CONFORMANCE_ROOT, expectationFile(fixture)), "utf8")));
       const comparison = compareToExpectation(simulatorRun(fixture), expectation, fixture.meta);
@@ -104,9 +135,9 @@ describe("synchronous programs equal real node end to end", () => {
     });
   }
 
-  it("every SYNC_FIXTURES name is a program fixture", () => {
+  it("every SYNC_FIXTURES, MICROTASK_FIXTURES and LOOP_FIXTURES name is a program fixture", () => {
     const names = new Set(PROGRAM_FIXTURES.map((f) => f.name));
-    expect([...SYNC_FIXTURES].filter((n) => !names.has(n))).toEqual([]);
+    expect([...SYNC_FIXTURES, ...MICROTASK_FIXTURES, ...LOOP_FIXTURES].filter((n) => !names.has(n))).toEqual([]);
   });
 });
 

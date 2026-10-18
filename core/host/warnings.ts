@@ -28,3 +28,13 @@ export function timeoutOverflowWarning(after: number): ProcessWarning {
     message: `${String(after)} does not fit into a 32-bit signed integer.\nTimeout duration was set to 1.`,
   };
 }
+
+/** The warning for a negative delay, emitted once per process (lib/internal/timers.js Timeout). */
+export function timeoutNegativeWarning(after: number): ProcessWarning {
+  return { name: "TimeoutNegativeWarning", message: `${String(after)} is a negative number.\nTimeout duration was set to 1.` };
+}
+
+/** The warning for a delay that is NaN after `after *= 1`, emitted once per process (lib/internal/timers.js Timeout). */
+export function timeoutNaNWarning(after: number): ProcessWarning {
+  return { name: "TimeoutNaNWarning", message: `${String(after)} is not a number.\nTimeout duration was set to 1.` };
+}

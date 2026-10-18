@@ -4,7 +4,7 @@ import { OrdinaryGetOwnProperty, OrdinaryOwnPropertyKeys } from "@/core/runtime/
 import { SCRIPT_NAME, type SourcePosition, sourceLine } from "@/core/runtime/stack";
 import type { JSValue } from "@/core/runtime/values/JSValue";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
-import { NODE_VERSION } from "./nodeFrames";
+import { NODE_VERSION, unhandledRejectionFrames } from "./nodeFrames";
 
 // Node's fatal-exception printer (src/node_errors.cc PrintUncaughtException, GetErrorSource) and
 // the unhandled-rejection path of lib/internal/process/promises.js. Shapes no fixture covers
@@ -74,7 +74,11 @@ export function printUncaught(error: JSValue, ctx: UncaughtContext): string {
  * An Error is printed like an uncaught one, with the caret at its construction position; any
  * other reason is wrapped in ERR_UNHANDLED_REJECTION (fixture unhandled-rejection-non-error).
  */
-export function printUnhandledRejection(reason: JSValue, ctx: ErrorPrintContext): string {
+export function printUnhandledRejection(
+  reason: JSValue,
+  ctx: ErrorPrintContext,
+  frames: readonly string[] = unhandledRejectionFrames(),
+): string {
   if (reason instanceof JSError) {
     const top = reason.callSites[0];
     if (!top || "native" in top) {
@@ -92,9 +96,7 @@ export function printUnhandledRejection(reason: JSValue, ctx: ErrorPrintContext)
     "UnhandledPromiseRejection: This error originated either by throwing inside of an async function without a " +
     "catch block, or by rejecting a promise which was not handled with .catch(). The promise rejected with the " +
     `reason "${String(reason)}".\n` +
-    "    at throwUnhandledRejectionsMode (node:internal/process/promises:392:7)\n" +
-    "    at processPromiseRejections (node:internal/process/promises:475:17)\n" +
-    "    at process.processTicksAndRejections (node:internal/process/task_queues:106:37) {\n" +
+    `${frames.map((f) => `    at ${f}`).join("\n")} {\n` +
     "  code: 'ERR_UNHANDLED_REJECTION'\n" +
     "}\n" +
     FOOTER

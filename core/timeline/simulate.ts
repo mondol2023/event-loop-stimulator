@@ -1,18 +1,13 @@
 import { CompilationManager, type Language } from "@/core/compile/CompilationManager";
-import { printUncaught } from "@/core/host/errorPrinter";
-import type { EntryPoint } from "@/core/host/nodeFrames";
+import { DETACHED_HOST, NodeEventLoop } from "@/core/host/NodeEventLoop";
 import { IgnitionInterpreter, NO_OBSERVER } from "@/core/interpreter/IgnitionInterpreter";
 import { Realm } from "@/core/runtime/Realm";
-import { inspect } from "@/core/runtime/builtins/inspect";
-import { positionOf } from "@/core/runtime/stack";
-import type { JSValue } from "@/core/runtime/values/JSValue";
 import type { Diagnostic } from "@/core/shared/diagnostics";
 import { SimulationHalt, type SimulationStop } from "@/core/shared/simulationHalt";
-import { sourceRangeForPos } from "@/core/views/types";
 
-// The whole pipeline for one program: compile, run the CommonJS wrapper on a fresh realm, and
-// print an uncaught exception the way Node's fatal-exception handler does. This is the minimal,
-// synchronous version: no event loop yet (Task 17), no ticks or timeline (Tasks 19 and 20).
+// The whole pipeline for one program: compile, then run it on a fresh realm under Node's event
+// loop (core/host/NodeEventLoop), which also prints uncaught exceptions and unhandled rejections.
+// No ticks or timeline yet (Tasks 19 and 20).
 
 /** Test-only host modes (D7) arrive with the test262 harness; only Node is modeled so far. */
 export type SimulationOptions = { readonly host?: "node" };
@@ -40,41 +35,14 @@ export function simulate(source: string, lang: Language, opts: SimulationOptions
   const program = compiled.program;
   if (!program) return refused(compiled.diagnostics);
 
-  let stdout = "";
-  let stderr = "";
-  let entryPoint: EntryPoint = "main";
-  const realm = new Realm({
-    write(stream, text) {
-      if (stream === "stdout") stdout += text;
-      else stderr += text;
-    },
-    entryPoint: () => entryPoint,
-  });
+  const realm = new Realm(DETACHED_HOST);
   const interpreter = new IgnitionInterpreter(program, realm, NO_OBSERVER);
-
-  /** src/node_errors.cc TriggerUncaughtException: the code frame comes from the pending message. */
-  const uncaught = (exception: JSValue): SimulationResult => {
-    const message = interpreter.pendingMessage;
-    const range = message ? sourceRangeForPos(program, message.pos) : undefined;
-    stderr += printUncaught(exception, {
-      source: program.source,
-      throwPosition: positionOf(program.source, range?.start ?? 0),
-      inspect: (value) => inspect(realm, value),
-    });
-    return { diagnostics: [], stdout, stderr, exitCode: 1, warnings: [] };
-  };
-
+  const loop = new NodeEventLoop(realm, interpreter, NO_OBSERVER);
   try {
-    const completion = interpreter.runScript();
-    if (completion.type === "throw") return uncaught(completion.value);
-    // The minimal host (no Node loop yet, Task 17): one microtask checkpoint after the script. A
-    // job that throws is an uncaught exception, and the jobs behind it never run.
-    entryPoint = "microtask";
-    const drained = realm.microtasks.drain(NO_OBSERVER);
-    if (drained.type === "throw") return uncaught(drained.value);
+    const { exitCode } = loop.run();
+    return { diagnostics: [], stdout: loop.stdout, stderr: loop.stderr, exitCode, warnings: [...loop.warnings] };
   } catch (e) {
     if (!(e instanceof SimulationHalt)) throw e;
-    return { diagnostics: [], stdout, stderr, exitCode: 0, warnings: [], stop: e.stop };
+    return { diagnostics: [], stdout: loop.stdout, stderr: loop.stderr, exitCode: 0, warnings: [...loop.warnings], stop: e.stop };
   }
-  return { diagnostics: [], stdout, stderr, exitCode: 0, warnings: [] };
 }

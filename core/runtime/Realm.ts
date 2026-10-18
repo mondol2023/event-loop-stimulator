@@ -4,7 +4,6 @@ import type { EntryPoint } from "@/core/host/nodeFrames";
 import { nodeFrameTail } from "@/core/host/nodeFrames";
 import { installArray } from "./builtins/Array";
 import { createError, type JSError } from "./builtins/errors";
-import { queueMicrotaskFunction } from "./builtins/microtask";
 import { installMath } from "./builtins/Math";
 import { installObject } from "./builtins/Object";
 import { installPromise, type PromiseIntrinsics } from "./builtins/Promise";
@@ -74,7 +73,8 @@ const CONSTANT = { writable: false, enumerable: false, configurable: false } as 
 export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   readonly heap = new Heap();
   readonly maps = new TransitionTree();
-  readonly host: HostHooks;
+  /** The embedder. Node's loop installs itself here once the realm and its interpreter exist. */
+  host: HostHooks;
   /** Element visits inside builtins (Decision D3's `work` limit). */
   readonly work = new WorkBudget();
   readonly intrinsics: Intrinsics;
@@ -140,7 +140,6 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     installMath(this, math);
     this.promise = installPromise(this);
     this.#define(this.globalObject, "Promise", this.promise.constructor, HIDDEN);
-    this.#define(this.globalObject, "queueMicrotask", queueMicrotaskFunction(this), { writable: true, enumerable: true, configurable: true });
   }
 
   /** Called by the interpreter that runs this realm's functions. */

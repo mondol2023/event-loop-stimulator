@@ -1,7 +1,7 @@
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import { normal } from "@/core/interpreter/Completion";
-import { JSFunction } from "../objects/JSFunction";
-import type { Realm } from "../Realm";
+import { JSFunction } from "@/core/runtime/objects/JSFunction";
+import type { Realm } from "@/core/runtime/Realm";
 
 // `queueMicrotask(callback)` (lib/internal/process/task_queues.js): the callback becomes a job in
 // the same FIFO queue as promise reactions. A throw is an uncaught exception (the loop reports it).

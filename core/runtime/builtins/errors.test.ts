@@ -93,10 +93,11 @@ describe("errorStack", () => {
 });
 
 describe("Error constructors (builtins)", () => {
-  it("stack is an own non-enumerable property captured at construction, header included", async () => {
+  it("stack is an own non-enumerable property whose text, header included, is formatted at first access", async () => {
+    // Probed on the pinned node: this program prints `Error: b`.
     const { runSource } = await import("@/core/interpreter/interpreterTestWorld");
     const run = runSource("const e = new Error('a'); e.message = 'b'; console.log(e.stack, Object.keys(e));");
-    expect(run.stdout.split("\n")[0]).toBe("Error: a");
+    expect(run.stdout.split("\n")[0]).toBe("Error: b");
     expect(run.stdout.endsWith("[]\n")).toBe(true);
   });
 

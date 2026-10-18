@@ -39,13 +39,18 @@ function methodNameOf(receiver: JSObject, fn: JSFunction, functionName: string):
 export function callSiteOf(realm: Realm, program: BytecodeProgram, frame: Frame): CallSite {
   const range = sourceRangeForPos(program, { functionId: frame.code.id, bytecodeOffset: frame.offset });
   const receiver = frame.receiver;
+  const fn = frame.fn;
   const functionName = frame.code.name === "" ? null : frame.code.name;
   const isTopLevel = receiver === undefined || receiver === null || receiver === realm.globalObject;
   const object = receiver instanceof JSObject ? receiver : undefined;
   return {
     functionName,
     typeName: isTopLevel || !object ? null : typeNameOf(object),
-    methodName: isTopLevel || !object ? null : methodNameOf(object, frame.fn, functionName ?? ""),
+    // GetMethodName runs when the stack is serialized, not when it is captured: it sees the
+    // receiver's properties as they are at the first read of `stack`.
+    get methodName() {
+      return isTopLevel || !object ? null : methodNameOf(object, fn, functionName ?? "");
+    },
     isTopLevel,
     isAsync: false,
     pos: positionOf(program.source, range?.start ?? 0),

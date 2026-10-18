@@ -150,6 +150,11 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
     realm.attach(this);
   }
 
+  /** The program this interpreter runs (the host prints code frames from its source). */
+  get program(): BytecodeProgram {
+    return this.#program;
+  }
+
   /**
    * Runs the CommonJS wrapper (function 0) with `(exports, require, module, __filename, __dirname)`
    * and `this === module.exports`, as Node's loader calls it.

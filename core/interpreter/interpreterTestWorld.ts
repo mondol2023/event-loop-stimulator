@@ -1,5 +1,7 @@
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import { CompilationManager } from "@/core/compile/CompilationManager";
+import { queueMicrotaskFunction } from "@/core/host/queueMicrotask";
+import { OrdinaryDefineOwnProperty } from "@/core/runtime/spec/objectOps";
 import { type HostHooks, Realm } from "@/core/runtime/Realm";
 import type { Command } from "@/core/timeline/Command";
 import type { Completion } from "./Completion";
@@ -24,7 +26,8 @@ export function compileOrThrow(source: string): BytecodeProgram {
 
 /**
  * `setup` installs test-only globals on the realm before the script runs; `hooks` adds embedder
- * callbacks. The host is minimal: the microtask queue is drained once after the script (no Node loop).
+ * callbacks. The host is minimal: `queueMicrotask` is the only Node global, and the microtask queue is
+ * drained once after the script (no Node loop; core/host/NodeEventLoop is the real host).
  */
 export function runSource(source: string, setup?: (realm: Realm) => void, hooks: Partial<HostHooks> = {}): Run {
   const program = compileOrThrow(source);
@@ -39,6 +42,12 @@ export function runSource(source: string, setup?: (realm: Realm) => void, hooks:
     },
     entryPoint: () => "main",
     ...hooks,
+  });
+  OrdinaryDefineOwnProperty(realm, realm.globalObject, "queueMicrotask", {
+    value: queueMicrotaskFunction(realm),
+    writable: true,
+    enumerable: true,
+    configurable: true,
   });
   setup?.(realm);
   const completion = new IgnitionInterpreter(program, realm, observer).runScript();
