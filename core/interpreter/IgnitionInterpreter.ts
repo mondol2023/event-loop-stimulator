@@ -78,6 +78,8 @@ export const UNREACHABLE_OPCODES = [
   "ConstructWithSpread",
   "ConstructForwardAllArgs",
   "TestInstanceOf",
+  // `in` is refused by the validator until the operator is supported (its TypeError text has no fixture).
+  "TestIn",
   "ToName",
   "ToObject",
   "CreateRegExpLiteral",
@@ -153,12 +155,14 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
     const code = this.#program.functions[0];
     if (!code) throw new Error("the program has no wrapper function");
     const realm = this.realm;
+    const feedbackCell = new FeedbackCell();
+    feedbackCell.allocateVector(code);
     const wrapper = realm.heap.allocate(
       (id) =>
         new JSFunction(id, realm.maps.rootFor("function", 0), realm.intrinsics.functionPrototype, {
           code,
           context: realm.emptyContext,
-          feedbackCell: new FeedbackCell(),
+          feedbackCell,
         }),
     );
     const exports = realm.newObject();
@@ -334,6 +338,17 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
         return jumpHandler(this, frame, instr);
 
       case "GetNamedProperty":
+      case "GetKeyedProperty":
+      case "SetNamedProperty":
+      case "SetKeyedProperty":
+      case "DefineNamedOwnProperty":
+      case "CreateObjectLiteral":
+      case "CreateEmptyObjectLiteral":
+      case "CreateArrayLiteral":
+      case "CreateEmptyArrayLiteral":
+      case "StaInArrayLiteral":
+      case "DeletePropertyStrict":
+      case "DeletePropertySloppy":
         return propertyHandler(this, frame, instr);
 
       case "CallProperty":
@@ -370,21 +385,6 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
       case "CallRuntime":
         return runtimeHandler(this, frame, instr);
 
-
-      // Task 10: properties, literals, inline caches.
-      case "GetKeyedProperty":
-      case "SetNamedProperty":
-      case "SetKeyedProperty":
-      case "DefineNamedOwnProperty":
-      case "CreateObjectLiteral":
-      case "CreateEmptyObjectLiteral":
-      case "CreateArrayLiteral":
-      case "CreateEmptyArrayLiteral":
-      case "StaInArrayLiteral":
-      case "DeletePropertyStrict":
-      case "DeletePropertySloppy":
-      case "TestIn":
-        throw new OpcodeNotImplemented(instr.opcode, 10);
 
       // Task 11: exceptions and finally.
       case "Throw":

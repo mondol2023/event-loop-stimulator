@@ -44,9 +44,34 @@ describe("calls, closures, contexts and TDZ against recorded fixtures", () => {
     });
   }
 
-  // Replayed once the opcodes they also need exist: literals (Task 10) and try/catch (Task 11).
-  it.todo("closure-counter, default-params, top-level-this-and-params, strict-mode-this (need Task 10 literals)");
+  // Replayed once the opcodes they also need exist: try/catch (Task 11) and Array.prototype.push (Task 14).
+  it.todo("default-params, strict-mode-this (need Task 11 try/catch and Task 14 push)");
   it.todo("const-assign-error (needs Task 11 try/catch)");
+});
+
+describe("properties, literals and optional chaining against recorded fixtures", () => {
+  for (const fixture of [
+    "bc-properties",
+    "bc-object-literals",
+    "bc-array-literals",
+    "bc-optional",
+    "strings-and-templates",
+    "closure-counter",
+    "top-level-this-and-params",
+  ]) {
+    it(fixture, () => {
+      const want = recorded(fixture);
+      const run = runSource(source(fixture));
+      expect(run.completion.type).toBe(want.exitCode === 0 ? "normal" : "throw");
+      expect(run.stdout).toBe(want.stdout);
+      expect(run.stderr).toBe(want.stderr);
+    });
+  }
+
+  // Each of these also needs something from a later task.
+  it.todo("object-key-order (Object.keys and reduce: Task 14)");
+  it.todo("object-delete-and-methods (try/catch: Task 11; Object.keys and push: Task 14)");
+  it.todo("logical-nullish-optional (try/catch: Task 11, and the CallPrinter text of `x is not a function`)");
 });
 
 describe("never-emitted opcodes", () => {

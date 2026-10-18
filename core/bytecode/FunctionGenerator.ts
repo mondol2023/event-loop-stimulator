@@ -40,7 +40,7 @@ import { CLOSURE, CURRENT_CONTEXT, type Opcode, THIS, argument, local } from "./
 import { type Command, DeferredCommands } from "./DeferredCommands";
 import type { FeedbackSlotKind } from "./FeedbackVectorSpec";
 import { type LiteralValue, isSmi, literalOf, toBooleanOf } from "./literals";
-import { arrayBoilerplateText, arrayFlags, elementIndexOf, isCompileTimeValue, objectBoilerplateText, objectFlags } from "./literalShape";
+import { arrayBoilerplate, arrayBoilerplateText, arrayFlags, elementIndexOf, isCompileTimeValue, objectBoilerplate, objectBoilerplateText, objectFlags } from "./literalShape";
 import { endOf, endWithParentheses, operatorPosition, startOf } from "./sourceText";
 
 // V8's BytecodeGenerator for one function body (src/interpreter/bytecode-generator.cc). The shape
@@ -1325,7 +1325,8 @@ export class FunctionGenerator {
       b.emit("CreateEmptyObjectLiteral");
       return;
     }
-    const entry = b.constantPool.add({ kind: "boilerplate", text: objectBoilerplateText(node) });
+    this.refuseMixedDuplicateKeys(node);
+    const entry = b.constantPool.add({ kind: "boilerplate", text: objectBoilerplateText(node), literal: objectBoilerplate(node) });
     b.emit("CreateObjectLiteral", entry, b.feedback.addSlot("literal"), objectFlags(node));
     const literal = b.allocateRegister();
     b.emit("Star", local(literal));
@@ -1343,6 +1344,24 @@ export class FunctionGenerator {
       b.emit("DefineNamedOwnProperty", local(literal), this.stringConstant(name), b.feedback.addSlot("store"));
     }
     b.emit("Ldar", local(literal));
+  }
+
+  /**
+   * `{ a: x, a: 1 }`: the boilerplate holds the constant, but the bytecode then defines the
+   * computed `a` over it, so the later value would not win. V8's boilerplate builder resolves
+   * duplicate keys itself; the model does not, so it refuses the case rather than run it wrongly.
+   */
+  private refuseMixedDuplicateKeys(node: ObjectExpression): void {
+    const seen = new Map<string, boolean>();
+    for (const property of node.properties) {
+      if (property.type !== "Property") continue;
+      const key = property.key.type === "Identifier" ? property.key.name : property.key.type === "Literal" ? String(property.key.value) : undefined;
+      if (key === undefined) continue;
+      const constant = isCompileTimeValue(property.value as Expression);
+      const before = seen.get(key);
+      if (before !== undefined && !(before && constant)) throw new NotYetSupported(property);
+      seen.set(key, constant);
+    }
   }
 
   /** The string an object-literal key stands for, when it is written as a name or a string. */
@@ -1363,7 +1382,7 @@ export class FunctionGenerator {
       b.emit("CreateEmptyArrayLiteral", b.feedback.addSlot("literal"));
       return;
     }
-    const entry = b.constantPool.add({ kind: "boilerplate", text: arrayBoilerplateText(node) });
+    const entry = b.constantPool.add({ kind: "boilerplate", text: arrayBoilerplateText(node), literal: arrayBoilerplate(node) });
     b.emit("CreateArrayLiteral", entry, b.feedback.addSlot("literal"), arrayFlags(node));
     const literal = b.allocateRegister();
     b.emit("Star", local(literal));

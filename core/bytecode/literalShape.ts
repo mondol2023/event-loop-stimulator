@@ -1,4 +1,5 @@
 import type { ArrayExpression, Expression, ObjectExpression, Property } from "estree";
+import type { ArrayBoilerplate, BoilerplateValue, ObjectBoilerplate } from "./boilerplate";
 import { isSmi, literalOf } from "./literals";
 
 // What V8 works out about an object or array literal before the generator emits it
@@ -128,4 +129,45 @@ export function arrayBoilerplateText(node: ArrayExpression): string {
   }
   const store = kind === "DOUBLE_" ? "FixedDoubleArray" : "FixedArray";
   return `ArrayBoilerplateDescription ${holey ? "HOLEY" : "PACKED"}_${kind}ELEMENTS, <${store}[${node.elements.length}]>`;
+}
+
+/** The text a property key stands for: a name, a string, or a number in its canonical form. */
+function keyTextOf(property: Property): string {
+  const key = property.key;
+  if (key.type === "Identifier") return key.name;
+  if (key.type === "Literal" && (typeof key.value === "string" || typeof key.value === "number")) return String(key.value);
+  throw new Error("an object literal key the generator should have refused");
+}
+
+function boilerplateValueOf(node: Expression): BoilerplateValue {
+  if (!isCompileTimeValue(node)) return { kind: "placeholder" };
+  if (node.type === "ObjectExpression") return objectBoilerplate(node);
+  if (node.type === "ArrayExpression") return arrayBoilerplate(node);
+  const literal = literalOf(node);
+  switch (literal?.kind) {
+    case "number":
+    case "string":
+    case "boolean":
+      return { kind: "value", value: literal.value };
+    case "null":
+      return { kind: "value", value: null };
+    default:
+      throw new Error("a boilerplate value the subset does not contain (BigInt is excluded)");
+  }
+}
+
+/** The data behind `objectBoilerplateText`: every property, with a placeholder where the value is computed. */
+export function objectBoilerplate(node: ObjectExpression): ObjectBoilerplate {
+  const properties = node.properties.flatMap((property) =>
+    property.type === "Property" ? [{ key: keyTextOf(property), value: boilerplateValueOf(property.value as Expression) }] : [],
+  );
+  return { kind: "object", properties };
+}
+
+/** The data behind `arrayBoilerplateText`: every element, `"hole"` for an elision. */
+export function arrayBoilerplate(node: ArrayExpression): ArrayBoilerplate {
+  return {
+    kind: "array",
+    elements: node.elements.map((element) => (element && element.type !== "SpreadElement" ? boilerplateValueOf(element) : "hole")),
+  };
 }

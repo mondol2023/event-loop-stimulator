@@ -1,4 +1,5 @@
 import type { FunctionId } from "@/core/shared/ids";
+import type { ArrayBoilerplate, ObjectBoilerplate } from "./boilerplate";
 
 // V8's constant pool (the `ConstantArrayBuilder`): an insertion-ordered list of the values a
 // function's bytecode refers to by index. Strings and numbers are deduplicated; shared function
@@ -16,8 +17,8 @@ export type ConstantEntry =
   | { readonly kind: "jump-offset"; readonly value: number }
   /** A function the bytecode can create a closure for; `functionId` finds its own bytecode. */
   | { readonly kind: "sfi"; readonly name: string; readonly functionId: FunctionId }
-  /** An object or array literal description, printed as `<{text}>`. */
-  | { readonly kind: "boilerplate"; readonly text: string }
+  /** An object or array literal description, printed as `<{text}>`; `literal` is the data the interpreter copies. */
+  | { readonly kind: "boilerplate"; readonly text: string; readonly literal?: ObjectBoilerplate | ArrayBoilerplate }
   | { readonly kind: "scope-info"; readonly scope: string };
 
 export class ConstantPool {

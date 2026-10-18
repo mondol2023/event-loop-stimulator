@@ -16,6 +16,7 @@ import type { SpecRealm } from "./spec/conversions";
 import { OrdinaryDefineOwnProperty } from "./spec/objectOps";
 import { captureStack, type CallSite } from "./stack";
 import type { JSValue } from "./values/JSValue";
+import type { TheHoleValue } from "./values/TheHole";
 
 // A realm: the intrinsics, the global object and the hooks the embedder (Node) plugs in. In
 // V8 terms this is the native context plus the Isolate's embedder callbacks.
@@ -134,6 +135,7 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
           feedbackCell,
         }),
     );
+    feedbackCell.allocateVector(code);
     this.#define(fn, "length", code.length, FUNCTION_INFO);
     this.#define(fn, "name", code.name, FUNCTION_INFO);
     return fn;
@@ -142,6 +144,16 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   /** An ordinary object the program can see (`{}`): it counts toward the heap-object limit. */
   newObject(prototype: JSObject | null = this.intrinsics.objectPrototype): JSObject {
     return this.heap.allocate((id) => new JSObject(id, this.maps.rootFor("empty-object-literal", 4), prototype));
+  }
+
+  /** `CreateObjectLiteral`: an object whose Map is rooted at the literal's own property count (the boilerplate Map). */
+  newLiteralObject(propertyCount: number): JSObject {
+    return this.heap.allocate((id) => new JSObject(id, this.maps.rootFor("object-literal", propertyCount), this.intrinsics.objectPrototype));
+  }
+
+  /** `CreateArrayLiteral` / `CreateEmptyArrayLiteral`: an array whose elements kind is what `values` need. */
+  newArray(values: readonly (JSValue | TheHoleValue)[] = []): JSArray {
+    return this.heap.allocate((id) => JSArray.fromElements(id, this.maps, this.intrinsics.arrayPrototype, values));
   }
 
   #intrinsicObject(prototype: JSObject | null): JSObject {
