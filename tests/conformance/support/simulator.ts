@@ -1,3 +1,5 @@
+import { simulate } from "@/core/timeline/simulate";
+
 // The contract Phase 3's IgnitionInterpreter + Node event loop implements, and
 // the single slot the conformance suite reads it from.
 
@@ -23,3 +25,11 @@ export interface Simulator {
  * fixtures.test.ts fails until those todos are replaced by real comparisons.
  */
 export const SIMULATOR: Simulator | undefined = undefined;
+
+/** One run of `core/timeline/simulate`, in the shape the comparison reads. */
+export function simulatorRun(fixture: { readonly source: string; readonly lang: "js" | "ts" }): SimOutput {
+  const r = simulate(fixture.source, fixture.lang);
+  const out = { stdout: r.stdout, stderr: r.stderr, exitCode: r.exitCode, warnings: r.warnings };
+  if (!r.stop) return out;
+  return { ...out, stop: { kind: r.stop.kind, detail: r.stop.kind === "limit" ? r.stop.limit : r.stop.reason } };
+}
