@@ -50,6 +50,14 @@ export function createError(
       configurable: true,
     });
   }
+  // V8 formats the header when the Error is constructed (a later `e.message = …` does not change
+  // it) and keeps `stack` as an own, non-enumerable data property.
+  OrdinaryDefineOwnProperty(world, error, "stack", {
+    value: errorStack(error),
+    writable: true,
+    enumerable: false,
+    configurable: true,
+  });
   return error;
 }
 

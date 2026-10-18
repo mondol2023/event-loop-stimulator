@@ -91,3 +91,21 @@ describe("errorStack", () => {
     expect(errorStack(e)).toBe("Error: first");
   });
 });
+
+describe("Error constructors (builtins)", () => {
+  it("stack is an own non-enumerable property captured at construction, header included", async () => {
+    const { runSource } = await import("@/core/interpreter/interpreterTestWorld");
+    const run = runSource("const e = new Error('a'); e.message = 'b'; console.log(e.stack, Object.keys(e));");
+    expect(run.stdout.split("\n")[0]).toBe("Error: a");
+    expect(run.stdout.endsWith("[]\n")).toBe(true);
+  });
+
+  it("supports the cause option and AggregateError's errors list", async () => {
+    const { runSource } = await import("@/core/interpreter/interpreterTestWorld");
+    const run = runSource(
+      "const c = new Error('c'); const e = new Error('m', { cause: c }); const g = new AggregateError([1, 2], 'many');" +
+        "console.log(e.cause === c, g.errors, g.message, g.name, Object.keys(e));",
+    );
+    expect(run.stdout).toBe("true [ 1, 2 ] many AggregateError []\n");
+  });
+});

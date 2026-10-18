@@ -2,7 +2,11 @@ import type { BytecodeFunction } from "@/core/bytecode/BytecodeProgram";
 import type { Completion } from "@/core/interpreter/Completion";
 import type { EntryPoint } from "@/core/host/nodeFrames";
 import { nodeFrameTail } from "@/core/host/nodeFrames";
+import { installArray } from "./builtins/Array";
 import { createError, type JSError } from "./builtins/errors";
+import { installMath } from "./builtins/Math";
+import { installObject } from "./builtins/Object";
+import { WorkBudget } from "./WorkBudget";
 import { type ConsoleMethod, type ConsoleRealm, type ConsoleStream, consoleMethod } from "./builtins/console";
 import type { FunctionKind, InspectRealm, PromiseDetails } from "./builtins/inspect";
 import { Heap } from "./heap/Heap";
@@ -15,7 +19,7 @@ import { JSObject } from "./objects/JSObject";
 import { TransitionTree } from "./objects/TransitionTree";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import type { SpecRealm } from "./spec/conversions";
-import { OrdinaryDefineOwnProperty } from "./spec/objectOps";
+import { HasProperty, OrdinaryDefineOwnProperty, OrdinaryGet } from "./spec/objectOps";
 import { captureStack, type CallSite } from "./stack";
 import type { JSValue } from "./values/JSValue";
 import type { TheHoleValue } from "./values/TheHole";
@@ -25,8 +29,6 @@ import type { TheHoleValue } from "./values/TheHole";
 
 export type ErrorKind = "Error" | "TypeError" | "RangeError" | "ReferenceError" | "SyntaxError" | "AggregateError";
 const ERROR_KINDS: readonly ErrorKind[] = ["Error", "TypeError", "RangeError", "ReferenceError", "SyntaxError", "AggregateError"];
-/** The constructors installed so far; AggregateError (its `errors` list) arrives with the other builtins. */
-const NATIVE_ERROR_KINDS: readonly ErrorKind[] = ["Error", "TypeError", "RangeError", "ReferenceError", "SyntaxError"];
 
 /** What V8 asks of its embedder (the part of `v8::Isolate` callbacks the model needs so far). */
 export interface HostHooks {
@@ -58,6 +60,8 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   readonly heap = new Heap();
   readonly maps = new TransitionTree();
   readonly host: HostHooks;
+  /** Element visits inside builtins (Decision D3's `work` limit). */
+  readonly work = new WorkBudget();
   readonly intrinsics: Intrinsics;
   readonly globalObject: JSObject;
   /** The context builtins close over: it holds nothing. */
@@ -97,7 +101,18 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     this.#define(this.globalObject, "NaN", NaN, CONSTANT);
     this.#define(this.globalObject, "Infinity", Infinity, CONSTANT);
     this.#define(this.globalObject, "console", this.#console(), HIDDEN);
-    for (const kind of NATIVE_ERROR_KINDS) this.#define(this.globalObject, kind, this.#errorConstructor(kind), HIDDEN);
+    for (const kind of ERROR_KINDS) this.#define(this.globalObject, kind, this.#errorConstructor(kind), HIDDEN);
+
+    const objectConstructor = this.#builtinConstructor("Object", objectPrototype);
+    const arrayConstructor = this.#builtinConstructor("Array", arrayPrototype);
+    const math = this.#intrinsicObject(objectPrototype);
+    this.#tags.set(math, "Math");
+    this.#define(this.globalObject, "Object", objectConstructor, HIDDEN);
+    this.#define(this.globalObject, "Array", arrayConstructor, HIDDEN);
+    this.#define(this.globalObject, "Math", math, HIDDEN);
+    installObject(this, objectConstructor);
+    installArray(this);
+    installMath(this, math);
   }
 
   /** Called by the interpreter that runs this realm's functions. */
@@ -110,6 +125,11 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   /** A builtin function object, with `length` and `name` as V8's builtins have them. */
   nativeFunction(name: string, length: number, behavior: NativeFunction, kind: FunctionKind = "normal"): JSFunctionType {
     return this.#nativeFunction(name, length, { native: behavior, kind });
+  }
+
+  /** A builtin method: writable, non-enumerable and configurable, as V8 installs builtins. */
+  defineMethod(target: JSObject, name: string, length: number, behavior: NativeFunction): void {
+    this.#define(target, name, this.nativeFunction(name, length, behavior), HIDDEN);
   }
 
   /** A builtin that is also a constructor: `call` runs for `F()`, `construct` for `new F()`. */
@@ -183,17 +203,46 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   }
 
   /**
-   * The Error and NativeError constructors (ECMA-262 Error ( message ), NativeError ( message )):
-   * `F()` and `new F()` both create the error, capturing the stack where it is constructed.
+   * `Object` and `Array`: reachable as `prototype.constructor` and named for stack frames and inspect.
+   * Calling or constructing them is not modeled (no fixture), so it halts rather than guessing.
+   */
+  #builtinConstructor(name: string, prototype: JSObject): JSFunctionType {
+    const unsupported = (): never => {
+      throw new SimulationHalt({ kind: "unsupported", reason: `calling or constructing ${name} is not modeled` });
+    };
+    const constructor = this.nativeConstructor(name, 1, unsupported, unsupported);
+    this.#define(constructor, "prototype", prototype, CONSTANT);
+    this.#define(prototype, "constructor", constructor, HIDDEN);
+    return constructor;
+  }
+
+  /**
+   * The Error and NativeError constructors (ECMA-262 Error ( message [ , options ] ), NativeError,
+   * AggregateError ( errors, message [ , options ] )): `F()` and `new F()` both create the error,
+   * capturing the stack where it is constructed.
    */
   #errorConstructor(kind: ErrorKind): JSFunctionType {
+    const aggregate = kind === "AggregateError";
     const create = (realm: Realm, args: readonly JSValue[]): Completion => {
-      const message = args[0];
+      const message = args[aggregate ? 1 : 0];
+      const options = args[aggregate ? 2 : 1];
       // ToString of an object would run user code (toString / valueOf), which is not modeled here.
       if (message instanceof HeapObject) throw new SimulationHalt({ kind: "unsupported", reason: `new ${kind} with an object message` });
-      return { type: "normal", value: realm.createError(kind, message === undefined ? undefined : String(message)) };
+      const error = realm.createError(kind, message === undefined ? undefined : String(message));
+      // InstallErrorCause: an own, non-enumerable `cause` when the options object has one.
+      if (options instanceof JSObject && HasProperty(options, "cause")) {
+        this.#define(error, "cause", OrdinaryGet(options, "cause"), HIDDEN);
+      }
+      if (aggregate) {
+        const errors = args[0];
+        // IterableToList would run user iterators; only arrays are modeled.
+        if (!(errors instanceof JSArray)) throw new SimulationHalt({ kind: "unsupported", reason: "AggregateError from a value that is not an array" });
+        const list = realm.newArray(Array.from({ length: errors.length }, (_, i) => OrdinaryGet(errors, String(i))));
+        this.#define(error, "errors", list, HIDDEN);
+      }
+      return { type: "normal", value: error };
     };
-    const constructor = this.nativeConstructor(kind, 1, (realm, _receiver, args) => create(realm, args), create);
+    const constructor = this.nativeConstructor(kind, aggregate ? 2 : 1, (realm, _receiver, args) => create(realm, args), create);
     const prototype = this.intrinsics.errorPrototypes[kind];
     this.#define(constructor, "prototype", prototype, CONSTANT);
     this.#define(prototype, "constructor", constructor, HIDDEN);

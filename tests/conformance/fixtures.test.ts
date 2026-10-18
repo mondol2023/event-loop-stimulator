@@ -21,6 +21,17 @@ const PROGRAM_FIXTURES = discoverFixtures(CONFORMANCE_ROOT).filter((f) => f.kind
 // Programs that schedule nothing (no promises, timers, ticks or async functions) and use
 // only what the interpreter models so far. They run end to end through `simulate`.
 const SYNC_FIXTURES = new Set([
+  "array-holes-inspect",
+  "array-length-truncate",
+  "array-methods",
+  "bc-method-calls",
+  "builtin-callback-throws",
+  "default-params",
+  "error-stack-property",
+  "inspect-circular-and-long-arrays",
+  "inspect-nesting-and-wrapping",
+  "number-to-string",
+  "object-key-order",
   "bc-array-literals",
   "bc-block-contexts",
   "bc-block-exit",
@@ -74,8 +85,8 @@ const SYNC_FIXTURES = new Set([
   "var-hoisting",
 ]);
 
-// Synchronous too, but each needs a builtin from Task 14 (String, Math, Object.keys,
-// Array.prototype methods, Object.prototype.toString, a JS-visible `stack`, the Promise global).
+// Synchronous too, but each still needs something later tasks own: the String global,
+// Object.prototype.toString, the CallPrinter TypeError text, the Promise global.
 // They stay todos with the async fixtures until then.
 const TODO_FIXTURES = PROGRAM_FIXTURES.filter((f) => !SYNC_FIXTURES.has(f.name)).map((f) => f.name);
 

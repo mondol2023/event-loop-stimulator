@@ -12,7 +12,7 @@ import type { JSValue } from "@/core/runtime/values/JSValue";
 import type { FunctionId } from "@/core/shared/ids";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import type { Command } from "@/core/timeline/Command";
-import { callSiteOf } from "./callSites";
+import { callSiteOf, nativeCallSite } from "./callSites";
 import { type Completion, normal } from "./Completion";
 import { arithHandler } from "./dispatch/arith";
 import { callHandler, constructHandler, runtimeHandler } from "./dispatch/calls";
@@ -141,6 +141,8 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
   readonly #observer: StepObserver;
   /** Active frames, outermost first. */
   readonly #frames: Frame[] = [];
+  /** Builtins on the stack; `below` is how many JS frames were under the builtin when it was called. */
+  readonly #natives: { readonly below: number; readonly fn: JSFunction; readonly receiver: JSValue }[] = [];
   /**
    * The isolate's pending message (Isolate::pending_message): where the exception in flight was
    * thrown. It outlives an uncaught exception, so the host can print its code frame.
@@ -181,7 +183,14 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
 
   /** Calls `fn`. Re-entrant: a builtin that takes a callback calls back through here. */
   call(fn: JSFunction, receiver: JSValue, args: readonly JSValue[]): Completion {
-    if (fn.native) return fn.native(this.realm, receiver, args);
+    if (fn.native) {
+      this.#natives.push({ below: this.#frames.length, fn, receiver });
+      try {
+        return fn.native(this.realm, receiver, args);
+      } finally {
+        this.#natives.pop();
+      }
+    }
     if (!fn.code) throw new Error("a function with neither bytecode nor a native behavior");
     // The depth limit is the simulator's, never a RangeError (PROMPT §7.1).
     if (this.#frames.length >= CALL_DEPTH_LIMIT) throw new SimulationHalt({ kind: "limit", limit: "callDepth" });
@@ -209,8 +218,13 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
 
   callSites(): readonly CallSite[] {
     const sites: CallSite[] = [];
-    for (let i = this.#frames.length - 1; i >= 0; i--) {
-      const frame = this.#frames[i];
+    let n = this.#natives.length - 1;
+    for (let i = this.#frames.length; i >= 0; i--) {
+      // A builtin called with `i` JS frames beneath it sits above frame `i - 1`.
+      for (let native = this.#natives[n]; native && native.below === i; native = this.#natives[--n]) {
+        sites.push(nativeCallSite(native.fn, native.receiver));
+      }
+      const frame = this.#frames[i - 1];
       if (frame) sites.push(callSiteOf(this.realm, this.#program, frame));
     }
     return sites;

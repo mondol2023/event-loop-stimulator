@@ -13,6 +13,7 @@ const MESSAGE_TEMPLATES = {
   kNotDefined: "% is not defined",
   kPromiseCyclic: "Chaining cycle detected for promise %",
   kReduceNoInitial: "Reduce of empty array with no initial value",
+  kUndefinedOrNullToObject: "Cannot convert undefined or null to object",
 } as const;
 
 export type MessageTemplate = keyof typeof MESSAGE_TEMPLATES;

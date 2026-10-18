@@ -1,6 +1,7 @@
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import type { Realm } from "@/core/runtime/Realm";
 import { JSFunction } from "@/core/runtime/objects/JSFunction";
+import type { JSValue } from "@/core/runtime/values/JSValue";
 import { JSObject } from "@/core/runtime/objects/JSObject";
 import { OrdinaryGet, OrdinaryGetOwnProperty } from "@/core/runtime/spec/objectOps";
 import { type CallSite, positionOf } from "@/core/runtime/stack";
@@ -49,4 +50,15 @@ export function callSiteOf(realm: Realm, program: BytecodeProgram, frame: Frame)
     isAsync: false,
     pos: positionOf(program.source, range?.start ?? 0),
   };
+}
+
+/**
+ * A builtin's frame, `Type.name (<anonymous>)` (CallSiteInfo for a builtin: no script, so the
+ * location is `<anonymous>`). The type is the receiver's constructor name, as for a method call.
+ */
+export function nativeCallSite(fn: JSFunction, receiver: JSValue): CallSite {
+  const name = OrdinaryGet(fn, "name");
+  const functionName = typeof name === "string" ? name : "";
+  const type = receiver instanceof JSObject ? typeNameOf(receiver) : undefined;
+  return { native: `${type ? `${type}.` : ""}${functionName} (<anonymous>)` };
 }
