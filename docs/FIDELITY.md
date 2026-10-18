@@ -94,7 +94,7 @@ Each gap names the construct, the difference from real Node/V8, and the fixture 
 - **V8's `SyntaxError` text is not reproduced.** A program with a syntax error gets our own `E_SYNTAX` diagnostic (a range and a hint). Real Node prints V8's message, source line and caret on stderr. A test262 `negative: {phase: parse}` test is judged by the code, not the wording (ADR-024). Errors that Babel recovers from (`let x; let x;`, a misplaced `return`) become diagnostics too, so no bytecode is produced for them.
 - **Node-internal stack frames are constants of the pinned version.** The stack of an uncaught error ends in frames such as `node:internal/modules/cjs/loader:1872:14`. We can print them only as recorded for Node 24.19.0; they are not derived from anything and change with the target ([`TARGET.md`](TARGET.md)). Seen in: `uncaught-type-error`, `uncaught-reference-error`, `unhandled-rejection`, `let-tdz-uncaught` and `error-in-timer-uncaught`.
 - **Bytecode of a function that is never called is unverified.** V8 compiles lazily, so real Node prints no bytecode for it and there is nothing to compare with (ADR-022). The generator still compiles it.
-- **Three bytecode fixtures are `pending`**, listed under "Bytecode operand differences" below: `bc-loop-let`, `closure-in-loop-let` and `loose-equality-coercions`.
+- **One bytecode fixture is `pending`**, listed under "Bytecode operand differences" below: `loose-equality-coercions`.
 
 ## How real bytecode is captured
 
@@ -108,7 +108,7 @@ Each gap names the construct, the difference from real Node/V8, and the fixture 
 
 ## Bytecode operand differences
 
-Opcode sequences match `--print-bytecode` except where this section says otherwise. Of the 79 fixtures with recorded bytecode, 72 are `exact`, 4 are `opcodes` (operand differences only, listed below) and 3 are `pending` (ADR-023, `tests/conformance/bytecode-status.json`). Operand-level differences are listed here, per fixture.
+Opcode sequences match `--print-bytecode` except where this section says otherwise. Of the 87 fixtures with recorded bytecode, 82 are `exact`, 4 are `opcodes` (operand differences only, listed below) and 1 is `pending` (ADR-023, `tests/conformance/bytecode-status.json`). Operand-level differences are listed here, per fixture.
 
 - `bc-tdz-assign`, `assignFirst`: after an assignment to a not-yet-initialized binding inside a branch, V8 flushes the merge with `Ldar` of the temporary holding the value; we reload the binding. Same value, different register operand. The register optimizer's flush rule behind this is not yet understood.
 - `bc-defaults` and `default-params`, `viaClosure`'s arrow: the header name of an arrow in a default initializer (`read = () => x`) is `x` in V8, the identifier read inside it, while its constant-pool entry stays `read`. We print `read` in both. Instructions are identical.
@@ -123,7 +123,6 @@ Not yet reproduced (the generator refuses them, so the fixture stays `pending`):
 
 - An async function with default, rest or destructured parameters. V8 puts the generator object after the parameters' own locals and runs their initializers inside the try block that rejects the promise; the generator throws `NotYetSupported` rather than emit the plain-function order. Async functions with simple parameters match V8 exactly in every recorded fixture (`bc-async`, `async-await-order`, `await-thenable-two-extra-ticks` and the rest), with no operand differences.
 - Generator functions (`function*`) are excluded before bytecode generation (`E_EXCLUDED_FEATURE`); the generator also refuses one itself, so it can never be compiled as a plain function.
-- `bc-loop-let`, `perIteration`: a `for (let …)` loop whose variable a closure captures. V8 copies the binding into a fresh block context each iteration with a flag and a temporary; the generator throws `NotYetSupported` rather than emit a single function-level slot.
 - `while (z, c)`: the statement position of a comma-expression loop test differs from V8's.
 
 One case is known and not reproduced: when a forward jump is still pending while the constant pool crosses 256 entries, V8 moves later entries to the next index slice to keep the jump's reserved index free; this generator appends them in order. A listing could differ only in a function with more than 256 constants and a jump over the crossing.

@@ -41,7 +41,7 @@ import { type Command, DeferredCommands } from "./DeferredCommands";
 import type { FeedbackSlotKind } from "./FeedbackVectorSpec";
 import { type LiteralValue, isSmi, literalOf, toBooleanOf } from "./literals";
 import { arrayBoilerplate, arrayBoilerplateText, arrayFlags, elementIndexOf, isCompileTimeValue, objectBoilerplate, objectBoilerplateText, objectFlags } from "./literalShape";
-import { endOf, endWithParentheses, operatorPosition, startOf } from "./sourceText";
+import { endOf, endWithParentheses, lastTokenStart, operatorPosition, startOf } from "./sourceText";
 
 // V8's BytecodeGenerator for one function body (src/interpreter/bytecode-generator.cc). The shape
 // follows V8 closely because the output is compared with `--print-bytecode` instruction by
@@ -787,7 +787,7 @@ export class FunctionGenerator {
   }
 
   /** V8's LoopBuilder::JumpToHeader. */
-  private jumpToHeader(loop: Loop, position: number): void {
+  private jumpToHeader(loop: Loop, position?: number): void {
     const b = this.builder;
     const parent = this.parentLoop();
     loop.backEdge.bind();
@@ -826,8 +826,8 @@ export class FunctionGenerator {
   }
 
   private visitFor(node: ForStatement): void {
-    // Each iteration gets a context of its own (V8 copies the bindings), which is not built yet.
-    if (this.scopes.scopeOf.get(node)?.perIteration) throw new NotYetSupported(node);
+    const scope = this.scopes.scopeOf.get(node);
+    if (scope?.perIteration) return this.visitDesugaredFor(node, scope);
     const init = node.init;
     if (init?.type === "VariableDeclaration") this.visitVariableDeclaration(init);
     else if (init) {
@@ -848,6 +848,152 @@ export class FunctionGenerator {
       this.jumpToHeader(loop, startOf(node));
     }
     this.endLoop(loop);
+  }
+
+  /**
+   * The bytecode of V8's DesugarLexicalBindingsInForStatement, which rewrites
+   * `for (let x = i; cond; next) body` as
+   *
+   *     { let x = i; temp_x = x; first = 1;
+   *       outer: for (;;) {
+   *         let x = temp_x;
+   *         if (first == 1) first = 0; else next;
+   *         flag = 1;
+   *         if (cond) ; else break outer;
+   *         for (; flag == 1; flag = 0, temp_x = x) body
+   *         if (flag == 1) break outer;
+   *       } }
+   *
+   * so that a closure in any iteration captures that iteration's own `x`. The synthesized parts
+   * have no source position except the loads of `x`, which the parser places at the loop's last token.
+   */
+  private visitDesugaredFor(node: ForStatement, scope: Scope): void {
+    const b = this.builder;
+    const init = node.init;
+    const iteration = scope.iteration;
+    if (init?.type !== "VariableDeclaration" || !iteration) throw new Error("a desugared for loop without its lexical declaration");
+    const originals = scope.variables;
+    const copyPosition = lastTokenStart(this.source, endOf(node));
+    const enclosingScope = this.currentScope;
+    const outerContext = this.context;
+    this.currentScope = scope;
+    if (scope.needsContext) {
+      b.emit("CreateBlockContext", b.constantPool.add({ kind: "scope-info", scope: "BLOCK_SCOPE" }));
+      this.pushContext(scope);
+    }
+    this.visitDeclarations([init]);
+    this.visitVariableDeclaration(init);
+    originals.forEach((original, k) => {
+      b.setExpressionPosition(copyPosition);
+      this.loadVariable(original, init);
+      this.storeVariable(iteration.temporaries[k] as Variable, init);
+    });
+    if (iteration.first) {
+      b.emit("LdaSmi", 1);
+      this.storeVariable(iteration.first, init);
+    }
+
+    const outer = this.beginLoop();
+    b.bindLoopHeader(outer.header);
+    const loopContext = this.context;
+    this.currentScope = iteration.scope;
+    if (iteration.scope.needsContext) {
+      b.emit("CreateBlockContext", b.constantPool.add({ kind: "scope-info", scope: "BLOCK_SCOPE" }));
+      this.pushContext(iteration.scope);
+    }
+    for (const copy of iteration.copies) {
+      if (!copy.needsHoleInit) continue;
+      b.emit("LdaTheHole");
+      this.storeVariable(copy, init);
+    }
+    iteration.copies.forEach((copy, k) => {
+      this.loadVariable(iteration.temporaries[k] as Variable, init);
+      this.storeVariable(copy, init);
+    });
+    if (iteration.first) {
+      const first = iteration.first;
+      const update = node.update;
+      if (!update) throw new Error("a first-iteration flag without an update");
+      const otherwise = this.newLabels();
+      const end = this.newLabels();
+      this.testFlag(first, otherwise);
+      b.emit("LdaZero");
+      this.storeVariable(first, init);
+      b.jump("Jump", end.new());
+      otherwise.bind();
+      this.conditionally(() => {
+        b.setStatementPosition(this.positionOf(update));
+        this.visitForEffect(update);
+      });
+      end.bind();
+    }
+    b.emit("LdaSmi", 1);
+    this.storeVariable(iteration.flag, init);
+    if (node.test) this.breakUnless(node.test, outer);
+
+    const inner = this.beginLoop();
+    b.bindLoopHeader(inner.header);
+    this.testFlag(iteration.flag, inner.breakLabels);
+    this.conditionally(() => {
+      this.visitIterationBody(node.body, inner);
+      b.emit("LdaZero");
+      this.storeVariable(iteration.flag, init);
+      iteration.copies.forEach((copy, k) => {
+        b.setExpressionPosition(copyPosition);
+        this.loadVariable(copy, init);
+        this.storeVariable(iteration.temporaries[k] as Variable, init);
+      });
+    });
+    this.jumpToHeader(inner, startOf(node));
+    this.endLoop(inner);
+    const stay = this.newLabels();
+    this.testFlag(iteration.flag, stay);
+    this.performCommand({ kind: "break", target: outer });
+    stay.bind();
+
+    if (iteration.scope.needsContext) this.popContext(loopContext);
+    this.currentScope = scope;
+    this.jumpToHeader(outer);
+    this.endLoop(outer);
+    if (scope.needsContext) this.popContext(outerContext);
+    this.currentScope = enclosingScope;
+  }
+
+  /** `flag == 1`, jumping to `otherwise` when it is not. */
+  private testFlag(flag: Variable, otherwise: BytecodeLabels): void {
+    const b = this.builder;
+    const register = flag.allocation.kind === "register" ? flag.allocation.index : -1;
+    if (register < 0) throw new Error("a loop temporary outside a register");
+    b.emit("LdaSmi", 1);
+    b.emit("TestEqual", local(register), b.feedback.addSlot("compare"));
+    b.jump("JumpIfFalse", otherwise.new());
+  }
+
+  /** `if (cond) ; else break outer;`, the desugared loop's test, placed at the condition. */
+  private breakUnless(test: Expression, outer: Loop): void {
+    const b = this.builder;
+    b.setStatementPosition(this.positionOf(test));
+    const condition = toBooleanOf(test);
+    if (condition === true) return;
+    if (condition === false) {
+      this.performCommand({ kind: "break", target: outer });
+      return;
+    }
+    const then = this.newLabels();
+    const otherwise = this.newLabels();
+    const end = this.newLabels();
+    this.visitForTest(test, then, otherwise, "then");
+    this.mergeBranches(
+      () => {
+        then.bind();
+        b.jump("Jump", end.new());
+      },
+      () => {
+        otherwise.bind();
+        this.performCommand({ kind: "break", target: outer });
+      },
+    );
+    end.bind();
   }
 
   private visitVariableDeclaration(node: VariableDeclaration): void {

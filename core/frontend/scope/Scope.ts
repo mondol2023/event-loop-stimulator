@@ -10,12 +10,15 @@ import type { SourceRange } from "@/core/shared/diagnostics";
 export type ScopeKind = "function" | "block" | "catch";
 
 /**
+ * `temporary` is one of V8's `.for` variables (Scope::NewTemporary) that a desugared
+ * `for (let …)` loop keeps in its function's registers.
+ *
  * `function-name` is the self-binding of a named function expression
  * (`const f = function g() { g }`); V8 keeps it outside the function's own
  * scope, which this model collapses into the function scope (shadowable by a
  * parameter or var of the same name).
  */
-export type VariableKind = "var" | "let" | "const" | "function" | "param" | "catch" | "function-name" | "this";
+export type VariableKind = "var" | "let" | "const" | "function" | "param" | "catch" | "function-name" | "this" | "temporary";
 
 /**
  * Where a variable lives at run time:
@@ -89,8 +92,13 @@ export type Scope = {
   contextSlots: number;
   /** Function scopes only: registers taken by locals of the function (all its non-function scopes). */
   stackSlots: number;
-  /** A `for (let …)` scope whose bindings a closure captures: each iteration gets a fresh copy. */
+  /**
+   * A `for (let/const …)` scope that V8 desugars (Parser::DesugarLexicalBindingsInForStatement)
+   * because a function literal appears somewhere in the loop: each iteration gets fresh copies.
+   */
   perIteration: boolean;
+  /** For a `perIteration` loop scope: the copies' scope and the temporaries the desugaring adds. */
+  iteration: ForIteration | null;
   /** Function scopes only: the declared parameter names in order (duplicates kept; non-identifier patterns as ""). */
   readonly parameterNames: readonly string[];
   /** Function scopes only: no defaults, rest or destructuring in the parameter list. */
@@ -101,6 +109,23 @@ export type Scope = {
   suspendCount: number;
   /** Non-arrow function scopes only: the receiver as a variable, present iff an arrow inside reads `this` (it then lives in the context). */
   thisVariable: Variable | null;
+};
+
+/**
+ * The pieces of V8's for-let desugaring. The loop scope keeps the bindings the initializer
+ * declares; `scope` (its only child) declares a copy of each, which the test, update and body
+ * see, and which a closure captures. Values cross between iterations through `temporaries`.
+ */
+export type ForIteration = {
+  readonly scope: Scope;
+  /** The copies, in the order the initializer declares the originals. */
+  readonly copies: readonly Variable[];
+  /** `temp_x` for each copy, function registers. */
+  readonly temporaries: readonly Variable[];
+  /** Set before the first iteration so that it skips the update; absent when the loop has none. */
+  readonly first: Variable | null;
+  /** Set while an iteration runs: still set after the inner loop means the body broke out. */
+  readonly flag: Variable;
 };
 
 export type ScopeTree = {

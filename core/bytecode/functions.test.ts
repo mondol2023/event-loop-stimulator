@@ -1097,12 +1097,110 @@ twoBlocks(1);
 });
 
 describe("a loop variable a closure captures", () => {
-  // V8 gives each iteration a context of its own through a copying desugaring that is not built yet.
-  it("is refused rather than compiled as a function-level slot", () => {
-    expect(() => compile("function f(n) { let g; for (let i = 0; i < n; i = i + 1) { g = () => i; } return g; } f(1);")).toThrow(
-      "ForStatement is not compiled to bytecode yet",
+  // V8's DesugarLexicalBindingsInForStatement: the binding is copied into a fresh block context each
+  // iteration, through a `.for` temporary, with a first-iteration flag guarding the update.
+  it("gets a block context per iteration, copied through temporaries (bc-loop-let's perIteration)", () => {
+    expectFunctions(
+      `// A loop variable a closure captures gets a fresh context per iteration.
+function perIteration(n) {
+  let last;
+  for (let i = 0; i < n; i = i + 1) {
+    last = () => i;
+  }
+  return last;
+}
+perIteration(1);
+function plainLoop(n) {
+  let last = 0;
+  for (let i = 0; i < n; i = i + 1) {
+    last = i;
+  }
+  return last;
+}
+plainLoop(1);
+`,
+      {},
+      {
+        name: "perIteration",
+        registerCount: 7,
+        constantPool: ["<ScopeInfo BLOCK_SCOPE>", "<SharedFunctionInfo last>"],
+        instructions: [
+          "107 S> LdaUndefined",
+          "Star0",
+          "128 S> LdaZero",
+          "Star4",
+          "Star1",
+          "LdaSmi [1]",
+          "Star2",
+          "173 E> CreateBlockContext [0]",
+          "PushContext r5",
+          "LdaTheHole",
+          "StaCurrentContextSlot [2]",
+          "Ldar r1",
+          "StaCurrentContextSlot [2]",
+          "LdaSmi [1]",
+          "TestEqual r2, [0]",
+          "JumpIfFalse [6] (@30)",
+          "LdaZero",
+          "Star2",
+          "Jump [9] (@37)",
+          "140 S> LdaCurrentContextSlot [2]",
+          "144 E> AddSmi [1], [1]",
+          "140 E> StaCurrentContextSlot [2]",
+          "LdaSmi [1]",
+          "Star3",
+          "133 S> LdaCurrentContextSlot [2]",
+          "Star6",
+          "Ldar a0",
+          "133 E> TestLessThan r6, [2]",
+          "JumpIfFalse [4] (@52)",
+          "Jump [6] (@56)",
+          "PopContext r5",
+          "Jump [40] (@94)",
+          "LdaSmi [1]",
+          "TestEqual r3, [3]",
+          "JumpIfFalse [16] (@77)",
+          "155 S> CreateClosure [1], [0], #2",
+          "Star0",
+          "LdaZero",
+          "Star3",
+          "LdaCurrentContextSlot [2]",
+          "Star1",
+          "115 E> JumpLoop [17], [1], [4] (@56)",
+          "LdaSmi [1]",
+          "TestEqual r3, [5]",
+          "JumpIfFalse [6] (@88)",
+          "PopContext r5",
+          "Jump [8] (@94)",
+          "PopContext r5",
+          "JumpLoop [82], [0], [6] (@8)",
+          "177 S> Ldar r0",
+          "189 S> Return",
+        ],
+      },
+      {
+        name: "plainLoop",
+        registerCount: 2,
+        instructions: [
+          "246 S> LdaZero",
+          "Star0",
+          "264 S> LdaZero",
+          "Star1",
+          "269 S> Ldar a0",
+          "269 E> TestLessThan r1, [0]",
+          "JumpIfFalse [15] (@24)",
+          "291 S> Mov r1, r0",
+          "276 S> Ldar r0",
+          "280 E> AddSmi [1], [1]",
+          "Star1",
+          "251 E> JumpLoop [16], [0], [2] (@4)",
+          "307 S> Ldar r0",
+          "319 S> Return",
+        ],
+      },
     );
   });
+
 });
 
 describe("leaving a block context by break or continue", () => {

@@ -250,12 +250,37 @@ describe("allocation: registers, context slots, parameters", () => {
 });
 
 describe("loops", () => {
-  it("a captured for-let variable gives the loop scope per-iteration bindings", () => {
+  it("a for-let with a closure in it is desugared: the closure sees a per-iteration copy (V8 DesugarLexicalBindingsInForStatement)", () => {
     const tree = analyze("const fns = [];\nfor (let i = 0; i < 3; i++) { fns.push(() => i); }");
     const loop = tree.scopes.find((s) => s.node.type === "ForStatement") as Scope;
     expect(loop.kind).toBe("block");
     expect(loop.perIteration).toBe(true);
-    expect(variable(loop, "i").allocation).toEqual({ kind: "context", index: 0 });
+    const iteration = loop.iteration;
+    if (!iteration) throw new Error("no per-iteration scope");
+    expect(iteration.scope.parent).toBe(loop);
+    // The `.for` temporaries are function locals declared after the loop, ahead of block-scope locals.
+    expect(iteration.temporaries.map((t) => t.allocation)).toEqual([{ kind: "register", index: 1 }]);
+    expect(iteration.first?.allocation).toEqual({ kind: "register", index: 2 });
+    expect(iteration.flag.allocation).toEqual({ kind: "register", index: 3 });
+    expect(variable(loop, "i").allocation).toEqual({ kind: "register", index: 4 });
+    expect(iteration.copies.map((c) => c.allocation)).toEqual([{ kind: "context", index: 0 }]);
+    expect(iteration.scope.needsContext).toBe(true);
+    const closureRead = refs(tree, "i").at(-1);
+    expect(closureRead?.resolved).toBe(iteration.copies[0]);
+  });
+
+  it("a for-let with no update has no first-iteration flag", () => {
+    const tree = analyze("for (let i = 0; i < 3; ) { (() => i)(); i++; }");
+    const loop = tree.scopes.find((s) => s.node.type === "ForStatement") as Scope;
+    expect(loop.iteration?.first).toBeNull();
+  });
+
+  it("a for-let with a closure that does not capture the variable is still desugared, without a context", () => {
+    const tree = analyze("for (let i = 0; i < 3; i++) { (() => 1)(); }");
+    const loop = tree.scopes.find((s) => s.node.type === "ForStatement") as Scope;
+    expect(loop.perIteration).toBe(true);
+    expect(loop.iteration?.scope.needsContext).toBe(false);
+    expect(loop.iteration?.copies[0]?.allocation.kind).toBe("register");
   });
 
   it("an uncaptured for-let variable is a plain register with no per-iteration copy", () => {

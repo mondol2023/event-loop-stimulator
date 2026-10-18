@@ -2,6 +2,7 @@ import type {
   ArrowFunctionExpression,
   Class,
   FunctionDeclaration,
+  ForStatement,
   FunctionExpression,
   Identifier,
   Node,
@@ -13,6 +14,7 @@ import type { ParsedProgram } from "../parse";
 import type {
   Access,
   Allocation,
+  ForIteration,
   ReferenceInfo,
   Scope,
   ScopeKind,
@@ -117,6 +119,7 @@ class Analyzer {
     strict: boolean,
     parameterNames: readonly string[] = [],
     hasSimpleParameters = true,
+    ownsNode = true,
   ): Scope {
     const scope: Scope = {
       kind,
@@ -131,13 +134,14 @@ class Analyzer {
       isAsync: false,
       suspendCount: 0,
       perIteration: false,
+      iteration: null,
       parameterNames,
       hasSimpleParameters,
       thisVariable: null,
     };
     parent?.children.push(scope);
     this.scopes.push(scope);
-    this.scopeNodes.set(node, scope);
+    if (ownsNode) this.scopeNodes.set(node, scope);
     this.byName.set(scope, new Map());
     return scope;
   }
@@ -388,19 +392,22 @@ class Analyzer {
         });
         return;
 
-      case "ForStatement":
-        this.withScope(
-          node.init?.type === "VariableDeclaration" && node.init.kind !== "var",
-          "block",
-          node,
-          () => {
-            if (node.init) this.visit(node.init);
-            if (node.test) this.visit(node.test);
-            if (node.update) this.visit(node.update);
-            this.visit(node.body);
-          },
-        );
+      case "ForStatement": {
+        const init = node.init;
+        const lexical = init?.type === "VariableDeclaration" && init.kind !== "var";
+        this.withScope(lexical, "block", node, () => {
+          if (init) this.visit(init);
+          // V8's parser desugars the loop only when a function or eval in it could capture a binding.
+          if (lexical && containsFunction(node)) {
+            this.visitDesugaredFor(node, init.range?.[0] ?? rangeOf(init).start);
+            return;
+          }
+          if (node.test) this.visit(node.test);
+          if (node.update) this.visit(node.update);
+          this.visit(node.body);
+        });
         return;
+      }
 
       case "ForInStatement":
       case "ForOfStatement":
@@ -487,6 +494,58 @@ class Analyzer {
       default:
         for (const child of childNodes(node)) this.visit(child);
     }
+  }
+
+  /**
+   * Parser::DesugarLexicalBindingsInForStatement: the test, update and body run in an inner block
+   * scope that declares a copy of each binding (initialized at the `let`), and the function gets
+   * the `.for` temporaries: one per binding, then `first` (only with an update), then `flag`.
+   */
+  private visitDesugaredFor(node: ForStatement, declarationPosition: number): void {
+    const loop = this.current;
+    const originals = [...loop.variables];
+    const scope = this.newScope("block", node, loop, loop.strict, [], true, false);
+    const copies = originals.map((original) => {
+      const copy = this.declare(original.name, null, original.declaredAt, {
+        scope,
+        kind: original.kind,
+        tdz: true,
+        initializedAt: declarationPosition,
+      });
+      // Each iteration initializes its copy from the temporary.
+      copy.used = true;
+      return copy;
+    });
+    this.current = scope;
+    if (node.test) this.visit(node.test);
+    if (node.update) this.visit(node.update);
+    this.visit(node.body);
+    this.current = loop;
+    const fn = this.functionScope();
+    // Temporaries share the name `.for` but are distinct, and no reference can resolve to one.
+    const temporary = (): Variable => {
+      const variable: Variable = {
+        name: ".for",
+        kind: "temporary",
+        declaredAt: NO_RANGE,
+        scope: fn,
+        allocation: UNALLOCATED,
+        captured: false,
+        maybeAssigned: true,
+        needsHoleInit: false,
+        used: true,
+        annexB: false,
+        tdz: false,
+        initializedAt: 0,
+      };
+      fn.variables.push(variable);
+      return variable;
+    };
+    const temporaries = copies.map(() => temporary());
+    const first = node.update ? temporary() : null;
+    const iteration: ForIteration = { scope, copies, temporaries, first, flag: temporary() };
+    loop.perIteration = true;
+    loop.iteration = iteration;
   }
 
   // ---- Annex B.3.3 --------------------------------------------------------------
@@ -623,10 +682,6 @@ class Analyzer {
       }
     }
     scope.needsContext = scope.contextSlots > 0;
-    const loop = scope.node.type;
-    if (loop === "ForStatement" || loop === "ForInStatement" || loop === "ForOfStatement") {
-      scope.perIteration = scope.variables.some((v) => v.captured);
-    }
     // V8 links a new inner scope at the head of its parent's list, so siblings are allocated last to first.
     for (const child of [...scope.children].reverse()) {
       if (child.kind === "function") this.allocateFunction(child);
@@ -650,6 +705,19 @@ function boundIdentifiers(pattern: Node): Identifier[] {
     default:
       return [];
   }
+}
+
+/** V8's FunctionState::contains_function_or_eval, recorded while the parser reads a for statement. */
+function containsFunction(node: Node): boolean {
+  if (
+    node.type === "FunctionExpression" ||
+    node.type === "ArrowFunctionExpression" ||
+    node.type === "FunctionDeclaration" ||
+    (node.type === "CallExpression" && node.callee.type === "Identifier" && node.callee.name === "eval")
+  ) {
+    return true;
+  }
+  return childNodes(node).some(containsFunction);
 }
 
 export function analyzeScopes(program: ParsedProgram): ScopeTree {

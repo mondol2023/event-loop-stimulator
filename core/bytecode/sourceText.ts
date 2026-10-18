@@ -50,3 +50,15 @@ export function endWithParentheses(source: string, node: Node): number {
   }
   return end;
 }
+
+/**
+ * The start of the last token before `end` (V8's `scanner()->location().beg_pos` once a statement
+ * is read): the punctuator itself, or the whole identifier, keyword or number it ends with.
+ */
+export function lastTokenStart(source: string, end: number): number {
+  const word = /[\w$]/;
+  let i = end - 1;
+  if (!word.test(source[i] ?? "")) return i;
+  while (i > 0 && word.test(source[i - 1] ?? "")) i--;
+  return i;
+}

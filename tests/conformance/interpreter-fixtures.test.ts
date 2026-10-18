@@ -95,6 +95,72 @@ describe("exceptions, handler tables and finally against recorded fixtures", () 
   it.todo("builtin-callback-throws (Array.prototype.map/forEach/reduce: Task 14)");
 });
 
+describe("per-iteration let bindings against recorded fixtures", () => {
+  it("bc-loop-let", () => {
+    const want = recorded("bc-loop-let");
+    const run = runSource(source("bc-loop-let"));
+    expect(run.completion.type).toBe(want.exitCode === 0 ? "normal" : "throw");
+    expect(run.stdout).toBe(want.stdout);
+    expect(run.stderr).toBe(want.stderr);
+  });
+
+  it("closure-in-loop-let compiles", () => {
+    expect(compileOrThrow(source("closure-in-loop-let")).functions.length).toBeGreaterThan(1);
+  });
+
+  // closure-in-loop-let itself needs push and map (Task 14) and setTimeout (Task 15). Its loops, with
+  // push and map spelled out, must print the arrays real Node printed for them.
+  it("closure-in-loop-let's loops print the recorded arrays", () => {
+    const program = `
+      function append(list, value) { list[list.length] = value; }
+      function callAll(list) { const out = []; for (let k = 0; k < list.length; k++) out[k] = list[k](); return out; }
+      const withLet = [];
+      for (let i = 0; i < 3; i++) { append(withLet, () => i); }
+      console.log(callAll(withLet));
+      const withVar = [];
+      for (var v = 0; v < 3; v++) { append(withVar, () => v); }
+      console.log(callAll(withVar));
+      const mutated = [];
+      for (let i = 0; i < 6; i++) { append(mutated, () => i); i++; }
+      console.log(callAll(mutated));
+      const fromUpdate = [];
+      function record(read) { append(fromUpdate, read); return 1; }
+      for (let i = 0; i < 3; i += record(() => i)) {}
+      console.log(callAll(fromUpdate));
+      const fromBody = [];
+      for (let i = 0; i < 3; i++) { const squared = i * i; append(fromBody, () => squared + i); }
+      console.log(callAll(fromBody));
+      const fromWhile = [];
+      let w = 0;
+      while (w < 3) { let copy = w; append(fromWhile, () => copy); w++; }
+      console.log(callAll(fromWhile));
+    `;
+    const want = `${recorded("closure-in-loop-let").stdout.split("\n").slice(0, 6).join("\n")}\n`;
+    const run = runSource(program);
+    expect(run.completion.type, run.stderr).toBe("normal");
+    expect(run.stdout).toBe(want);
+  });
+
+  it("break, continue and return leave a per-iteration context", () => {
+    const run = runSource(`
+      const seen = [];
+      function f() {
+        for (let i = 0; i < 10; i++) {
+          seen[seen.length] = () => i;
+          if (i === 1) continue;
+          if (i === 3) break;
+        }
+        for (const j = 7; ; ) { seen[seen.length] = () => j; return 'returned'; }
+      }
+      console.log(f(), seen.length, seen[0](), seen[1](), seen[3](), seen[4]());
+    `);
+    expect(run.completion.type, run.stderr).toBe("normal");
+    expect(run.stdout).toBe("returned 5 0 1 3 7\n");
+  });
+
+  it.todo("closure-in-loop-let (push/map: Task 14; setTimeout: Task 15)");
+});
+
 describe("never-emitted opcodes", () => {
   it("no fixture the generator compiles contains one", () => {
     const never = new Set<string>(UNREACHABLE_OPCODES);
