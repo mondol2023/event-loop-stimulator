@@ -86,8 +86,9 @@ const SYNC_FIXTURES = new Set([
 ]);
 
 // Programs whose only scheduling is promise jobs and queueMicrotask, drained once after the
-// script (Task 15's minimal host). Tasks 16 and 17 add async functions, nextTick and timers.
-const MICROTASK_FIXTURES = new Set(["promise-resolve-same-promise"]);
+// script (Task 15's minimal host), and async functions on top of them (Task 16). Task 17 adds
+// nextTick and timers.
+const MICROTASK_FIXTURES = new Set(["await-thenable-two-extra-ticks", "bc-async", "promise-resolve-same-promise", "return-vs-return-await"]);
 
 // Synchronous too, but each still needs something later tasks own: the String global,
 // Object.prototype.toString, the CallPrinter TypeError text.

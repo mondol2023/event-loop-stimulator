@@ -5,6 +5,7 @@ import { JSMessageObject } from "@/core/runtime/objects/JSMessageObject";
 import type { FunctionId } from "@/core/shared/ids";
 import type { Realm } from "@/core/runtime/Realm";
 import type { JSFunction } from "@/core/runtime/objects/JSFunction";
+import type { JSGeneratorObject, ResumeMode } from "@/core/runtime/objects/JSGeneratorObject";
 import { isTheHole } from "@/core/runtime/values/TheHole";
 import type { JSValue } from "@/core/runtime/values/JSValue";
 import type { Completion } from "../Completion";
@@ -19,6 +20,8 @@ export interface DispatchContext {
   /** The bytecode of any function in the program (a `CreateClosure` constant names one). */
   functionCode(id: FunctionId): BytecodeFunction;
   call(fn: JSFunction, receiver: JSValue, args: readonly JSValue[]): Completion;
+  /** ResumeGeneratorTrampoline: re-enters a suspended function with `value` and how to resume. */
+  resumeGenerator(generator: JSGeneratorObject, value: JSValue, mode: ResumeMode): Completion;
   /** The isolate's pending message: set when an exception is thrown, cleared by a handler's `SetPendingMessage`. */
   pendingMessage: JSMessageObject | undefined;
 }

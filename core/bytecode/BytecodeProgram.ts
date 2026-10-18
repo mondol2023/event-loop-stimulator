@@ -32,6 +32,8 @@ export type BytecodeFunction = {
   readonly id: FunctionId;
   /** The function's own name, `""` for an anonymous function (and for the wrapper). */
   readonly name: string;
+  /** V8's SharedFunctionInfo FunctionKind, as far as the subset has kinds: an async function or not. */
+  readonly kind: "normal" | "async";
   /** V8's SharedFunctionInfo language mode: strict code (`"use strict"`, or nested in strict code). */
   readonly strict: boolean;
   /** Includes the receiver. */
@@ -79,6 +81,7 @@ export function finishFunction(
     readonly id: FunctionId;
     readonly name: string;
     readonly strict: boolean;
+    readonly kind?: "normal" | "async";
     readonly length: number;
     readonly children?: readonly FunctionId[];
     readonly handlerTable?: readonly HandlerEntry[];
@@ -89,6 +92,7 @@ export function finishFunction(
     id: meta.id,
     name: meta.name,
     strict: meta.strict,
+    kind: meta.kind ?? "normal",
     length: meta.length,
     parameterCount: header.parameterCount,
     registerCount: header.registerCount,

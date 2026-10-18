@@ -2,6 +2,7 @@ import type { Instruction } from "@/core/bytecode/BytecodeArray";
 import type { BytecodeFunction, BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import type { Opcode } from "@/core/bytecode/bytecodes";
 import { FeedbackCell } from "@/core/runtime/objects/FeedbackCell";
+import type { JSGeneratorObject, ResumeMode } from "@/core/runtime/objects/JSGeneratorObject";
 import { HeapObject } from "@/core/runtime/objects/HeapObject";
 import { JSFunction } from "@/core/runtime/objects/JSFunction";
 import type { JSMessageObject } from "@/core/runtime/objects/JSMessageObject";
@@ -21,10 +22,11 @@ import type { DispatchContext } from "./dispatch/context";
 import { accumulatorValue } from "./dispatch/context";
 import { contextHandler } from "./dispatch/contexts";
 import { enterHandler, exceptionHandler, messageAt } from "./dispatch/exceptions";
+import { generatorHandler } from "./dispatch/generators";
 import { jumpHandler } from "./dispatch/jumps";
 import { loadHandler } from "./dispatch/loads";
 import { propertyHandler } from "./dispatch/properties";
-import { Frame } from "./Frame";
+import { Frame, writeRegister } from "./Frame";
 
 // Ignition, V8's bytecode interpreter, over the BytecodeArrays the generator produced: the
 // same ones the bytecode pane prints. The register file is the Frame; every dispatch is
@@ -123,14 +125,6 @@ export class UnreachableOpcode extends Error {
   }
 }
 
-/** A programmer error while the interpreter is built up task by task: the opcode exists but is not implemented yet. */
-export class OpcodeNotImplemented extends Error {
-  constructor(opcode: Opcode, task: number) {
-    super(`opcode ${opcode} is implemented by Task ${task} of the phase 3 plan`);
-    this.name = "OpcodeNotImplemented";
-  }
-}
-
 function assertNever(value: never): never {
   throw new Error(`unhandled opcode ${String(value)}`);
 }
@@ -184,11 +178,37 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
   /** Calls `fn`. Re-entrant: a builtin that takes a callback calls back through here. */
   call(fn: JSFunction, receiver: JSValue, args: readonly JSValue[]): Completion {
     const native = fn.native;
-    if (native) return this.nativeFrame(fn, receiver, false, () => native(this.realm, receiver, args));
+    if (native) {
+      if (fn.hiddenFromStackTrace) return native(this.realm, receiver, args);
+      return this.nativeFrame(fn, receiver, false, () => native(this.realm, receiver, args));
+    }
     if (!fn.code) throw new Error("a function with neither bytecode nor a native behavior");
+    return this.#enter(new Frame(fn, fn.code, fn.code.strict ? receiver : this.#sloppyThis(receiver), args));
+  }
+
+  /**
+   * ResumeGeneratorTrampoline: a new frame for the suspended function, with its saved parameters
+   * and the generator in the register its SwitchOnGeneratorState reads, so execution jumps to the
+   * suspend point. The registers come back with ResumeGenerator.
+   */
+  resumeGenerator(generator: JSGeneratorObject, value: JSValue, mode: ResumeMode): Completion {
+    const fn = generator.function;
+    const code = fn.code;
+    if (!code) throw new Error("a generator over a function with no bytecode");
+    const entry = code.array.instructionAt(0);
+    if (entry?.opcode !== "SwitchOnGeneratorState") throw new Error(`function ${code.id} has no generator prologue`);
+    const register = entry.operands[0];
+    if (typeof register !== "number") throw new Error("SwitchOnGeneratorState without a register operand");
+    generator.inputOrDebugPos = value;
+    generator.resumeMode = mode;
+    const frame = new Frame(fn, code, generator.receiver, generator.parameters);
+    writeRegister(frame, register, generator);
+    return this.#enter(frame);
+  }
+
+  #enter(frame: Frame): Completion {
     // The depth limit is the simulator's, never a RangeError (PROMPT §7.1).
     if (this.#frames.length >= CALL_DEPTH_LIMIT) throw new SimulationHalt({ kind: "limit", limit: "callDepth" });
-    const frame = new Frame(fn, fn.code, fn.code.strict ? receiver : this.#sloppyThis(receiver), args);
     this.#frames.push(frame);
     try {
       return this.#run(frame);
@@ -425,12 +445,11 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
       case "SwitchOnSmiNoFeedback":
         return exceptionHandler(this, frame, instr);
 
-      // Task 16: async functions.
       case "SwitchOnGeneratorState":
       case "SuspendGenerator":
       case "ResumeGenerator":
       case "InvokeIntrinsic":
-        throw new OpcodeNotImplemented(instr.opcode, 16);
+        return generatorHandler(this, frame, instr);
 
       default: {
         const opcode: Opcode = instr.opcode;

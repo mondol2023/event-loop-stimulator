@@ -66,7 +66,7 @@ class ProgramCompiler implements FunctionCompiler {
       localCount: scope.stackSlots,
     });
     generator.generateFunction(node);
-    this.functions[id] = finishFunction(generator.builder, { id: asFunctionId(id), name: debugName, strict: scope.strict, length: formalLength(node), children: generator.children });
+    this.functions[id] = finishFunction(generator.builder, { id: asFunctionId(id), name: debugName, strict: scope.strict, kind: scope.isAsync ? "async" : "normal", length: formalLength(node), children: generator.children });
     return asFunctionId(id);
   }
 

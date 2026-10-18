@@ -60,6 +60,8 @@ export interface CallTarget {
 export interface Intrinsics {
   readonly objectPrototype: JSObject;
   readonly functionPrototype: JSObject;
+  /** %AsyncFunction.prototype%: what every async function inherits from. */
+  readonly asyncFunctionPrototype: JSObject;
   readonly arrayPrototype: JSObject;
   readonly promisePrototype: JSObject;
   readonly errorPrototypes: Readonly<Record<ErrorKind, JSObject>>;
@@ -97,6 +99,7 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
           context: this.emptyContext,
         }),
     );
+    const asyncFunctionPrototype = this.#intrinsicObject(functionPrototype);
     const arrayPrototype = this.heap.allocateIntrinsic((id) => JSArray.fromElements(id, this.maps, objectPrototype, []));
     const promisePrototype = this.#intrinsicObject(objectPrototype);
     const errorPrototype = this.#intrinsicObject(objectPrototype);
@@ -113,7 +116,7 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     this.#wellKnown.set(functionPrototype, "Function");
     this.#wellKnown.set(arrayPrototype, "Array");
     this.#wellKnown.set(promisePrototype, "Promise");
-    this.intrinsics = { objectPrototype, functionPrototype, arrayPrototype, promisePrototype, errorPrototypes };
+    this.intrinsics = { objectPrototype, functionPrototype, asyncFunctionPrototype, arrayPrototype, promisePrototype, errorPrototypes };
 
     this.globalObject = this.#intrinsicObject(objectPrototype);
     this.#define(this.globalObject, "undefined", undefined, CONSTANT);
@@ -124,6 +127,9 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
 
     const objectConstructor = this.#builtinConstructor("Object", objectPrototype);
     const arrayConstructor = this.#builtinConstructor("Array", arrayPrototype);
+    // %AsyncFunction% is not a global; user code reaches it only as `asyncFn.constructor`.
+    this.#builtinConstructor("AsyncFunction", asyncFunctionPrototype);
+    this.defineToStringTag(asyncFunctionPrototype, "AsyncFunction");
     const math = this.#intrinsicObject(objectPrototype);
     this.#tags.set(math, "Math");
     this.#define(this.globalObject, "Object", objectConstructor, HIDDEN);
@@ -161,6 +167,14 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     return this.#nativeFunction(name, length, { native: behavior }, true);
   }
 
+  /**
+   * A closure the engine creates for itself and never hands to user code (an await's resume
+   * functions): not JS-visible, so it is free for the heap limit, and absent from stack traces.
+   */
+  internalFunction(name: string, length: number, behavior: NativeFunction): JSFunctionType {
+    return this.#nativeFunction(name, length, { native: behavior, hiddenFromStackTrace: true });
+  }
+
   /** `F.prototype` (constant) and `prototype.constructor` (hidden), as V8 links a builtin constructor to its prototype. */
   linkConstructor(constructor: JSFunctionType, prototype: JSObject): void {
     this.#define(constructor, "prototype", prototype, CONSTANT);
@@ -180,7 +194,7 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   #nativeFunction(
     name: string,
     length: number,
-    init: { native: NativeFunction; construct?: NativeConstruct; kind?: FunctionKind },
+    init: { native: NativeFunction; construct?: NativeConstruct; kind?: FunctionKind; hiddenFromStackTrace?: boolean },
     counted = false,
   ): JSFunctionType {
     const make = (id: JSFunctionType["id"]): JSFunctionType =>
@@ -198,10 +212,11 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   userFunction(code: BytecodeFunction, context: Context, feedbackCell: FeedbackCell): JSFunctionType {
     const fn = this.heap.allocate(
       (id) =>
-        new JSFunction(id, this.maps.rootFor("function", 0), this.intrinsics.functionPrototype, {
+        new JSFunction(id, this.maps.rootFor("function", 0), code.kind === "async" ? this.intrinsics.asyncFunctionPrototype : this.intrinsics.functionPrototype, {
           code,
           context,
           feedbackCell,
+          kind: code.kind,
         }),
     );
     feedbackCell.allocateVector(code);
