@@ -1,4 +1,5 @@
 import "server-only";
+import { DIAGNOSTIC_CODES } from "@/core/shared/diagnostics";
 import { z } from "@/core/shared/zod";
 
 /** Source size cap, in UTF-8 bytes (not UTF-16 length). */
@@ -26,6 +27,37 @@ export const CompileInput = z
   })
   .strict();
 export type CompileInput = z.infer<typeof CompileInput>;
+
+const Diagnostic = z
+  .object({
+    code: z.enum(DIAGNOSTIC_CODES),
+    message: z.string(),
+    range: z.object({ start: z.number().int().nonnegative(), end: z.number().int().nonnegative() }).strict(),
+    hint: z.string(),
+    docs: z.string().optional(),
+  })
+  .strict();
+
+const SimulationStop = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("limit"), limit: z.enum(["ticks", "callDepth", "heapObjects", "virtualTime", "work"]) }).strict(),
+  z.object({ kind: z.literal("unsupported"), reason: z.string() }).strict(),
+]);
+
+/**
+ * What /api/compile answers (Decision D8): a summary of the run, not its timeline. The parent
+ * parses every worker answer with this before using it. `output` is absent when the program was
+ * refused (then `diagnostics` is not empty); `stop` is present when the run ended early.
+ */
+export const CompileSummary = z
+  .object({
+    diagnostics: z.array(Diagnostic),
+    output: z.object({ stdout: z.string(), stderr: z.string(), exitCode: z.number().int() }).strict().optional(),
+    warnings: z.array(z.string()),
+    stop: SimulationStop.optional(),
+    tickCount: z.number().int().nonnegative(),
+  })
+  .strict();
+export type CompileSummary = z.infer<typeof CompileSummary>;
 
 export type BoundedJson = { ok: true; value: unknown } | { ok: false; status: 400 | 413 };
 

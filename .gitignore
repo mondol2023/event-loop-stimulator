@@ -15,6 +15,9 @@
 
 # next.js
 /.next/
+
+# the bundled compile worker (scripts/build-worker.mts)
+/server/security/sandbox/dist/
 /out/
 
 # production

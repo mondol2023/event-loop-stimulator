@@ -6,7 +6,7 @@ import { rateLimiter } from "@/server/security/rateLimit/rateLimiter";
 import type { RequestContext } from "@/server/security/requestContext";
 import { guardMutation, jsonError } from "@/server/security/routeGuard";
 import { getSandboxPool } from "@/server/security/sandbox/pool";
-import { CompileInput, MAX_BODY_BYTES, readBoundedJson } from "@/server/validation/compile";
+import { CompileInput, CompileSummary, MAX_BODY_BYTES, readBoundedJson } from "@/server/validation/compile";
 
 const SLOW_MS = 500;
 
@@ -21,7 +21,8 @@ async function currentUserOrNull(): Promise<CurrentUser | null> {
 
 /**
  * POST /api/compile, in this order: origin + CSRF -> caller -> rate limit ->
- * bounded body -> validation -> sandbox pool. Each stage can only reject, so a
+ * bounded body -> validation -> sandbox pool (the real core/ pipeline) -> summary
+ * validation. Each stage can only reject, so a
  * request that fails an early stage never costs a later one (a forged request
  * spends no rate-limit token, an oversized one is never parsed).
  */
@@ -64,9 +65,16 @@ export async function handleCompile(request: Request): Promise<Response> {
   const result = await getSandboxPool().run({ code, lang });
 
   switch (result.status) {
-    case "ok":
+    case "ok": {
+      // The worker's answer is data like any other input: only a valid summary reaches the client.
+      const summary = CompileSummary.safeParse(result.value);
+      if (!summary.success) {
+        log({ event: "sandbox.timeout", severity: "warn", codeHash, details: { reason: "invalid_summary" } });
+        return jsonError(503, "sandbox_unavailable");
+      }
       if (result.ms > SLOW_MS) log({ event: "compile.slow", severity: "info", codeHash, details: { ms: result.ms } });
-      return Response.json({ stub: true, diagnostics: [] }, { headers: { "Cache-Control": "no-store" } });
+      return Response.json(summary.data, { headers: { "Cache-Control": "no-store" } });
+    }
     case "timeout":
       log({ event: "sandbox.timeout", severity: "warn", codeHash });
       return jsonError(503, "sandbox_timeout");

@@ -1,9 +1,9 @@
 import "server-only";
-import { Worker } from "node:worker_threads";
+import { Worker, type WorkerOptions } from "node:worker_threads";
 
 // A resource guard, not a sandbox for user code: it bounds the memory and wall-clock
 // time of whatever a worker does. Nothing in this repo evaluates user code; the
-// Phase 1 worker is a stub that only measures its input.
+// compile worker parses and interprets it with core/.
 
 export type SandboxResult =
   | { status: "ok"; value: unknown; ms: number }
@@ -11,8 +11,20 @@ export type SandboxResult =
   | { status: "crashed"; reason: "out_of_memory" | "error" }
   | { status: "busy" };
 
-export type SandboxPoolOptions = {
-  workerPath: string | URL;
+/** Starts one worker thread with the pool's options (resource limits). */
+export type SpawnWorker = (options: WorkerOptions) => Worker;
+
+export type SandboxPoolOptions = (
+  | {
+      workerPath: string | URL;
+      /** Node flags for the worker (tests load the TypeScript entry with `--import tsx`). */
+      execArgv?: string[];
+    }
+  | {
+      /** Bundlers only see a worker entry written as `new Worker(new URL("./x", import.meta.url))`. */
+      spawn: SpawnWorker;
+    }
+) & {
   size?: number;
   timeoutMs?: number;
   maxOldGenerationSizeMb?: number;
@@ -38,7 +50,7 @@ type Waiting = { input: unknown; resolve: (result: SandboxResult) => void };
 const CRASHED: SandboxResult = Object.freeze({ status: "crashed", reason: "error" });
 
 export class SandboxPool {
-  readonly #workerPath: string | URL;
+  readonly #spawn: SpawnWorker;
   readonly #timeoutMs: number;
   readonly #maxOldGenerationSizeMb: number;
   readonly #maxQueue: number;
@@ -48,7 +60,12 @@ export class SandboxPool {
   #closed = false;
 
   constructor(opts: SandboxPoolOptions) {
-    this.#workerPath = opts.workerPath;
+    if ("spawn" in opts) {
+      this.#spawn = opts.spawn;
+    } else {
+      const { workerPath, execArgv } = opts;
+      this.#spawn = (options) => new Worker(workerPath, execArgv === undefined ? options : { ...options, execArgv });
+    }
     this.#timeoutMs = opts.timeoutMs ?? 2000;
     this.#maxOldGenerationSizeMb = opts.maxOldGenerationSizeMb ?? 64;
     this.#maxQueue = Math.max(0, opts.maxQueue ?? 32);
@@ -90,7 +107,7 @@ export class SandboxPool {
   #start(slot: Slot): boolean {
     let worker: Worker;
     try {
-      worker = new Worker(this.#workerPath, {
+      worker = this.#spawn({
         resourceLimits: {
           maxOldGenerationSizeMb: this.#maxOldGenerationSizeMb,
           maxYoungGenerationSizeMb: 16,
@@ -179,6 +196,11 @@ type GlobalWithPool = typeof globalThis & { [GLOBAL_KEY]?: SandboxPool };
 /** The process-wide pool (survives HMR). */
 export function getSandboxPool(): SandboxPool {
   const holder = globalThis as GlobalWithPool;
-  holder[GLOBAL_KEY] ??= new SandboxPool({ workerPath: new URL("./compile-worker.mjs", import.meta.url) });
+  holder[GLOBAL_KEY] ??= new SandboxPool({
+    // scripts/build-worker.mts bundles compile-worker.ts and core/ into this file before `next build`
+    // (Turbopack copies a TypeScript worker entry unbundled). Written as `new Worker(new URL(...))`
+    // so the build copies the file next to the route.
+    spawn: (options) => new Worker(new URL("./dist/compile-worker.mjs", import.meta.url), options),
+  });
   return holder[GLOBAL_KEY];
 }

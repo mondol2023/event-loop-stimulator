@@ -7,7 +7,8 @@ vi.mock("@/server/env", () => ({
   getEnv: () => ({ SESSION_SECRET: "s".repeat(48), MONGODB_URI: "mongodb://localhost/test" }),
 }));
 
-// Lets one test swap in a pool that runs a hanging worker; otherwise the real default pool (stub worker) is used.
+// Lets a test swap in its own pool. By default every test runs the real compile worker (through tsx, since
+// plain Node cannot load the TypeScript entry that Turbopack bundles for `next start`).
 const poolOverride = vi.hoisted(() => ({ current: null as unknown }));
 vi.mock("@/server/security/sandbox/pool", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/server/security/sandbox/pool")>();
@@ -28,17 +29,25 @@ import { CSRF_COOKIE, CSRF_HEADER, issueCsrfToken } from "@/server/security/csrf
 import { rateLimiter } from "@/server/security/rateLimit/rateLimiter";
 import { getRequestContext } from "@/server/security/requestContext";
 import { SandboxPool } from "@/server/security/sandbox/pool";
-import { MAX_BODY_BYTES } from "@/server/validation/compile";
+import { CompileSummary, MAX_BODY_BYTES } from "@/server/validation/compile";
 
 type TestDb = Awaited<ReturnType<typeof startTestDb>>;
 let db: TestDb;
 let req: FakeRequest;
 
+const realWorker = {
+  workerPath: fileURLToPath(new URL("../../server/security/sandbox/compile-worker.ts", import.meta.url)),
+  execArgv: ["--import", "tsx"],
+};
+let realPool: SandboxPool;
+
 beforeAll(async () => {
   db = await startTestDb();
+  realPool = new SandboxPool({ ...realWorker, size: 2, timeoutMs: 30_000 });
 }, 120_000);
 
 afterAll(async () => {
+  await realPool.close();
   await db.stop();
 }, 60_000);
 
@@ -55,7 +64,7 @@ beforeEach(async () => {
   await seed();
   invalidateRoleCache();
   rateLimiter.invalidateLimits();
-  poolOverride.current = null;
+  poolOverride.current = realPool;
   req = installFakeRequest();
   ip = freshIp();
   req.setIp(ip);
@@ -101,13 +110,22 @@ const setLimits = async (value: unknown) => {
 };
 
 describe("happy path", () => {
-  it("answers 200 with the stub body and no-store", async () => {
+  it("answers 200 with the real pipeline's summary and no-store", async () => {
     const response = await POST(post({ code: "console.log(1)", lang: "js" }));
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    const body = (await response.json()) as { stub: boolean; diagnostics: unknown[] };
-    expect(body.stub).toBe(true);
+    const body = CompileSummary.parse(await response.json());
     expect(body.diagnostics).toEqual([]);
+    expect(body.output).toEqual({ stdout: "1\n", stderr: "", exitCode: 0 });
+    expect(body.tickCount).toBeGreaterThan(0);
+  }, 60_000);
+
+  it("answers a program with an excluded API with its diagnostic and no output", async () => {
+    const response = await POST(post({ code: "Math.random()", lang: "js" }));
+    expect(response.status).toBe(200);
+    const body = CompileSummary.parse(await response.json());
+    expect(body.diagnostics[0]?.code).toBe("E_EXCLUDED_API");
+    expect(body.output).toBeUndefined();
   });
 
   it("accepts the largest valid program even when JSON escaping doubles its size", async () => {
@@ -271,6 +289,36 @@ describe("sandbox failures", () => {
       expect(timeouts[0]?.codeHash).toMatch(/^[0-9a-f]{64}$/);
     } finally {
       await hanging.close();
+    }
+  });
+
+  it("answers 503 and audits sandbox.timeout when a real run outlasts the pool's timeout", async () => {
+    const strict = new SandboxPool({ ...realWorker, size: 1, timeoutMs: 1 });
+    poolOverride.current = strict;
+    try {
+      const response = await POST(post({ code: "while (true) {}", lang: "js" }));
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({ error: "sandbox_timeout" });
+      expect(await rows("sandbox.timeout")).toHaveLength(1);
+    } finally {
+      await strict.close();
+    }
+  });
+
+  it("answers 503 when the worker's answer is not a CompileSummary", async () => {
+    const lying = new SandboxPool({
+      workerPath: fileURLToPath(new URL("../fixtures/sandbox/bad-summary.mjs", import.meta.url)),
+      size: 1,
+    });
+    poolOverride.current = lying;
+    try {
+      const response = await POST(post({ code: "1", lang: "js" }));
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({ error: "sandbox_unavailable" });
+      const crashes = await rows("sandbox.timeout");
+      expect(crashes[0]?.details).toMatchObject({ reason: "invalid_summary" });
+    } finally {
+      await lying.close();
     }
   });
 

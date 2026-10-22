@@ -33,11 +33,18 @@ function* builtFiles(dir: string): Generator<{ path: string; text: string }> {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const findings = findBannedApis([...builtFiles(".next/static"), ...builtFiles(".next/server")]);
+  const findings = findBannedApis([
+    ...builtFiles(".next/static"),
+    ...builtFiles(".next/server"),
+    // The compile worker bundle (scripts/build-worker.mts), which the build copies as an asset.
+    ...builtFiles("server/security/sandbox/dist"),
+  ]);
   if (findings.length > 0) {
     console.error("Banned code-execution APIs in the production build:");
     for (const f of findings) console.error(`  - ${f.api} in ${f.path}`);
     process.exit(1);
   }
-  console.log("Build check OK: no eval, child_process, vm or ShadowRealm in .next/static or .next/server.");
+  console.log(
+    "Build check OK: no eval, child_process, vm or ShadowRealm in .next/static, .next/server or the compile worker bundle.",
+  );
 }

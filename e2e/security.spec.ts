@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 
 // No database is needed: nothing here reaches a code path that must read Mongo.
@@ -56,13 +58,19 @@ test("/admin without a session cookie redirects to /login", async ({ request }) 
   expect(response.headers()["content-security-policy"]).toBeTruthy();
 });
 
-test("POST /api/compile answers from the production build (worker pool path resolves)", async ({ request, baseURL }) => {
+test("POST /api/compile runs the real core pipeline in the production build's worker", async ({ request, baseURL }) => {
+  // Playwright runs from the repository root.
+  const fixture = (ext: string) => resolve(`tests/conformance/fixtures/nexttick-vs-promise${ext}`);
+  const code = readFileSync(fixture(".cjs"), "utf8");
+  const expected = JSON.parse(readFileSync(fixture(".expected.json"), "utf8")) as { outcomes: { stdout: string }[] };
   const { token } = (await (await request.get("/api/csrf")).json()) as { token: string };
   // Mongo is not running in e2e: the limits provider falls back to its defaults and audit writes are swallowed.
   const response = await request.post("/api/compile", {
-    data: { code: "console.log(1)", lang: "js" },
+    data: { code, lang: "js" },
     headers: { origin: baseURL ?? "", "x-csrf-token": token },
   });
   expect(response.status()).toBe(200);
-  expect(await response.json()).toEqual({ stub: true, diagnostics: [] });
+  const body = (await response.json()) as { diagnostics: unknown[]; output?: { stdout: string; stderr: string; exitCode: number } };
+  expect(body.diagnostics).toEqual([]);
+  expect(body.output).toEqual({ stdout: expected.outcomes[0]?.stdout, stderr: "", exitCode: 0 });
 });

@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "npm run build:worker",
     "dev": "next dev",
+    "build:worker": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-worker.mts",
+    "prebuild": "npm run build:worker",
     "build": "next build && node scripts/check-build.mts",
     "start": "next start",
     "lint": "eslint .",
@@ -57,6 +60,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.1.1",
+    "esbuild": "0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "fast-check": "^4.10.2",

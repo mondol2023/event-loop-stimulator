@@ -173,6 +173,8 @@ const eslintConfig = defineConfig([
   },
   globalIgnores([
     ".next/**",
+    // The bundled compile worker (scripts/build-worker.mts): generated, and scanned by scripts/check-build.mts.
+    "server/security/sandbox/dist/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
