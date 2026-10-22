@@ -8,7 +8,7 @@ import { type RealRun, runReal } from "../../scripts/conformance/run-real.mts";
 import { checkPinnedRuntime, readTarget } from "../../scripts/conformance/target.mts";
 import { DifferentialMismatch, differentialProperty } from "./differential";
 import { createsTimerInsideTimer, minimizeProgram, programArbitrary, programModelArbitrary, renderProgram } from "./generator/programs";
-import type { SimOutput, Simulator } from "./support/simulator";
+import { type SimOutput, type Simulator, SIMULATOR } from "./support/simulator";
 
 const problems = checkPinnedRuntime({ node: process.versions.node, v8: process.versions.v8 }, readTarget());
 const pinned = problems.length === 0;
@@ -136,6 +136,14 @@ describe.skipIf(!pinned)("differentialProperty against real node", () => {
   }, SLOW);
 });
 
+describe.skipIf(!pinned)("the simulator against real node", () => {
+  it("25 generated programs match real node byte for byte", () => {
+    const stats = differentialProperty(SIMULATOR, { numRuns: 25, seed: 23 });
+    expect(stats.runs).toBe(25);
+    expect(stats.discarded).toBeLessThanOrEqual(2);
+  }, SLOW);
+});
+
 describe("differentialProperty with an unstable oracle (stubbed runReal)", () => {
   const constant: Simulator = { run: () => ({ stdout: "x\n", stderr: "", exitCode: 0, warnings: [] }) };
 
@@ -145,6 +153,14 @@ describe("differentialProperty with an unstable oracle (stubbed runReal)", () =>
     const stats = differentialProperty(constant, { numRuns: 6, seed: 1, runReal: flaky });
     expect(stats.runs).toBe(6);
     expect(stats.discarded).toBe(6);
+  });
+
+  it("discards a program the simulator flags as order-not-guaranteed, without running real node", () => {
+    let calls = 0;
+    const flagged: Simulator = { run: () => ({ stdout: "x\n", stderr: "", exitCode: 0, warnings: ["Order not guaranteed in real Node: test"] }) };
+    const stats = differentialProperty(flagged, { numRuns: 3, seed: 1, runReal: () => ({ stdout: `${calls++}\n`, stderr: "", exitCode: 0 }) });
+    expect(stats).toEqual({ runs: 3, discarded: 3 });
+    expect(calls).toBe(0);
   });
 
   it("still fails when the real outcome is stable and differs from the simulator", () => {

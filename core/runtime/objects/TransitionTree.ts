@@ -20,6 +20,7 @@ const INSTANCE_TYPES: Record<MapFamily, InstanceType> = {
   promise: "JS_PROMISE_TYPE",
   error: "JS_ERROR_TYPE",
   generator: "JS_GENERATOR_OBJECT_TYPE",
+  "primitive-wrapper": "JS_PRIMITIVE_WRAPPER_TYPE",
 };
 
 function defaultElementsKind(family: MapFamily): ElementsKind {
@@ -102,6 +103,21 @@ export class TransitionTree {
       this.#roots.set(key, root);
     }
     return root;
+  }
+
+  /** A root of its own, shared with no other object (a constructor's initial Map, `JSFunction::EnsureHasInitialMap`). */
+  freshRoot(family: MapFamily, inObjectCapacity: number): V8Map {
+    return this.#register(
+      new V8Map({
+        id: this.#newId(),
+        family,
+        instanceType: INSTANCE_TYPES[family],
+        descriptors: [],
+        inObjectCapacity,
+        isDictionary: false,
+        elementsKind: defaultElementsKind(family),
+      }),
+    );
   }
 
   /** The Map after adding own property `key` holding `value`; reuses the existing transition. */

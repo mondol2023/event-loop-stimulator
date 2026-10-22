@@ -257,6 +257,9 @@
   "timeout-vs-immediate-main": {
     "status": "exact"
   },
+  "timer-after-first-write": {
+    "status": "exact"
+  },
   "timer-delay-coercion": {
     "status": "exact"
   },

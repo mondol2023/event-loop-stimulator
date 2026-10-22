@@ -4,18 +4,18 @@ import type { BytecodeFunction, BytecodeProgram } from "@/core/bytecode/Bytecode
 import type { Opcode } from "@/core/bytecode/bytecodes";
 import { FeedbackCell } from "@/core/runtime/objects/FeedbackCell";
 import type { JSGeneratorObject, ResumeMode } from "@/core/runtime/objects/JSGeneratorObject";
-import { HeapObject } from "@/core/runtime/objects/HeapObject";
 import { JSFunction } from "@/core/runtime/objects/JSFunction";
+import { JSObject } from "@/core/runtime/objects/JSObject";
 import type { JSMessageObject } from "@/core/runtime/objects/JSMessageObject";
 import type { CallTarget, Realm } from "@/core/runtime/Realm";
-import { OrdinarySet } from "@/core/runtime/spec/objectOps";
+import { OrdinaryGet, OrdinarySet } from "@/core/runtime/spec/objectOps";
 import type { CallSite } from "@/core/runtime/stack";
 import type { JSValue } from "@/core/runtime/values/JSValue";
 import type { FunctionId } from "@/core/shared/ids";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import type { Command } from "@/core/timeline/Command";
 import { callSiteOf, nativeCallSite } from "./callSites";
-import { type Completion, normal } from "./Completion";
+import { type Completion, isThrow, normal } from "./Completion";
 import { arithHandler } from "./dispatch/arith";
 import { callHandler, constructHandler, runtimeHandler } from "./dispatch/calls";
 import { compareHandler } from "./dispatch/compare";
@@ -94,8 +94,6 @@ export const UNREACHABLE_OPCODES = [
   "GetTemplateObject",
   "CreateEvalContext",
   "CreateWithContext",
-  "CreateMappedArguments",
-  "CreateUnmappedArguments",
   "CreateRestParameter",
   "JumpIfForInDoneConstant",
   "JumpIfForInDone",
@@ -184,7 +182,7 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
     const moduleObject = realm.newObject();
     OrdinarySet(realm, moduleObject, "exports", exports);
     const require = realm.nativeFunction("require", 1, () => normal(undefined));
-    return this.call(wrapper, exports, [exports, require, moduleObject, "main.cjs", ""]);
+    return this.call(wrapper, realm.scriptThisIsGlobal ? realm.globalObject : exports, [exports, require, moduleObject, "main.cjs", ""]);
   }
 
   /** Calls `fn`. Re-entrant: a builtin that takes a callback calls back through here. */
@@ -196,6 +194,28 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
     }
     if (!fn.code) throw new Error("a function with neither bytecode nor a native behavior");
     return this.#enter(new Frame(fn, fn.code, fn.code.strict ? receiver : this.#sloppyThis(receiver), args));
+  }
+
+  /** [[Construct]] of an ordinary function: OrdinaryCreateFromConstructor, then the body with the new object as `this`. */
+  construct(fn: JSFunction, args: readonly JSValue[]): Completion {
+    const code = fn.code;
+    if (!code?.constructable) throw new Error("construct on a function that is not a constructor");
+    const prototype = OrdinaryGet(fn, "prototype");
+    const receiver = this.realm.newConstructedObject(fn, prototype instanceof JSObject ? prototype : this.realm.intrinsics.objectPrototype);
+    const frame = new Frame(fn, code, receiver, args);
+    frame.isConstruct = true;
+    const result = this.#enter(frame);
+    if (isThrow(result)) return result;
+    return normal(result.value instanceof JSObject ? result.value : receiver);
+  }
+
+  isActive(fn: JSFunction): boolean {
+    return this.#frames.some((f) => f.fn === fn);
+  }
+
+  functionSource(fn: JSFunction): string | undefined {
+    const range = fn.code?.sourceRange;
+    return range && this.#program.source.slice(range.start, range.end);
   }
 
   /**
@@ -253,11 +273,12 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
     return code;
   }
 
-  /** OrdinaryCallBindThis for a sloppy function: undefined and null become the global object. */
+  /** OrdinaryCallBindThis for a sloppy function: undefined and null become the global object, a primitive its wrapper object. */
   #sloppyThis(receiver: JSValue): JSValue {
     if (receiver === undefined || receiver === null) return this.realm.globalObject;
-    if (receiver instanceof HeapObject) return receiver;
-    throw new SimulationHalt({ kind: "unsupported", reason: `a sloppy function called with a ${typeof receiver} receiver (wrapper objects are not modeled)` });
+    const object = this.realm.toObject(receiver);
+    if (isThrow(object)) throw new Error("ToObject of a non-nullish receiver cannot throw");
+    return object.value;
   }
 
   callSites(): readonly CallSite[] {
@@ -434,6 +455,11 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
 
       case "Return":
         return normal(accumulatorValue(frame));
+
+      case "CreateMappedArguments":
+      case "CreateUnmappedArguments":
+        frame.accumulator = this.realm.newArguments(frame.fn, frame.actualArgs, instr.opcode === "CreateUnmappedArguments");
+        return undefined;
 
       case "CreateClosure":
       case "CreateBlockContext":

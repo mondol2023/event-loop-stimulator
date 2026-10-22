@@ -68,6 +68,14 @@ function printCallee(node: Node): string | undefined {
       return node.name;
     case "ThisExpression":
       return "this";
+    // These print nothing of their own, so CallPrinter::Find falls back to "(intermediate value)".
+    case "FunctionExpression":
+    case "ArrowFunctionExpression":
+    case "NewExpression":
+      return "(intermediate value)";
+    case "Literal":
+      if (typeof node.value === "string") return `"${node.value}"`;
+      return typeof node.value === "number" || typeof node.value === "boolean" ? String(node.value) : undefined;
     case "ChainExpression":
       return printCallee(node.expression);
     case "CallExpression": {
@@ -131,9 +139,6 @@ const CAUGHT = 1;
 
 /** `HandlerTable::ASYNC_AWAIT`: an exception reaching the handler becomes the rejection of an async function's promise. */
 const ASYNC_AWAIT = 3;
-
-/** Where an async function keeps its generator object (V8's `generator_object()`): the first register, ahead of the locals. */
-const GENERATOR = local(0);
 
 /** `BytecodeArray::kMaxOsrUrgency - 1`: the deepest loop level a `JumpLoop` reports. */
 const MAX_OSR_DEPTH = 5;
@@ -222,6 +227,8 @@ export interface FunctionCompiler {
   compile(node: FunctionLiteral, name: string, debugName: string): FunctionId;
   /** Records the CallPrinter text of the callee of the call whose expression position is `position`. */
   recordCallPrinter(position: number, text: string): void;
+  /** Marks `node` as the function of an object-literal method that starts at `start` (no [[Construct]], toString from the key). */
+  markMethod(node: FunctionLiteral, start: number): void;
 }
 
 /** Property names the scanner reads as keywords: V8 does not take them for an identifier before a call's `(`. */
@@ -252,7 +259,6 @@ export class FunctionGenerator {
   private readonly scopes: ScopeTree;
   private readonly functions: FunctionCompiler;
   private currentScope: Scope;
-  private readonly functionScope: Scope;
   private context: ContextScope;
   /** Bindings already checked for the hole on the straight-line path being compiled; a second check would be redundant. */
   private checked = new Set<Variable>();
@@ -267,6 +273,8 @@ export class FunctionGenerator {
   /** `HandlerTable::CatchPrediction` of the handler an exception thrown here would reach first. */
   private catchPrediction = 0;
   private readonly isAsync: boolean;
+  /** Where an async function keeps its generator object (V8's `generator_object()`). */
+  private readonly generator: number;
   /** Where each `await` resumes; bound as the suspend points are compiled. Only an async function with an `await` has one. */
   private suspendTable: JumpTable | undefined;
   private suspendCount = 0;
@@ -279,7 +287,7 @@ export class FunctionGenerator {
     this.scopes = options.scopes;
     this.functions = options.functions;
     this.currentScope = options.scope;
-    this.functionScope = options.scope;
+    this.generator = local(Math.max(options.scope.generatorRegister, 0));
     this.context = { scope: options.scope, outer: undefined, register: CURRENT_CONTEXT };
     this.builder = new BytecodeArrayBuilder({
       parameterCount: options.parameterCount,
@@ -294,19 +302,18 @@ export class FunctionGenerator {
   generateFunction(node: FunctionLiteral): void {
     // A generator's state machine is not built yet; compiled as a plain function it would be wrong.
     if (node.generator) throw new NotYetSupported(node);
-    // V8 puts the generator object after the parameters' own locals and initializes them inside the try; not built yet.
-    if (node.async && !this.functionScope.hasSimpleParameters) throw new NotYetSupported(node);
     const entry = this.functionStart(node);
     if (node.body.type === "BlockStatement") {
-      this.generateBody(node.body.body, endOf(node.body) - 1, entry, node.params);
+      this.generateBody(node.body.body, endOf(node.body) - 1, entry, node.params, node.body);
       return;
     }
     // An arrow's expression body is `return <expression>`, positioned at the expression.
     const b = this.builder;
     this.enterFunction(entry);
-    this.initializeParameters(node.params);
     const expression = node.body;
+    this.initializeParameters(node.params, "holes");
     this.inAsyncTry(() => {
+      this.initializeParameters(node.params, "values");
       b.setStatementPosition(this.positionOf(expression));
       this.visitForAccumulatorValue(expression);
       this.buildReturn(endWithParentheses(this.source, expression));
@@ -326,12 +333,20 @@ export class FunctionGenerator {
     return this.source[afterKeyword] === "*" ? operatorPosition(this.source, afterKeyword + 1) : afterKeyword;
   }
 
-  generateBody(statements: readonly Statement[], returnPosition: number, entryPosition = 0, params: readonly Pattern[] = []): void {
+  generateBody(statements: readonly Statement[], returnPosition: number, entryPosition = 0, params: readonly Pattern[] = [], body?: BlockStatement): void {
     this.enterFunction(entryPosition);
-    this.initializeParameters(params);
-    this.visitDeclarations(statements);
+    // Parameter expressions run in the function scope, then the body in its var block (all inside an async function's try).
+    const varBlock = this.currentScope.hasSimpleParameters || !body ? undefined : this.scopes.scopeOf.get(body);
+    this.initializeParameters(params, "holes");
+    if (!varBlock) this.visitDeclarations(statements);
     this.inAsyncTry(() => {
-      this.visitStatements(statements);
+      this.initializeParameters(params, "values");
+      if (varBlock) {
+        // The var block is a statement of its own: the register its context was pushed to is free afterwards.
+        const top = this.builder.registerTop;
+        this.visitScopedStatements(varBlock, statements);
+        this.builder.releaseRegisters(top);
+      } else this.visitStatements(statements);
       if (!this.builder.remainderOfBlockIsDead) {
         this.builder.emit("LdaUndefined");
         this.buildReturn(returnPosition);
@@ -346,10 +361,11 @@ export class FunctionGenerator {
     // A resumed generator dispatches before anything else runs, so the switch comes ahead of the entry position.
     if (this.isAsync && scope.suspendCount > 0) {
       this.suspendTable = b.allocateJumpTable(scope.suspendCount, 0);
-      b.switchOnGeneratorState(GENERATOR, this.suspendTable);
+      b.switchOnGeneratorState(this.generator, this.suspendTable);
     }
     b.setExpressionPosition(entryPosition);
     if (!scope.needsContext) {
+      this.createArgumentsObject();
       this.copyClosureName();
       this.createGeneratorObject();
       return;
@@ -360,14 +376,24 @@ export class FunctionGenerator {
       b.emit("Ldar", THIS);
       b.emit("StaCurrentContextSlot", this.slotOf(scope.thisVariable));
     }
-    this.copyClosureName();
     // With defaults the parameters are set by their initializers instead.
     const parameters = scope.hasSimpleParameters ? scope.variables.filter((v) => v.kind === "param" && v.allocation.kind === "context") : [];
     for (const parameter of parameters.sort((a, c) => (a.parameterIndex ?? 0) - (c.parameterIndex ?? 0))) {
       b.emit("Ldar", argument(parameter.parameterIndex ?? 0));
       b.emit("StaCurrentContextSlot", this.slotOf(parameter));
     }
+    this.createArgumentsObject();
+    this.copyClosureName();
     this.createGeneratorObject();
+  }
+
+  /** V8's VisitArgumentsObject: sloppy code with simple parameters gets a mapped arguments object, any other an unmapped one. */
+  private createArgumentsObject(): void {
+    const scope = this.currentScope;
+    const variable = scope.argumentsVariable;
+    if (!variable) return;
+    this.builder.emit(scope.strict || !scope.hasSimpleParameters ? "CreateUnmappedArguments" : "CreateMappedArguments");
+    this.storeVariable(variable, scope.node);
   }
 
   /** V8's BuildGeneratorObjectVariableInitialization: an async function starts by creating the promise and its generator object. */
@@ -380,7 +406,7 @@ export class FunctionGenerator {
     b.emit("Mov", CLOSURE, local(closure));
     b.emit("Mov", THIS, local(closure + 1));
     b.emit("InvokeIntrinsic", "_AsyncFunctionEnter", local(closure), 2);
-    b.emit("Star", GENERATOR);
+    b.emit("Star", this.generator);
     b.releaseRegisters(top);
   }
 
@@ -403,7 +429,7 @@ export class FunctionGenerator {
         b.emit("Star", local(exception));
         b.emit("LdaTheHole");
         b.emit("SetPendingMessage");
-        b.emit("Mov", GENERATOR, local(generator));
+        b.emit("Mov", this.generator, local(generator));
         b.emit("InvokeIntrinsic", "_AsyncFunctionReject", local(generator), 2);
         b.emit("Return");
         b.releaseRegisters(top);
@@ -427,7 +453,7 @@ export class FunctionGenerator {
     const generator = b.allocateRegister();
     const value = b.allocateRegister();
     b.emit("Star", local(value));
-    b.emit("Mov", GENERATOR, local(generator));
+    b.emit("Mov", this.generator, local(generator));
     b.emit("InvokeIntrinsic", "_AsyncFunctionResolve", local(generator), 2);
     b.releaseRegisters(top);
   }
@@ -443,8 +469,11 @@ export class FunctionGenerator {
     }
   }
 
-  /** V8's parameter initialization block, for a list with defaults: each named parameter is set from its raw argument. */
-  private initializeParameters(params: readonly Pattern[]): void {
+  /**
+   * V8's parameter initialization block, for a list with defaults: each named parameter is set from its raw argument.
+   * The "holes" phase is the declarations, which come before an async function's try; the "values" phase runs inside it.
+   */
+  private initializeParameters(params: readonly Pattern[], phase: "holes" | "values"): void {
     const scope = this.currentScope;
     if (scope.hasSimpleParameters) return;
     const b = this.builder;
@@ -453,16 +482,15 @@ export class FunctionGenerator {
       if (target.type !== "Identifier") throw new NotYetSupported(param);
       const variable = this.scopes.declarationOf.get(target);
       if (!variable) throw new Error("parameter without a variable");
-      // A body binding that a closure captures needs a block context of its own, which is not built yet.
       return { target, variable, index, initializer: param.type === "AssignmentPattern" ? param.right : undefined };
     });
-    if (scope.variables.some((v) => v.kind !== "param" && v.kind !== "this" && v.kind !== "function-name" && v.allocation.kind === "context")) {
-      throw new NotYetSupported(scope.node);
-    }
-    for (const { target, variable } of parameters) {
-      if (!variable.needsHoleInit) continue;
-      b.emit("LdaTheHole");
-      this.storeVariable(variable, target);
+    if (phase === "holes") {
+      for (const { target, variable } of parameters) {
+        if (!variable.needsHoleInit) continue;
+        b.emit("LdaTheHole");
+        this.storeVariable(variable, target);
+      }
+      return;
     }
     for (const { target, variable, index, initializer } of parameters) {
       b.emit("Ldar", argument(index));
@@ -492,8 +520,6 @@ export class FunctionGenerator {
   private visitDeclarations(statements: readonly Statement[]): void {
     for (const statement of statements) {
       if (statement.type === "FunctionDeclaration") {
-        // A sloppy block function is also copied to a function-level var, which is not built yet.
-        if (this.functionScope.variables.some((v) => v.annexB && v.name === statement.id.name)) throw new NotYetSupported(statement);
         this.hoisted.add(statement);
         // V8 drops a declaration whose binding nothing names: no closure, no register, no SharedFunctionInfo.
         if (this.scopes.declarationOf.get(statement.id)?.allocation.kind === "unused") continue;
@@ -517,6 +543,11 @@ export class FunctionGenerator {
       this.visitStatements(node.body);
       return;
     }
+    this.visitScopedStatements(scope, node.body);
+  }
+
+  /** A block's (or a function body's var block's) declarations and statements, in the context its scope needs. */
+  private visitScopedStatements(scope: Scope, statements: readonly Statement[]): void {
     const b = this.builder;
     const enclosingScope = this.currentScope;
     const outer = this.context;
@@ -525,10 +556,19 @@ export class FunctionGenerator {
       b.emit("CreateBlockContext", b.constantPool.add({ kind: "scope-info", scope: "BLOCK_SCOPE" }));
       this.pushContext(scope);
     }
-    this.visitDeclarations(node.body);
-    this.visitStatements(node.body);
+    this.visitDeclarations(statements);
+    this.initializeShadowedVars(scope);
+    this.visitStatements(statements);
     if (scope.needsContext) this.popContext(outer);
     this.currentScope = enclosingScope;
+  }
+
+  /** V8's InsertShadowingVarBindingInitializers: each is put in front of the body, so the last declared runs first. */
+  private initializeShadowedVars(scope: Scope): void {
+    for (const { parameter, variable } of [...scope.parameterShadows].reverse()) {
+      this.loadVariable(parameter, scope.node);
+      this.storeVariable(variable, scope.node);
+    }
   }
 
   /** V8's ~ContextScope: back to `outer`, whose context waits in its register. */
@@ -552,8 +592,9 @@ export class FunctionGenerator {
       case "EmptyStatement":
         return;
       case "FunctionDeclaration":
-        // Created with the other declarations; one nested in a block waits for block scopes.
+        // Created with the other declarations; a sloppy block function is then copied to its function-level var.
         if (!this.hoisted.has(node)) throw new NotYetSupported(node);
+        this.copyBlockFunction(node);
         return;
       case "ExpressionStatement":
         this.builder.setStatementPosition(startOf(node));
@@ -583,6 +624,17 @@ export class FunctionGenerator {
       default:
         throw new NotYetSupported(node);
     }
+  }
+
+  /** Annex B.3.3: evaluating a sloppy block function's declaration assigns its value to the `var` of the same name. */
+  private copyBlockFunction(node: FunctionDeclaration): void {
+    const target = this.scopes.hoistedFunctionOf.get(node.id);
+    const source = this.scopes.declarationOf.get(node.id);
+    if (!target || !source) return;
+    this.builder.setStatementPosition(endOf(node));
+    this.loadVariable(source, node);
+    this.builder.setExpressionPosition(endOf(node));
+    this.storeVariable(target, node);
   }
 
   private visitIf(node: IfStatement): void {
@@ -1225,7 +1277,7 @@ export class FunctionGenerator {
     const generator = b.allocateRegister();
     const value = b.allocateRegister();
     b.emit("Star", local(value));
-    b.emit("Mov", GENERATOR, local(generator));
+    b.emit("Mov", this.generator, local(generator));
     b.emit("InvokeIntrinsic", "_AsyncFunctionAwait", local(generator), 2);
     b.releaseRegisters(top);
 
@@ -1233,14 +1285,14 @@ export class FunctionGenerator {
     const suspendId = this.suspendCount++;
     const live = b.registerTop;
     b.setExpressionPosition(position);
-    b.emit("SuspendGenerator", GENERATOR, local(0), live, suspendId);
+    b.emit("SuspendGenerator", this.generator, local(0), live, suspendId);
     b.bindJumpTableEntry(table, suspendId);
-    b.emit("ResumeGenerator", GENERATOR, local(0), live);
+    b.emit("ResumeGenerator", this.generator, local(0), live);
 
     const input = b.allocateRegister();
     const resumeMode = b.allocateRegister();
     b.emit("Star", local(input));
-    b.emit("InvokeIntrinsic", "_GeneratorGetResumeMode", GENERATOR, 1);
+    b.emit("InvokeIntrinsic", "_GeneratorGetResumeMode", this.generator, 1);
     b.emit("Star", local(resumeMode));
     b.emit("LdaZero"); // JSGeneratorObject::kNext
     b.emit("TestReferenceEqual", local(resumeMode));
@@ -1402,6 +1454,8 @@ export class FunctionGenerator {
       b.emit("Star", local(register));
       args.push(register);
     }
+    const printed = printCallee(node.callee);
+    if (printed !== undefined) this.functions.recordCallPrinter(startOf(node), printed);
     b.setExpressionPosition(startOf(node));
     b.emit("Ldar", local(constructor));
     const slot = b.feedback.addSlot("call");
@@ -1507,6 +1561,26 @@ export class FunctionGenerator {
   /** `delete o.a` and `delete o[k]`: the key goes to the accumulator, the object stays in a register. */
   private visitDelete(node: UnaryExpression): void {
     const operand = node.argument;
+    const b = this.builder;
+    if (operand.type === "Identifier") {
+      // A declared variable cannot be deleted; a global goes through Runtime_DeleteLookupSlot.
+      if (this.referenceOf(operand).resolved !== "global") {
+        b.emit("LdaFalse");
+        return;
+      }
+      const top = b.registerTop;
+      const name = b.allocateRegister();
+      b.emit("LdaConstant", this.stringConstant(operand.name));
+      b.emit("Star", local(name));
+      b.emit("CallRuntime", "DeleteLookupSlot", local(name), 1);
+      b.releaseRegisters(top);
+      return;
+    }
+    if (operand.type === "Literal" || operand.type === "ThisExpression") {
+      this.visitForEffect(operand);
+      b.emit("LdaTrue");
+      return;
+    }
     if (operand.type !== "MemberExpression" || operand.optional || operand.object.type === "Super") throw new NotYetSupported(node);
     const object = this.visitForRegisterValue(operand.object);
     const name = this.namedKeyOf(operand);
@@ -1544,6 +1618,7 @@ export class FunctionGenerator {
       const name = this.propertyNameOf(property);
       if (name === undefined || elementIndexOf(property) !== undefined) throw new NotYetSupported(property);
       // A method's function literal starts where the method does (its `async` keyword, else its name), not at its parameter list.
+      if (property.method) this.functions.markMethod(value as FunctionLiteral, property.range?.[0] ?? startOf(property.key));
       b.setExpressionPosition(property.method ? (property.range?.[0] ?? startOf(property.key)) : this.positionOf(value));
       // A method keeps its own name in the header; any other anonymous function is named `path.key`.
       const qualified = path === "" ? name : `${path}.${name}`;

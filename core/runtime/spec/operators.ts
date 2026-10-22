@@ -1,4 +1,5 @@
 import { isThrow, normal, type Completion } from "@/core/interpreter/Completion";
+import { SimulationHalt } from "@/core/shared/simulationHalt";
 import type { JSValue } from "../values/JSValue";
 import { ToInt32, ToNumeric, ToPrimitive, ToString, ToUint32, type SpecRealm } from "./conversions";
 
@@ -6,6 +7,14 @@ import { ToInt32, ToNumeric, ToPrimitive, ToString, ToUint32, type SpecRealm } f
 // numeric operators). Arithmetic on numbers is the host's IEEE-754 (§3.3). `**` uses the host
 // `Math.pow` path, which §3.3 lists as approximated for non-V8 hosts; the oracle property and
 // docs/FIDELITY.md carry that caveat.
+
+/** V8's String::kMaxLength on 64-bit. */
+export const MAX_STRING_LENGTH = 2 ** 29 - 24;
+
+/** Halts before the host builds a string past V8's limit (real Node throws RangeError "Invalid string length", not modeled). */
+export function checkStringLength(length: number): void {
+  if (length > MAX_STRING_LENGTH) throw new SimulationHalt({ kind: "unsupported", reason: "a string longer than V8's maximum length" });
+}
 
 export function Add(realm: SpecRealm, left: JSValue, right: JSValue): Completion {
   const lprim = ToPrimitive(realm, left, "default");
@@ -19,6 +28,7 @@ export function Add(realm: SpecRealm, left: JSValue, right: JSValue): Completion
     if (isThrow(ls)) return ls;
     const rs = ToString(realm, r);
     if (isThrow(rs)) return rs;
+    checkStringLength(ls.value.length + rs.value.length);
     return normal(ls.value + rs.value);
   }
   const ln = ToNumeric(realm, l);

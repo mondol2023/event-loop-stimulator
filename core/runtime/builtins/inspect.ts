@@ -1,8 +1,10 @@
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import { HeapObject } from "../objects/HeapObject";
+import { JSArguments } from "../objects/JSArguments";
 import { JSArray } from "../objects/JSArray";
 import { JSHostObject } from "../objects/JSHostObject";
 import { JSObject } from "../objects/JSObject";
+import { JSPrimitiveWrapper } from "../objects/JSPrimitiveWrapper";
 import { OrdinaryGet, OrdinaryGetOwnProperty, OrdinaryOwnPropertyKeys, toArrayIndex } from "../spec/objectOps";
 import type { JSValue } from "../values/JSValue";
 import { JSError, errorStack, errorToString } from "./errors";
@@ -204,6 +206,7 @@ function getStringWidth(str: string): number {
 function formatValue(ctx: Ctx, value: JSValue, recurseTimes: number): string {
   if (!(value instanceof HeapObject)) return value === null ? "null" : formatPrimitive(value, ctx);
   if (!(value instanceof JSObject)) unsupported("util.inspect of a heap value that is not an object");
+  if (value instanceof JSArguments) unsupported("util.inspect of an arguments object (printed as [Arguments])");
   if (value instanceof JSHostObject) unsupported(`util.inspect of a Node ${value.hostClass} object (its full shape is not modeled)`);
   if (ctx.seen.includes(value)) {
     let index = 1;
@@ -271,6 +274,9 @@ function formatRaw(ctx: Ctx, value: JSObject, recurseTimes: number): string {
     } else if (promise !== undefined) {
       braces[0] = `${getPrefix(constructor, tag, "Promise")}{`;
       formatter = (c, r) => formatPromise(c, promise, r);
+    } else if (value instanceof JSPrimitiveWrapper) {
+      base = getBoxedBase(value, ctx, keys, constructor, tag);
+      if (keys.length === 0) return base;
     } else {
       if (keys.length === 0) return `${getCtxStyle(ctx, value, constructor, tag)}{}`;
       braces[0] = `${getCtxStyle(ctx, value, constructor, tag)}{`;
@@ -377,6 +383,20 @@ function getPrefix(constructor: string | null, tag: string, fallback: string, si
     }
   }
   return result;
+}
+
+// ---- boxed primitives ----
+
+/** `getBoxedBase` (inspect.js:1604): `[Number: 3]`, and for a String object the index keys are dropped from `keys`. */
+function getBoxedBase(value: JSPrimitiveWrapper, ctx: Ctx, keys: string[], constructor: string | null, tag: string): string {
+  const primitive = value.value;
+  const type = typeof primitive === "string" ? "String" : typeof primitive === "number" ? "Number" : "Boolean";
+  if (typeof primitive === "string") keys.splice(0, primitive.length);
+  let base = `[${type}`;
+  if (type !== constructor) base += constructor === null ? " (null prototype)" : ` (${constructor})`;
+  base += `: ${formatPrimitive(primitive, ctx)}]`;
+  if (tag !== "" && tag !== constructor) base += ` [${tag}]`;
+  return base;
 }
 
 // ---- functions ----

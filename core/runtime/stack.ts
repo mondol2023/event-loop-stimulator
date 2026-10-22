@@ -26,6 +26,8 @@ export type CallSite =
       readonly methodName: string | null;
       readonly isTopLevel: boolean;
       readonly isAsync: boolean;
+      /** CallSiteInfo::IsConstructor: the frame is a `new F`. */
+      readonly isConstructor?: boolean;
       readonly pos: SourcePosition;
     }
   | { readonly native: string };
@@ -49,6 +51,7 @@ export function formatCallSite(cs: CallSite): string {
   const location = `${SCRIPT_NAME}:${cs.pos.line}:${cs.pos.column}`;
   const prefix = cs.isAsync ? "async " : "";
   const functionName = cs.functionName ?? "";
+  if (cs.isConstructor) return `${prefix}new ${functionName === "" ? "<anonymous>" : functionName} (${location})`;
   if (!cs.isTopLevel) return `${prefix}${methodCall(cs.typeName, functionName, cs.methodName)} (${location})`;
   if (functionName !== "") return `${prefix}${functionName} (${location})`;
   return `${prefix}${location}`;

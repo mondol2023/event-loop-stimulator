@@ -29,3 +29,14 @@ export function simulatorRun(fixture: { readonly source: string; readonly lang: 
 
 /** The real simulator: `core/timeline/simulate` without recording a timeline (the firewall test proves recording changes no output). */
 export const SIMULATOR: Simulator = { run: (source, lang) => simulatorRun({ source, lang }) };
+
+/**
+ * The simulator under the test262 host (D7). A stopped run is not a pass, so it exits 1 with
+ * a `STOP` line that names why.
+ */
+export const SIMULATOR_WITH_HOST_TEST262: Simulator = {
+  run(source, lang) {
+    const out = simulatorRun({ source, lang }, { host: "test262" });
+    return out.stop ? { ...out, exitCode: 1, stderr: `${out.stderr}STOP: ${out.stop.kind} (${out.stop.detail})\n` } : out;
+  },
+};

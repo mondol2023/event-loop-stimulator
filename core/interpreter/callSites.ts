@@ -53,6 +53,7 @@ export function callSiteOf(realm: Realm, program: BytecodeProgram, frame: Frame)
     },
     isTopLevel,
     isAsync: false,
+    isConstructor: frame.isConstruct,
     pos: positionOf(program.source, range?.start ?? 0),
   };
 }

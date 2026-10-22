@@ -3,7 +3,7 @@ import { NONDETERMINISM_RULES } from "./nondeterminism";
 
 describe("nondeterminism rules", () => {
   it("has one rule per probed case, each naming the fixture that proves it", () => {
-    expect(NONDETERMINISM_RULES.map((r) => r.fixture)).toEqual(["timeout-vs-immediate-main", "timer-in-timer-ordering"]);
+    expect(NONDETERMINISM_RULES.map((r) => r.fixture)).toEqual(["timeout-vs-immediate-main", "timer-in-timer-ordering", "timer-after-first-write"]);
   });
 
   it("every warning says the order is not guaranteed", () => {

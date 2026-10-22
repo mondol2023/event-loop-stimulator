@@ -73,7 +73,12 @@ export class NodeEventLoop implements HostHooks {
     this.#ticks = new NextTickQueue(realm.taskIds);
     this.#interp = interp;
     this.#observer = observer;
-    this.#timers = new NodeTimers(realm, this.#clock, (warning) => this.#emitWarning(warning));
+    this.#timers = new NodeTimers(
+      realm,
+      this.#clock,
+      (warning) => this.#emitWarning(warning),
+      (list, due, lists) => this.#nondeterminism.timerInserted(list, due, lists),
+    );
     realm.host = this;
     installNodeGlobals(realm, this.#timers, this.#ticks);
   }
@@ -125,6 +130,7 @@ export class NodeEventLoop implements HostHooks {
   }
 
   #writeFrom(origin: ConsoleLine["origin"], stream: ConsoleStream, text: string): void {
+    this.#nondeterminism.wrote();
     this.#print(stream, text, origin);
     if (this.#afterWritePending[stream]) return;
     this.#afterWritePending[stream] = true;

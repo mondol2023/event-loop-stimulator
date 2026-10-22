@@ -34,11 +34,28 @@ export const RE_ARMED_LIST_TIE: NondeterminismRule = {
     "Order not guaranteed in real Node: timers scheduled from a timer callback tie with an existing timer, and which runs first depends on how long the callbacks took.",
 };
 
-export const NONDETERMINISM_RULES: readonly NondeterminismRule[] = [FIRST_ITERATION_TIMER_VS_IMMEDIATE, RE_ARMED_LIST_TIE];
+/**
+ * Rule 3 (timer-after-first-write): a timer inserted after the first console write (into a new list or an
+ * existing one), due up to WRITE_SLACK_MS before a list armed before that write. getLibuvNow() reads the clock at each
+ * insert, and a write costs real time (the first ~2.2 ms, probed), so the later list may start
+ * late enough to run second. Later writes cost microseconds and are ignored. With 0 ms writes it runs first, one of the recorded outcomes.
+ */
+export const TIMER_ARMED_AFTER_WRITE: NondeterminismRule = {
+  fixture: "timer-after-first-write",
+  warning: "Order not guaranteed in real Node: a timer armed after console output races an earlier timer, and which runs first depends on how long the output took.",
+};
+
+/** Probed: an expiry gap of 4 ms flips after the first write, 5 ms did not; 5 keeps a margin. */
+export const WRITE_SLACK_MS = 5;
+
+export const NONDETERMINISM_RULES: readonly NondeterminismRule[] = [FIRST_ITERATION_TIMER_VS_IMMEDIATE, RE_ARMED_LIST_TIE, TIMER_ARMED_AFTER_WRITE];
 
 /** Collects each rule's warning at most once per run, in the order they first apply. */
 export class NondeterminismWatch {
   readonly warnings: string[] = [];
+  /** Console writes so far, and the count when each list was armed (rule 3). */
+  #writes = 0;
+  readonly #armedAt = new WeakMap<TimersList, number>();
 
   #raise(rule: NondeterminismRule): void {
     if (!this.warnings.includes(rule.warning)) this.warnings.push(rule.warning);
@@ -49,6 +66,21 @@ export class NondeterminismWatch {
     if (hasImmediates && lists.some((l) => l.msecs <= 1 && l.timers.length > 0 && l.expiry > now)) {
       this.#raise(FIRST_ITERATION_TIMER_VS_IMMEDIATE);
     }
+  }
+
+  /** Rule 3: a console write happened. */
+  wrote(): void {
+    this.#writes++;
+  }
+
+  /** Rule 3, checked at every insert(): `due` is the timer's own idleStart + msecs. */
+  timerInserted(list: TimersList, due: number, lists: readonly TimersList[]): void {
+    if (!this.#armedAt.has(list)) this.#armedAt.set(list, this.#writes);
+    const raced = lists.some((other) => {
+      const gap = other.expiry - due;
+      return other !== list && other.timers.length > 0 && (this.#armedAt.get(other) ?? 0) === 0 && this.#writes > 0 && gap > 0 && gap <= WRITE_SLACK_MS;
+    });
+    if (raced) this.#raise(TIMER_ARMED_AFTER_WRITE);
   }
 
   /** Rule 2, checked when listOnTimeout re-arms a list. */

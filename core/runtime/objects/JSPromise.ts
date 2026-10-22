@@ -13,7 +13,8 @@ export type PromiseState = "pending" | "fulfilled" | "rejected";
  * `Promise.reject` hand real functions to user code.
  */
 export interface PromiseCapability {
-  readonly promise: JSPromise;
+  /** A JSPromise for %Promise%; whatever the constructor returned for a user constructor. */
+  readonly promise: JSObject;
   readonly resolve: JSFunction | undefined;
   readonly reject: JSFunction | undefined;
 }

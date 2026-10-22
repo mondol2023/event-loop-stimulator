@@ -8,7 +8,7 @@ type Outcome = Expectation["outcomes"][number];
 export type Comparison = { readonly ok: true } | { readonly ok: false; readonly diff: string };
 
 /** A nondeterministic fixture must be accompanied by this fidelity warning. */
-const NONDETERMINISM_WARNING = /not guaranteed/;
+export const NONDETERMINISM_WARNING = /not guaranteed/;
 
 function show(text: string): string {
   return JSON.stringify(text.length > 80 ? `${text.slice(0, 80)}…` : text);

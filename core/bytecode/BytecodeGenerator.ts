@@ -33,6 +33,8 @@ function notYetSupported(error: NotYetSupported, source: string): Diagnostic {
 class ProgramCompiler implements FunctionCompiler {
   readonly functions: (BytecodeFunction | undefined)[] = [];
   readonly callPrinter: Record<number, string> = {};
+  /** The object-literal methods, with where each one's source text starts (the key, not the `(`). */
+  readonly #methods = new Map<FunctionLiteral, number>();
 
   constructor(
     private readonly program: ParsedProgram,
@@ -67,8 +69,24 @@ class ProgramCompiler implements FunctionCompiler {
       localCount: scope.stackSlots,
     });
     generator.generateFunction(node);
-    this.functions[id] = finishFunction(generator.builder, { id: asFunctionId(id), name: debugName, strict: scope.strict, kind: scope.isAsync ? "async" : "normal", length: formalLength(node), children: generator.children });
+    const methodStart = this.#methods.get(node);
+    const sourceRange = { start: methodStart ?? node.range?.[0] ?? 0, end: node.range?.[1] ?? 0 };
+    const constructable = node.type !== "ArrowFunctionExpression" && !scope.isAsync && methodStart === undefined;
+    this.functions[id] = finishFunction(generator.builder, {
+      id: asFunctionId(id),
+      name: debugName,
+      strict: scope.strict,
+      constructable,
+      sourceRange,
+      kind: scope.isAsync ? "async" : "normal",
+      length: formalLength(node),
+      children: generator.children,
+    });
     return asFunctionId(id);
+  }
+
+  markMethod(node: FunctionLiteral, start: number): void {
+    this.#methods.set(node, start);
   }
 
   recordCallPrinter(position: number, text: string): void {

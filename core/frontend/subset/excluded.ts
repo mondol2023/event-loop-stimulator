@@ -91,11 +91,11 @@ export const EXCLUDED: readonly ExcludedEntry[] = [
   }),
   entry({
     id: "arguments-object",
-    label: "`arguments`",
+    label: "`arguments` of a sloppy function with parameters",
     code: "E_NOT_YET_SUPPORTED",
-    message: "The `arguments` object is not supported yet.",
-    hint: "Name the parameters you need.",
-    reason: `Mapped/unmapped arguments objects differ by strictness and parameter lists. ${NOT_YET}`,
+    message: "The `arguments` object of a sloppy function with parameters is not supported yet.",
+    hint: "Name the parameters you need, or add 'use strict' to the function.",
+    reason: `A sloppy function's arguments object aliases its parameters, which is not modeled; the unmapped object of strict code, of parameter expressions and of a function with no parameters is. ${NOT_YET}`,
   }),
   entry({
     id: "instanceof",

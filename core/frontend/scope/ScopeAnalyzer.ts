@@ -78,6 +78,9 @@ class Analyzer {
   private readonly scopeNodes = new Map<Node, Scope>();
   private readonly byName = new Map<Scope, Map<string, Variable>>();
   private readonly sloppyBlockFunctions: SloppyBlockFunction[] = [];
+  private readonly hoistedFunctions = new Map<Node, Variable>();
+  /** Every `var` declaration in a var block, one entry per declaring identifier (V8 keeps a Declaration for each). */
+  private readonly varDeclarations = new Map<Scope, Variable[]>();
   private current!: Scope;
 
   analyze(parsed: ParsedProgram): ScopeTree {
@@ -97,6 +100,7 @@ class Analyzer {
     this.hoistSloppyBlockFunctions();
     const references = this.resolve();
     const thisOf = this.resolveThis();
+    this.findArgumentsVariables();
     this.allocateFunction(root);
 
     return {
@@ -107,6 +111,7 @@ class Analyzer {
       declarationOf: this.declarations,
       scopeOf: this.scopeNodes,
       thisOf,
+      hoistedFunctionOf: this.hoistedFunctions,
     };
   }
 
@@ -138,6 +143,10 @@ class Analyzer {
       parameterNames,
       hasSimpleParameters,
       thisVariable: null,
+      varBlock: false,
+      parameterShadows: [],
+      argumentsVariable: null,
+      generatorRegister: -1,
     };
     parent?.children.push(scope);
     this.scopes.push(scope);
@@ -165,6 +174,13 @@ class Analyzer {
 
   private functionScope(): Scope {
     return closureOf(this.current);
+  }
+
+  /** The scope a `var` or a sloppy block function is declared in: the function's, or its var block. */
+  private declarationScope(from: Scope = this.current): Scope {
+    let s = from;
+    while (s.kind !== "function" && !s.varBlock && s.parent) s = s.parent;
+    return s;
   }
 
   /** Declares `name`, or returns the existing binding of a legal redeclaration (`var`, function, duplicate parameter). */
@@ -306,9 +322,28 @@ class Analyzer {
       });
     });
 
-    if (body.type === "BlockStatement") for (const statement of body.body) this.visit(statement);
-    else this.visit(body);
+    if (body.type === "BlockStatement") {
+      // With parameter expressions the body declares into a scope of its own (the parser's varblock).
+      if (!simple) {
+        const varBlock = this.newScope("block", body, scope, strict);
+        varBlock.varBlock = true;
+        this.current = varBlock;
+      }
+      for (const statement of body.body) this.visit(statement);
+      if (!simple) this.recordParameterShadows(this.current, scope);
+    } else this.visit(body);
     this.current = outer;
+  }
+
+  /** InsertShadowingVarBindingInitializers: a body `var` named like a parameter starts out as the parameter's value. */
+  private recordParameterShadows(varBlock: Scope, functionScope: Scope): void {
+    for (const variable of this.varDeclarations.get(varBlock) ?? []) {
+      const parameter = this.names(functionScope).get(variable.name);
+      if (parameter?.kind !== "param") continue;
+      variable.used = true;
+      variable.maybeAssigned = true;
+      varBlock.parameterShadows.push({ parameter, variable });
+    }
   }
 
   private visitClass(node: Class): void {
@@ -335,7 +370,7 @@ class Analyzer {
       case "VariableDeclaration": {
         const hoisted = node.kind === "var";
         const lexical = !hoisted;
-        const scope = hoisted ? this.functionScope() : this.current;
+        const scope = hoisted ? this.declarationScope() : this.current;
         for (const declarator of node.declarations) {
           this.declarePattern(declarator.id, {
             scope,
@@ -343,6 +378,14 @@ class Analyzer {
             tdz: lexical,
             initializedAt: rangeOf(declarator).end,
           });
+          if (hoisted && scope.varBlock) {
+            const list = this.varDeclarations.get(scope) ?? [];
+            for (const identifier of boundIdentifiers(declarator.id)) {
+              const variable = this.declarations.get(identifier);
+              if (variable) list.push(variable);
+            }
+            this.varDeclarations.set(scope, list);
+          }
           // `var x = 1` and `let x;` assign through a reference of their own; a bare `var x;` does not.
           // A loop head's declaration is assigned by the loop.
           if (declarator.init || node.kind === "let" || this.inLoopHead === node) this.markUsed(declarator.id);
@@ -359,7 +402,7 @@ class Analyzer {
             tdz: false,
             initializedAt: 0,
           });
-          if (this.current.kind === "block" && !this.current.strict) {
+          if (this.current.kind === "block" && !this.current.varBlock && !this.current.strict) {
             this.sloppyBlockFunctions.push({ name: node.id.name, scope: this.current, id: node.id });
           }
         }
@@ -559,7 +602,7 @@ class Analyzer {
     for (const entry of this.sloppyBlockFunctions) {
       let scope = entry.scope.parent;
       let conflict = false;
-      while (scope && scope.kind !== "function") {
+      while (scope && scope.kind !== "function" && !scope.varBlock) {
         const existing = this.names(scope).get(entry.name);
         if (existing && (existing.kind === "let" || existing.kind === "const" || existing.kind === "function")) {
           conflict = true;
@@ -567,10 +610,14 @@ class Analyzer {
         scope = scope.parent;
       }
       if (conflict || !scope) continue;
+      // A parameter of the same name keeps the name.
+      const parameters = scope.varBlock && scope.parent ? scope.parent : scope;
+      if (this.names(parameters).get(entry.name)?.kind === "param") continue;
 
       const existing = this.names(scope).get(entry.name);
       if (existing && existing.kind !== "function-name") {
-        // An existing var/function is reused; a parameter or let/const blocks hoisting.
+        // An existing var or function is reused; a lexical binding blocks hoisting.
+        if (existing.kind === "var" || existing.kind === "function") this.hoistTo(entry, existing);
         continue;
       }
       const hoisted = this.declare(entry.name, null, rangeOf(entry.id), {
@@ -580,7 +627,17 @@ class Analyzer {
         initializedAt: 0,
       });
       hoisted.annexB = true;
+      this.hoistTo(entry, hoisted);
     }
+  }
+
+  /** The block function's value is assigned to `target` when its declaration is evaluated, which uses both. */
+  private hoistTo(entry: SloppyBlockFunction, target: Variable): void {
+    target.used = true;
+    target.maybeAssigned = true;
+    const source = this.declarations.get(entry.id);
+    if (source) source.used = true;
+    this.hoistedFunctions.set(entry.id, target);
   }
 
   // ---- resolution -----------------------------------------------------------------
@@ -591,6 +648,10 @@ class Analyzer {
       let resolved: Variable | undefined;
       for (let scope: Scope | null = ref.scope; scope && !resolved; scope = scope.parent) {
         resolved = this.names(scope).get(ref.node.name);
+        // Every function but an arrow has an `arguments` binding of its own, declared when something reads it.
+        if (!resolved && ref.node.name === "arguments" && scope.kind === "function" && scope.node.type !== "ArrowFunctionExpression") {
+          resolved = this.declare("arguments", null, NO_RANGE, { scope, kind: "arguments", tdz: false, initializedAt: 0 });
+        }
       }
       const range = rangeOf(ref.node);
       let needsTdzCheck = false;
@@ -615,6 +676,15 @@ class Analyzer {
       });
     }
     return references.sort((a, b) => a.range.start - b.range.start);
+  }
+
+  /** The variable a function creates its arguments object for: its `arguments` binding, unless a parameter or lexical declaration has the name. */
+  private findArgumentsVariables(): void {
+    for (const scope of this.scopes) {
+      if (scope.kind !== "function" || scope.node.type === "ArrowFunctionExpression") continue;
+      const variable = this.names(scope).get("arguments");
+      if (variable?.used && (variable.kind === "arguments" || variable.kind === "var" || variable.kind === "function")) scope.argumentsVariable = variable;
+    }
   }
 
   /** An arrow reads the receiver of the nearest non-arrow function, which then keeps it in its context. */
@@ -650,8 +720,7 @@ class Analyzer {
   // ---- allocation -------------------------------------------------------------------
 
   private allocateFunction(fn: Scope): void {
-    // An async function's generator object is the first local (V8 DeclareGeneratorObjectVar).
-    const registers = { next: fn.isAsync ? 1 : 0 };
+    const registers = { next: 0 };
     this.allocateScope(fn, registers);
     fn.stackSlots = registers.next;
   }
@@ -668,7 +737,15 @@ class Analyzer {
   }
 
   private allocateScope(scope: Scope, registers: { next: number }): void {
+    // An async function's generator object is declared after its parameters and before its other locals (V8 DeclareGeneratorObjectVar).
+    let generatorPending = scope.kind === "function" && scope.isAsync;
+    const reserveGenerator = (): void => {
+      if (!generatorPending) return;
+      generatorPending = false;
+      scope.generatorRegister = registers.next++;
+    };
     for (const variable of this.allocationOrder(scope)) {
+      if (variable.kind !== "param") reserveGenerator();
       if (!variable.used) {
         variable.allocation = { kind: "unused" };
       } else if (variable.captured || scope.kind === "catch") {
@@ -681,6 +758,7 @@ class Analyzer {
         variable.allocation = { kind: "register", index: registers.next++ };
       }
     }
+    reserveGenerator();
     scope.needsContext = scope.contextSlots > 0;
     // V8 links a new inner scope at the head of its parent's list, so siblings are allocated last to first.
     for (const child of [...scope.children].reverse()) {

@@ -36,6 +36,10 @@ export type BytecodeFunction = {
   readonly kind: "normal" | "async";
   /** V8's SharedFunctionInfo language mode: strict code (`"use strict"`, or nested in strict code). */
   readonly strict: boolean;
+  /** IsConstructor: false for arrows, methods and async functions, which have no [[Construct]] and no `prototype`. */
+  readonly constructable: boolean;
+  /** SharedFunctionInfo start and end positions in the program source: the text of Function.prototype.toString. */
+  readonly sourceRange: { readonly start: number; readonly end: number };
   /** Includes the receiver. */
   readonly parameterCount: number;
   /** The `length` property: the formals before the first default or rest parameter. */
@@ -88,6 +92,8 @@ export function finishFunction(
     readonly id: FunctionId;
     readonly name: string;
     readonly strict: boolean;
+    readonly constructable?: boolean;
+    readonly sourceRange?: { readonly start: number; readonly end: number };
     readonly kind?: "normal" | "async";
     readonly length: number;
     readonly children?: readonly FunctionId[];
@@ -99,6 +105,8 @@ export function finishFunction(
     id: meta.id,
     name: meta.name,
     strict: meta.strict,
+    constructable: meta.constructable ?? true,
+    sourceRange: meta.sourceRange ?? { start: 0, end: 0 },
     kind: meta.kind ?? "normal",
     length: meta.length,
     parameterCount: header.parameterCount,

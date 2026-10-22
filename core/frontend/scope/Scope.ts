@@ -13,12 +13,14 @@ export type ScopeKind = "function" | "block" | "catch";
  * `temporary` is one of V8's `.for` variables (Scope::NewTemporary) that a desugared
  * `for (let …)` loop keeps in its function's registers.
  *
+ * `arguments` is the implicit binding that holds a function's arguments object.
+ *
  * `function-name` is the self-binding of a named function expression
  * (`const f = function g() { g }`); V8 keeps it outside the function's own
  * scope, which this model collapses into the function scope (shadowable by a
  * parameter or var of the same name).
  */
-export type VariableKind = "var" | "let" | "const" | "function" | "param" | "catch" | "function-name" | "this" | "temporary";
+export type VariableKind = "var" | "let" | "const" | "function" | "param" | "catch" | "function-name" | "this" | "temporary" | "arguments";
 
 /**
  * Where a variable lives at run time:
@@ -109,6 +111,17 @@ export type Scope = {
   suspendCount: number;
   /** Non-arrow function scopes only: the receiver as a variable, present iff an arrow inside reads `this` (it then lives in the context). */
   thisVariable: Variable | null;
+  /**
+   * A function body's own declaration scope when the parameter list is not simple (V8's varblock):
+   * the body's `var`s and functions live here, apart from the parameters and their expressions.
+   */
+  varBlock: boolean;
+  /** Var blocks only: body `var`s named like a parameter, in declaration order; each starts out as that parameter's value. */
+  parameterShadows: { readonly parameter: Variable; readonly variable: Variable }[];
+  /** Function scopes only: the variable the arguments object is stored in, when the function creates one (V8's `arguments_`). */
+  argumentsVariable: Variable | null;
+  /** Async function scopes only: the register of the generator object (V8's `.generator_object`), else -1. */
+  generatorRegister: number;
 };
 
 /**
@@ -143,4 +156,6 @@ export type ScopeTree = {
   readonly scopeOf: ReadonlyMap<Node, Scope>;
   /** `this` expression → the context variable holding the receiver; absent when it is read from the frame. */
   readonly thisOf: ReadonlyMap<Node, Variable>;
+  /** The identifier of a sloppy block function declaration → the function-level `var` it is also assigned to (Annex B.3.3). */
+  readonly hoistedFunctionOf: ReadonlyMap<Node, Variable>;
 };

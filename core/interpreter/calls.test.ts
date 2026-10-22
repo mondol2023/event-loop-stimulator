@@ -159,8 +159,19 @@ describe("Construct", () => {
     expect(seen).toEqual([[1, "a"]]);
   });
 
-  it("stops, never guesses, when a user function is constructed", () => {
-    expect(stopOf("function F() {} new F();")).toMatchObject({ kind: "unsupported" });
+  it("constructs a user function: the new object is `this`, an object result replaces it", () => {
+    expect(stdoutOf("function F(a) { this.a = a; } function G() { return { r: 1 }; } function H() { return 5; } console.log(new F(1), new G(), new H());")).toBe(
+      "F { a: 1 } { r: 1 } H {}\n",
+    );
+  });
+
+  it("throws \"is not a constructor\" for an arrow, a method, an async function and a builtin that is not one", () => {
+    const attempt = (callee: string): string =>
+      stdoutOf(`const arrow = () => 1; const o = { m() {} }; const a = async function () {}; try { new ${callee}(); } catch (e) { console.log(e.message); }`);
+    expect(attempt("arrow")).toBe("arrow is not a constructor\n");
+    expect(attempt("o.m")).toBe("o.m is not a constructor\n");
+    expect(attempt("a")).toBe("a is not a constructor\n");
+    expect(attempt("Math.abs")).toBe("Math.abs is not a constructor\n");
   });
 });
 
@@ -217,11 +228,18 @@ describe("calling a value that is not a function (Runtime_ThrowCalledNonCallable
     ['o?.["q"]()', "o?.q is not a function"],
     ["o.a[k]()", "o.a[k] is not a function"],
     ["const m = { f() { return this.q(); } }; m.f()", "this.q is not a function"],
+    ["(() => o)()()", "(intermediate value)(...) is not a function"],
+    ["(function () {}).q()", "(intermediate value).q is not a function"],
+    ["(function () {}.q)()", "(intermediate value).q is not a function"],
+    ["new Array().q()", "(intermediate value).q is not a function"],
+    ["(1)()", "1 is not a function"],
+    ['"s"()', '"s" is not a function'],
+    ['"s".q()', '"s".q is not a function'],
   ])("%s throws a TypeError naming the callee as CallPrinter prints it", (call, message) => {
     expect(uncaught(PRELUDE + call)).toBe(`TypeError: ${message}`);
   });
 
   it("stops when CallPrinter would print an intermediate value", () => {
-    expect(stopOf(PRELUDE + "(() => o)()()").kind).toBe("unsupported");
+    expect(stopOf(PRELUDE + "(u ? o : o)()").kind).toBe("unsupported");
   });
 });

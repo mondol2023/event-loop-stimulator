@@ -1,6 +1,8 @@
+import { LIMITS } from "@/core/shared/limits";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import { JSArray } from "../objects/JSArray";
 import type { JSObject } from "../objects/JSObject";
+import { JSPrimitiveWrapper } from "../objects/JSPrimitiveWrapper";
 import type { TransitionTree } from "../objects/TransitionTree";
 import type { PropertyAttributes } from "../objects/V8Map";
 import type { JSValue } from "../values/JSValue";
@@ -29,6 +31,8 @@ export interface PartialPropertyDescriptor {
 
 const ELEMENT_ATTRIBUTES: PropertyAttributes = { writable: true, enumerable: true, configurable: true };
 const LENGTH_ATTRIBUTES: PropertyAttributes = { writable: true, enumerable: false, configurable: false };
+const STRING_LENGTH_ATTRIBUTES: PropertyAttributes = { writable: false, enumerable: false, configurable: false };
+const STRING_INDEX_ATTRIBUTES: PropertyAttributes = { writable: false, enumerable: true, configurable: false };
 const MAX_ARRAY_INDEX = 4294967294;
 const CANONICAL_INDEX = /^(?:0|[1-9][0-9]*)$/;
 
@@ -43,8 +47,20 @@ function unsupportedElementAttributes(): never {
   throw new SimulationHalt({ kind: "unsupported", reason: "element property with non-default attributes" });
 }
 
+/** StringGetOwnProperty: the index keys and `length` of a String exotic object. */
+function stringGetOwnProperty(obj: JSObject, key: string, index: number | undefined): DataPropertyDescriptor | undefined {
+  if (!(obj instanceof JSPrimitiveWrapper) || typeof obj.value !== "string") return undefined;
+  if (key === "length") return { value: obj.value.length, ...STRING_LENGTH_ATTRIBUTES };
+  if (index === undefined || index >= obj.value.length) return undefined;
+  return { value: obj.value.charAt(index), ...STRING_INDEX_ATTRIBUTES };
+}
+
 export function OrdinaryGetOwnProperty(obj: JSObject, key: string): DataPropertyDescriptor | undefined {
   const index = toArrayIndex(key);
+  if (obj instanceof JSPrimitiveWrapper) {
+    const exotic = stringGetOwnProperty(obj, key, index);
+    if (exotic) return exotic;
+  }
   if (index !== undefined) {
     const value = obj.getOwnElement(index);
     return isTheHole(value) ? undefined : { value, ...ELEMENT_ATTRIBUTES };
@@ -62,6 +78,12 @@ export function OrdinaryDefineOwnProperty(
   desc: PartialPropertyDescriptor,
 ): boolean {
   const current = OrdinaryGetOwnProperty(obj, key);
+  // A string wrapper's virtual properties are read-only and non-configurable: only a no-op redefinition is valid.
+  if (current && obj instanceof JSPrimitiveWrapper && stringGetOwnProperty(obj, key, toArrayIndex(key))) {
+    if (desc.configurable === true || desc.writable === true) return false;
+    if (desc.enumerable !== undefined && desc.enumerable !== current.enumerable) return false;
+    return !("value" in desc) || Object.is(desc.value, current.value);
+  }
   if (!current) {
     const attributes = {
       writable: desc.writable ?? false,
@@ -161,7 +183,17 @@ export function OrdinaryDelete(ctx: ObjectOpsContext, obj: JSObject, key: string
 
 /** Integer indices ascending, then string keys in insertion order (an array's `length` comes first). */
 export function OrdinaryOwnPropertyKeys(obj: JSObject): string[] {
-  const keys = obj.elementIndices().map(String);
+  const keys: string[] = [];
+  if (obj instanceof JSPrimitiveWrapper && typeof obj.value === "string") {
+    // StringExoticObject [[OwnPropertyKeys]]: the string's indices first, `length` after the other indices.
+    // A loop, not a spread: a long string would overflow the host stack.
+    if (obj.value.length > LIMITS.work) throw new SimulationHalt({ kind: "limit", limit: "work" });
+    for (let i = 0; i < obj.value.length; i++) keys.push(String(i));
+    for (const i of obj.elementIndices()) keys.push(String(i));
+    keys.push("length");
+  } else {
+    for (const i of obj.elementIndices()) keys.push(String(i));
+  }
   if (obj instanceof JSArray) keys.push("length");
   keys.push(...obj.namedKeys());
   return keys;

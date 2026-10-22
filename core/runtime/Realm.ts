@@ -2,8 +2,12 @@ import type { BytecodeFunction } from "@/core/bytecode/BytecodeProgram";
 import type { Completion } from "@/core/interpreter/Completion";
 import type { EntryPoint } from "@/core/host/nodeFrames";
 import { nodeFrameTail } from "@/core/host/nodeFrames";
+import { NODE_MEMBERS } from "./builtins/nodeMembers";
 import { installArray } from "./builtins/Array";
+import { installBoolean } from "./builtins/Boolean";
 import { createError, errorToString, type JSError } from "./builtins/errors";
+import { installFunction } from "./builtins/Function";
+import { installNumber } from "./builtins/Number";
 import { installString } from "./builtins/String";
 import { formatMessage } from "./messages";
 import { installMath } from "./builtins/Math";
@@ -18,14 +22,16 @@ import { Heap } from "./heap/Heap";
 import { Context } from "./objects/Context";
 import type { FeedbackCell } from "./objects/FeedbackCell";
 import { type JSFunction as JSFunctionType, JSFunction, type NativeConstruct, type NativeFunction } from "./objects/JSFunction";
+import { JSArguments } from "./objects/JSArguments";
 import { JSArray } from "./objects/JSArray";
 import { HeapObject } from "./objects/HeapObject";
 import { JSObject } from "./objects/JSObject";
+import { JSPrimitiveWrapper } from "./objects/JSPrimitiveWrapper";
 import { JSPromise } from "./objects/JSPromise";
 import { TransitionTree } from "./objects/TransitionTree";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import { type SpecRealm, ToUint32 } from "./spec/conversions";
-import { HasProperty, OrdinaryDefineOwnProperty, OrdinaryGet } from "./spec/objectOps";
+import { HasProperty, OrdinaryDefineOwnProperty, OrdinaryGet, OrdinaryGetOwnProperty } from "./spec/objectOps";
 import { captureStack, type CallSite } from "./stack";
 import type { JSValue } from "./values/JSValue";
 import type { TheHoleValue } from "./values/TheHole";
@@ -53,6 +59,12 @@ export interface CallTarget {
   call(fn: JSFunctionType, receiver: JSValue, args: readonly JSValue[]): Completion;
   /** The JS frames, innermost first. */
   callSites(): readonly CallSite[];
+  /** [[Construct]] of a user function: `new fn(...args)`. */
+  construct(fn: JSFunctionType, args: readonly JSValue[]): Completion;
+  /** The source text of a user function (Function.prototype.toString). */
+  functionSource(fn: JSFunctionType): string | undefined;
+  /** Whether `fn` has a frame on the stack (a sloppy `f.caller` / `f.arguments` is then not null). */
+  isActive(fn: JSFunctionType): boolean;
   /** Runs `body` with a builtin's frame (`Type.name (<anonymous>)`, or `new Name (<anonymous>)`) on the stack. */
   nativeFrame<T>(fn: JSFunctionType, receiver: JSValue, construct: boolean, body: () => T): T;
   /** A builtin caught an exception (a promise job turned it into a rejection): forget the isolate's pending message. */
@@ -66,12 +78,17 @@ export interface Intrinsics {
   readonly asyncFunctionPrototype: JSObject;
   readonly arrayPrototype: JSObject;
   readonly promisePrototype: JSObject;
+  /** %String.prototype%, %Number.prototype% and %Boolean.prototype% are themselves wrapper objects (data "", 0, false). */
+  readonly stringPrototype: JSObject;
+  readonly numberPrototype: JSObject;
+  readonly booleanPrototype: JSObject;
   readonly errorPrototypes: Readonly<Record<ErrorKind, JSObject>>;
 }
 
 const HIDDEN = { writable: true, enumerable: false, configurable: true } as const;
 const FUNCTION_INFO = { writable: false, enumerable: false, configurable: true } as const;
 const CONSTANT = { writable: false, enumerable: false, configurable: false } as const;
+const PROTOTYPE_PROPERTY = { writable: true, enumerable: false, configurable: false } as const;
 
 export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   readonly heap = new Heap();
@@ -80,6 +97,8 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   host: HostHooks;
   /** Element visits inside builtins (Decision D3's `work` limit). */
   readonly work = new WorkBudget();
+  /** The test262 host (D7) runs scripts: the top-level `this` is the global object, not `module.exports`. */
+  scriptThisIsGlobal = false;
   readonly intrinsics: Intrinsics;
   readonly globalObject: JSObject;
   /** The context builtins close over: it holds nothing. */
@@ -92,6 +111,7 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   readonly promise: PromiseIntrinsics;
   readonly #wellKnown = new Map<JSObject, string>();
   readonly #tags = new Map<JSObject, string>();
+  readonly #unmodeled = new Map<JSObject, { readonly name: string; readonly members: ReadonlySet<string> }>();
   #target: CallTarget | undefined;
 
   constructor(host: HostHooks) {
@@ -107,6 +127,11 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     const asyncFunctionPrototype = this.#intrinsicObject(functionPrototype);
     const arrayPrototype = this.heap.allocateIntrinsic((id) => JSArray.fromElements(id, this.maps, objectPrototype, []));
     const promisePrototype = this.#intrinsicObject(objectPrototype);
+    const wrapperPrototype = (value: string | number | boolean): JSObject =>
+      this.heap.allocateIntrinsic((id) => new JSPrimitiveWrapper(id, this.maps.rootFor("primitive-wrapper", 0), objectPrototype, value));
+    const stringPrototype = wrapperPrototype("");
+    const numberPrototype = wrapperPrototype(0);
+    const booleanPrototype = wrapperPrototype(false);
     const errorPrototype = this.#intrinsicObject(objectPrototype);
     const errorPrototypes = Object.fromEntries(
       ERROR_KINDS.map((kind) => [kind, kind === "Error" ? errorPrototype : this.#intrinsicObject(errorPrototype)]),
@@ -121,7 +146,20 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     this.#wellKnown.set(functionPrototype, "Function");
     this.#wellKnown.set(arrayPrototype, "Array");
     this.#wellKnown.set(promisePrototype, "Promise");
-    this.intrinsics = { objectPrototype, functionPrototype, asyncFunctionPrototype, arrayPrototype, promisePrototype, errorPrototypes };
+    this.#wellKnown.set(stringPrototype, "String");
+    this.#wellKnown.set(numberPrototype, "Number");
+    this.#wellKnown.set(booleanPrototype, "Boolean");
+    this.intrinsics = {
+      objectPrototype,
+      functionPrototype,
+      asyncFunctionPrototype,
+      arrayPrototype,
+      promisePrototype,
+      stringPrototype,
+      numberPrototype,
+      booleanPrototype,
+      errorPrototypes,
+    };
 
     this.globalObject = this.#intrinsicObject(objectPrototype);
     this.#define(this.globalObject, "undefined", undefined, CONSTANT);
@@ -146,17 +184,50 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     this.promise = installPromise(this);
     this.#define(this.globalObject, "Promise", this.promise.constructor, HIDDEN);
     this.#define(this.globalObject, "String", installString(this), HIDDEN);
+    this.#define(this.globalObject, "Number", installNumber(this), HIDDEN);
+    this.#define(this.globalObject, "Boolean", installBoolean(this), HIDDEN);
+    installFunction(this);
     // Node's global object has Symbol.toStringTag "global": a sloppy `this + ""` is "[object global]".
     this.#tags.set(this.globalObject, "global");
     this.defineMethod(errorPrototype, "toString", 0, (_realm, receiver) => {
       if (!(receiver instanceof JSObject)) throw new SimulationHalt({ kind: "unsupported", reason: "Error.prototype.toString on a primitive" });
       return { type: "normal", value: errorToString(receiver) };
     });
-    // Function.prototype.toString returns the function's source text, which is not modeled; without
-    // this, OrdinaryToPrimitive would reach Object.prototype.toString and print "[object Function]".
-    this.defineMethod(functionPrototype, "toString", 0, () => {
-      throw new SimulationHalt({ kind: "unsupported", reason: "converting a function to a string (Function.prototype.toString's source text is not modeled)" });
-    });
+    this.#registerUnmodeledMembers();
+  }
+
+  /** The members Node's builtins have that the model lacks, per builtin object (see nodeMembers.ts). */
+  #registerUnmodeledMembers(): void {
+    const global = (name: string): JSObject => OrdinaryGet(this.globalObject, name) as JSObject;
+    const { objectPrototype, functionPrototype, arrayPrototype, promisePrototype, stringPrototype, numberPrototype, booleanPrototype, errorPrototypes } = this.intrinsics;
+    const holders: Record<string, JSObject> = {
+      Object: global("Object"),
+      "Object.prototype": objectPrototype,
+      "Function.prototype": functionPrototype,
+      Array: global("Array"),
+      "Array.prototype": arrayPrototype,
+      Promise: global("Promise"),
+      "Promise.prototype": promisePrototype,
+      String: global("String"),
+      "String.prototype": stringPrototype,
+      Number: global("Number"),
+      "Number.prototype": numberPrototype,
+      Boolean: global("Boolean"),
+      "Boolean.prototype": booleanPrototype,
+      Error: global("Error"),
+      "Error.prototype": errorPrototypes.Error,
+      Math: global("Math"),
+    };
+    for (const [name, holder] of Object.entries(holders)) {
+      const members = new Set((NODE_MEMBERS[name] ?? []).filter((member) => OrdinaryGetOwnProperty(holder, member) === undefined));
+      this.#unmodeled.set(holder, { name, members });
+    }
+  }
+
+  /** A property lookup reached `holder` without finding `key`: halt if real Node has that member and the model does not. */
+  requireModeled(holder: JSObject, key: string): void {
+    const entry = this.#unmodeled.get(holder);
+    if (entry?.members.has(key)) throw new SimulationHalt({ kind: "unsupported", reason: `${entry.name}.${key} is a Node builtin that is not modeled` });
   }
 
   /** Called by the interpreter that runs this realm's functions. */
@@ -171,9 +242,12 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     return this.#nativeFunction(name, length, { native: behavior, kind });
   }
 
-  /** A builtin method: writable, non-enumerable and configurable, as V8 installs builtins. */
-  defineMethod(target: JSObject, name: string, length: number, behavior: NativeFunction): JSFunctionType {
-    const fn = this.nativeFunction(name, length, behavior);
+  /**
+   * A builtin method: writable, non-enumerable and configurable, as V8 installs builtins.
+   * `hidden` is for the builtins that tail-call their target and leave no frame in a stack trace.
+   */
+  defineMethod(target: JSObject, name: string, length: number, behavior: NativeFunction, hidden = false): JSFunctionType {
+    const fn = this.#nativeFunction(name, length, { native: behavior, hiddenFromStackTrace: hidden });
     this.#define(target, name, fn, HIDDEN);
     return fn;
   }
@@ -210,12 +284,21 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   #nativeFunction(
     name: string,
     length: number,
-    init: { native: NativeFunction; construct?: NativeConstruct; kind?: FunctionKind; hiddenFromStackTrace?: boolean; captures?: readonly unknown[] },
+    init: {
+      native: NativeFunction;
+      construct?: NativeConstruct;
+      kind?: FunctionKind;
+      hiddenFromStackTrace?: boolean;
+      captures?: readonly unknown[];
+      prototype?: JSObject | null;
+      boundTarget?: JSFunctionType;
+    },
     counted = false,
   ): JSFunctionType {
+    const { prototype = this.intrinsics.functionPrototype, ...functionInit } = init;
     const make = (id: JSFunctionType["id"]): JSFunctionType =>
-      new JSFunction(id, this.maps.rootFor("function", 0), this.intrinsics.functionPrototype, {
-        ...init,
+      new JSFunction(id, this.maps.rootFor("function", 0), prototype, {
+        ...functionInit,
         context: this.emptyContext,
       });
     const fn = counted ? this.heap.allocate(make) : this.heap.allocateIntrinsic(make);
@@ -238,7 +321,67 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     feedbackCell.allocateVector(code);
     this.#define(fn, "length", code.length, FUNCTION_INFO);
     this.#define(fn, "name", code.name, FUNCTION_INFO);
+    if (code.constructable) {
+      // The slot is part of the function's Map from the start; the object comes on first use.
+      this.#define(fn, "prototype", undefined, PROTOTYPE_PROPERTY);
+      fn.materializePrototype = (f) => this.#materializePrototype(f);
+    }
     return fn;
+  }
+
+  /** `JSFunction::EnsureHasInitialMap`: `F.prototype` is an object with a hidden `constructor` back to `F`. */
+  #materializePrototype(fn: JSFunctionType): void {
+    const prototype = this.newObject();
+    this.#define(prototype, "constructor", fn, HIDDEN);
+    fn.putNamed(this.maps, "prototype", prototype, PROTOTYPE_PROPERTY);
+  }
+
+  /** `OrdinaryCreateFromConstructor` for a user function: an object on the function's initial Map, inheriting `prototype`. */
+  newConstructedObject(fn: JSFunctionType, prototype: JSObject): JSObject {
+    const map = (fn.initialMap ??= this.maps.freshRoot("object-literal", 4));
+    return this.heap.allocate((id) => new JSObject(id, map, prototype));
+  }
+
+  /** The String, Number or Boolean object of a primitive (the allocating half of ToObject). */
+  wrapPrimitive(value: string | number | boolean): JSPrimitiveWrapper {
+    const { stringPrototype, numberPrototype, booleanPrototype } = this.intrinsics;
+    const prototype = typeof value === "string" ? stringPrototype : typeof value === "number" ? numberPrototype : booleanPrototype;
+    return this.heap.allocate((id) => new JSPrimitiveWrapper(id, this.maps.rootFor("primitive-wrapper", 0), prototype, value));
+  }
+
+  /** ToObject: an object stays itself, a primitive is wrapped, undefined and null are a TypeError. */
+  toObject(value: JSValue): Completion<JSObject> {
+    if (value instanceof JSObject) return { type: "normal", value };
+    if (value === undefined || value === null) return this.throwTypeError(formatMessage("kUndefinedOrNullToObject"));
+    return { type: "normal", value: this.wrapPrimitive(value as string | number | boolean) };
+  }
+
+  /** BoundFunctionCreate plus the `length` and `name` Function.prototype.bind gives it. */
+  boundFunction(target: JSFunctionType, boundThis: JSValue, boundArgs: readonly JSValue[]): JSFunctionType {
+    const targetLength = OrdinaryGetOwnProperty(target, "length")?.value;
+    const length = typeof targetLength === "number" ? Math.max(0, Number.isNaN(targetLength) ? 0 : Math.trunc(targetLength) - boundArgs.length) : 0;
+    const targetName = OrdinaryGet(target, "name");
+    return this.#nativeFunction(
+      `bound ${typeof targetName === "string" ? targetName : ""}`,
+      length,
+      {
+        native: (r, _receiver, args) => r.call(target, boundThis, [...boundArgs, ...args]),
+        ...(target.isConstructor ? { construct: (r: Realm, args: readonly JSValue[]) => r.construct(target, [...boundArgs, ...args]) } : {}),
+        hiddenFromStackTrace: true,
+        captures: [target, boundThis, ...boundArgs],
+        prototype: target.prototype,
+        boundTarget: target,
+      },
+      true,
+    );
+  }
+
+  /** What Function.prototype.toString returns: a user function's source text, else the native-code form. */
+  functionSource(fn: JSFunctionType): string {
+    const source = fn.code ? this.#target?.functionSource(fn) : undefined;
+    if (source !== undefined) return source;
+    const name = OrdinaryGetOwnProperty(fn, "name")?.value;
+    return `function ${fn.boundTarget || typeof name !== "string" ? "" : name}() { [native code] }`;
   }
 
   /** An ordinary object the program can see (`{}`): it counts toward the heap-object limit. */
@@ -249,6 +392,15 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   /** `CreateObjectLiteral`: an object whose Map is rooted at the literal's own property count (the boilerplate Map). */
   newLiteralObject(propertyCount: number): JSObject {
     return this.heap.allocate((id) => new JSObject(id, this.maps.rootFor("object-literal", propertyCount), this.intrinsics.objectPrototype));
+  }
+
+  /** CreateMappedArguments / CreateUnmappedArguments: the arguments object of a call to `callee`. */
+  newArguments(callee: JSFunctionType, args: readonly JSValue[], unmapped: boolean): JSObject {
+    const object = this.heap.allocate((id) => new JSArguments(id, this.maps.rootFor("object-literal", 2), this.intrinsics.objectPrototype, unmapped));
+    args.forEach((value, index) => OrdinaryDefineOwnProperty(this, object, String(index), { value, writable: true, enumerable: true, configurable: true }));
+    OrdinaryDefineOwnProperty(this, object, "length", { value: args.length, ...HIDDEN });
+    if (!unmapped) OrdinaryDefineOwnProperty(this, object, "callee", { value: callee, ...HIDDEN });
+    return object;
   }
 
   /** `CreateArrayLiteral` / `CreateEmptyArrayLiteral`: an array whose elements kind is what `values` need. */
@@ -356,6 +508,18 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     return this.#target.call(fn, receiver, args);
   }
 
+  /** [[Construct]] of any function: a builtin constructor runs its own, a user function is constructed by the interpreter. */
+  construct(fn: JSFunctionType, args: readonly JSValue[]): Completion {
+    if (fn.construct) return fn.construct(this, args);
+    if (!this.#target) throw new Error("Realm.construct: no interpreter is attached");
+    return this.#target.construct(fn, args);
+  }
+
+  /** See CallTarget.isActive. */
+  isActive(fn: JSFunctionType): boolean {
+    return this.#target?.isActive(fn) ?? false;
+  }
+
   /** See CallTarget.nativeFrame. */
   nativeFrame<T>(fn: JSFunctionType, receiver: JSValue, construct: boolean, body: () => T): T {
     return this.#target ? this.#target.nativeFrame(fn, receiver, construct, body) : body();
@@ -374,7 +538,12 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
 
   /** `new <kind>(message)` from inside the VM: the stack is captured here, at construction. */
   createError(kind: ErrorKind, message: string | undefined): JSError {
-    return createError(this, this.intrinsics.errorPrototypes[kind], message, captureStack(this.#stackSource()));
+    return this.createErrorWithPrototype(this.intrinsics.errorPrototypes[kind], message);
+  }
+
+  /** An error whose prototype an embedder defines (test262's Test262Error). */
+  createErrorWithPrototype(prototype: JSObject, message: string | undefined): JSError {
+    return createError(this, prototype, message, captureStack(this.#stackSource()));
   }
 
   throwError(kind: ErrorKind, message: string): Completion<never> {

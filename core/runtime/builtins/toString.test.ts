@@ -50,11 +50,13 @@ describe("String, Array and the toString builtins", () => {
     expect(stdoutOf('const e = new Error("x"); e.name = "Custom"; console.log(e + "");')).toBe("Custom: x\n");
   });
 
-  it("converting a function to a string stops: its source text is not modeled", () => {
-    expect(run('console.log(String(function f() {}));').stop?.kind).toBe("unsupported");
+  it("converting a function to a string gives its source text, and a builtin its native-code form", () => {
+    expect(stdoutOf("console.log(String(function f( a ) { return 1 }), `${Math.abs}`, String(() => 2));")).toBe(
+      "function f( a ) { return 1 } function abs() { [native code] } () => 2\n",
+    );
   });
 
-  it("new String(...) stops: wrapper objects are not modeled", () => {
-    expect(run('const s = new String("a");').stop?.kind).toBe("unsupported");
+  it("new String(...) makes a String object", () => {
+    expect(stdoutOf('const s = new String("a"); console.log(s, typeof s, s + "b");')).toBe("[String: 'a'] object ab\n");
   });
 });

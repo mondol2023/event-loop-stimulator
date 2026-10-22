@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { classify, EXCLUSION_REASONS } from "./test262/classify";
 import { parseMetadata } from "./test262/metadata";
 import { runTest262, type Test262Case } from "./test262/runner";
-import type { SimOutput, Simulator } from "./support/simulator";
+import { type SimOutput, type Simulator, SIMULATOR_WITH_HOST_TEST262 } from "./support/simulator";
 
 // Three real test262 shapes (licensed BSD, https://github.com/tc39/test262), trimmed.
 const PLAIN = `// Copyright (C) 2016 the V8 project authors. All rights reserved.
@@ -273,7 +273,18 @@ describe("vendor/test262", () => {
   });
 });
 
-// Phase 3 replaces this with `runTest262(SIMULATOR, ...)` over every vendored test.
 describe("simulator passes the vendored test262 subset", () => {
-  it.todo("runs every vendored test in sloppy and strict mode against the Phase 3 simulator");
+  const vendored = existsSync(join(ROOT, "test")) ? walk(join(ROOT, "test")) : [];
+
+  // Every failure is collected and printed, not just the first.
+  it("runs every vendored test in sloppy and strict mode against the simulator", () => {
+    const failures: string[] = [];
+    for (const file of vendored) {
+      const source = readFileSync(file, "utf8");
+      const result = runTest262(SIMULATOR_WITH_HOST_TEST262, { path: file.slice(ROOT.length + 1), source, meta: parseMetadata(source) });
+      if (result.status === "fail") failures.push(result.message);
+    }
+    if (failures.length > 0) console.error(`${failures.length} test262 failures:\n${failures.join("\n")}`);
+    expect(failures).toEqual([]);
+  }, 300_000);
 });

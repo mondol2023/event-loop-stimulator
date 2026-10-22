@@ -4,7 +4,8 @@ import { formatMessage } from "@/core/runtime/messages";
 import { JSFunction } from "@/core/runtime/objects/JSFunction";
 import type { JSValue } from "@/core/runtime/values/JSValue";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
-import { type Completion, isThrow } from "../Completion";
+import { type Completion, isThrow, normal } from "../Completion";
+import { OrdinaryDelete } from "@/core/runtime/spec/objectOps";
 import { type Frame, listRegister, readRegister } from "../Frame";
 import { type DispatchContext, type Handler, operand } from "./context";
 
@@ -60,14 +61,16 @@ function listValues(frame: Frame, instr: Instruction, index: number): JSValue[] 
   return Array.from({ length: operand(instr, index + 1) }, (_, i) => readRegister(frame, listRegister(first, i)) as JSValue);
 }
 
-/** [[Construct]] of a builtin; a user function is never constructed (the validator refuses `new F`). */
+/** `Construct`: [[Construct]] of a builtin or an ordinary function, else Runtime_ThrowNotConstructor. */
 export const constructHandler: Handler = (ctx, frame, instr) => {
   const callee = readRegister(frame, operand(instr, 0));
   const args = listValues(frame, instr, 1);
-  if (!(callee instanceof JSFunction) || !callee.construct) {
-    throw new SimulationHalt({ kind: "unsupported", reason: "new on a value that is not a builtin constructor" });
+  if (!(callee instanceof JSFunction) || !callee.isConstructor) {
+    const text = ctx.calleeText(frame);
+    if (text === undefined) throw new SimulationHalt({ kind: "unsupported", reason: "new on a value that is not a constructor, through a callee CallPrinter prints as an intermediate value" });
+    return ctx.realm.throwTypeError(formatMessage("kNotConstructor", text));
   }
-  const result = callee.construct(ctx.realm, args);
+  const result = callee.construct ? callee.construct(ctx.realm, args) : ctx.construct(callee, args);
   if (isThrow(result)) return result;
   frame.accumulator = result.value;
   return undefined;
@@ -79,6 +82,8 @@ export const constructHandler: Handler = (ctx, frame, instr) => {
  */
 const RUNTIME: Readonly<Record<string, (ctx: DispatchContext, args: readonly JSValue[]) => Completion>> = {
   ThrowConstAssignError: (ctx) => ctx.realm.throwError("TypeError", formatMessage("kConstAssign")),
+  // An unresolved name outside any `with` or sloppy `eval` is a property of the global object.
+  DeleteLookupSlot: (ctx, args) => normal(OrdinaryDelete(ctx.realm, ctx.realm.globalObject, String(args[0]))),
   ...Object.fromEntries(Object.entries(RUNTIME_NATIVE_FUNCTIONS).map(([name, run]) => [name, (ctx: DispatchContext, args: readonly JSValue[]) => run(ctx.realm, args)])),
 };
 

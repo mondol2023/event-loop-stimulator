@@ -22,6 +22,13 @@ describe("formatCallSite", () => {
     expect(formatCallSite(site({ functionName: "readX", pos: at(3, 12) }))).toBe("readX (main.cjs:3:12)");
   });
 
+  it("prints a constructor call as new name (location), whatever the receiver is", () => {
+    expect(formatCallSite(site({ functionName: "Point", isTopLevel: false, typeName: "Point", isConstructor: true, pos: at(2, 5) }))).toBe(
+      "new Point (main.cjs:2:5)",
+    );
+    expect(formatCallSite(site({ isConstructor: true }))).toBe("new <anonymous> (main.cjs:1:1)");
+  });
+
   it("prints an anonymous function with no receiver type as a bare location", () => {
     expect(formatCallSite(site({ pos: at(5, 9) }))).toBe("main.cjs:5:9");
   });

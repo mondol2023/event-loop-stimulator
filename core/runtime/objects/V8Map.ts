@@ -37,7 +37,8 @@ export type MapFamily =
   | "function"
   | "promise"
   | "error"
-  | "generator";
+  | "generator"
+  | "primitive-wrapper";
 
 export type InstanceType =
   | "JS_OBJECT_TYPE"
@@ -45,7 +46,8 @@ export type InstanceType =
   | "JS_FUNCTION_TYPE"
   | "JS_PROMISE_TYPE"
   | "JS_ERROR_TYPE"
-  | "JS_GENERATOR_OBJECT_TYPE";
+  | "JS_GENERATOR_OBJECT_TYPE"
+  | "JS_PRIMITIVE_WRAPPER_TYPE";
 
 /**
  * One named field of a fast-mode Map (a DescriptorArray entry). The entry object is shared by a

@@ -107,6 +107,7 @@ export class NodeTimers {
   readonly #realm: Realm;
   readonly #clock: VirtualClock;
   readonly #emitWarning: (warning: ProcessWarning) => void;
+  readonly #onInsert: (list: TimersList, due: number, lists: readonly TimersList[]) => void;
   /** timerListMap. */
   readonly #lists = new Map<number, TimersList>();
   /** timerListQueue (a binary heap in Node; ids make the order total, so any min-structure agrees). */
@@ -125,10 +126,16 @@ export class NodeTimers {
   #timeoutPrototype: JSObject | undefined;
   #immediatePrototype: JSObject | undefined;
 
-  constructor(realm: Realm, clock: VirtualClock, emitWarning: (warning: ProcessWarning) => void) {
+  constructor(
+    realm: Realm,
+    clock: VirtualClock,
+    emitWarning: (warning: ProcessWarning) => void,
+    onInsert: (list: TimersList, due: number, lists: readonly TimersList[]) => void = () => undefined,
+  ) {
     this.#realm = realm;
     this.#clock = clock;
     this.#emitWarning = emitWarning;
+    this.#onInsert = onInsert;
   }
 
   // ---- queries the loop makes ----
@@ -259,6 +266,7 @@ export class NodeTimers {
       this.#lists.set(key, list);
       this.#queue.push(list);
     }
+    this.#onInsert(list, start + key, this.#queue);
     // L.append unlinks the item from any list first.
     this.#unlink(timer);
     list.timers.push(timer);

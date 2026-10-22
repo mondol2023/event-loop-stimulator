@@ -14,6 +14,8 @@ const ASYNC_COMPLETE = "Test262:AsyncTestComplete";
 const ASYNC_FAILURE = "Test262:AsyncTestFailure:";
 
 const firstLine = (text: string): string => text.trim().split("\n")[0] ?? "";
+/** The uncaught error's header (`Name: message`) below Node's code frame, else the first line. */
+const errorLine = (text: string): string => text.split("\n").find((l) => /^[\w$]+(: |$)/.test(l)) ?? firstLine(text);
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export function runTest262(sim: Simulator, test: Test262Case): Pass | Fail {
@@ -36,7 +38,7 @@ export function runTest262(sim: Simulator, test: Test262Case): Pass | Fail {
       }
       continue;
     }
-    if (result.exitCode !== 0) return fail(`exit code ${result.exitCode}: ${firstLine(result.stderr) || "(empty stderr)"}`);
+    if (result.exitCode !== 0) return fail(`exit code ${result.exitCode}: ${errorLine(result.stderr) || "(empty stderr)"}`);
     if (meta.flags.includes("async")) {
       const lines = result.stdout.split("\n");
       const failure = lines.find((line) => line.startsWith(ASYNC_FAILURE));

@@ -3,11 +3,13 @@ import type { ArrayBoilerplate, BoilerplateValue, ObjectBoilerplate } from "@/co
 import { InlineCache } from "@/core/runtime/ic/InlineCache";
 import { formatMessage } from "@/core/runtime/messages";
 import { HeapObject } from "@/core/runtime/objects/HeapObject";
+import { JSArguments } from "@/core/runtime/objects/JSArguments";
 import { JSArray } from "@/core/runtime/objects/JSArray";
+import { JSFunction } from "@/core/runtime/objects/JSFunction";
 import { JSObject } from "@/core/runtime/objects/JSObject";
 import type { Realm } from "@/core/runtime/Realm";
 import { ToNumber, ToPropertyKey } from "@/core/runtime/spec/conversions";
-import { OrdinaryDefineOwnProperty, OrdinaryDelete, OrdinaryGet, OrdinarySet, toArrayIndex } from "@/core/runtime/spec/objectOps";
+import { OrdinaryDefineOwnProperty, OrdinaryDelete, OrdinaryGetOwnProperty, OrdinarySet, toArrayIndex } from "@/core/runtime/spec/objectOps";
 import type { JSValue } from "@/core/runtime/values/JSValue";
 import { TheHole, type TheHoleValue } from "@/core/runtime/values/TheHole";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
@@ -39,13 +41,52 @@ function keyForMessage(key: JSValue): string {
   return String(key);
 }
 
-/** The loaded value of `key` on a primitive receiver; only what has no prototype method to consult is modeled. */
-function loadFromPrimitive(receiver: JSValue, key: string): JSValue {
-  if (typeof receiver !== "string") unsupported(`reading a property of a ${typeof receiver} (Number.prototype and Boolean.prototype are not modeled)`);
-  if (key === "length") return receiver.length;
-  const index = toArrayIndex(key);
-  if (index !== undefined) return index < receiver.length ? receiver.charAt(index) : undefined;
-  return unsupported(`reading "${key}" of a string (String.prototype is not modeled)`);
+/**
+ * The `caller` and `arguments` of a function: %Function.prototype% holds throwing accessors
+ * (AddRestrictedFunctionProperties) and a sloppy function has own null data properties
+ * (V8's sloppy_function_map). Accessors are not in the object model, so they are answered here.
+ * `undefined` means the property is ordinary; "read-only" is a write that is refused.
+ */
+function restrictedFunctionAccess(realm: Realm, receiver: JSObject, key: string, access: "get" | "set"): Completion | "read-only" | undefined {
+  // An unmapped arguments object has a throwing `callee` accessor of its own.
+  if (key === "callee" && receiver instanceof JSArguments && receiver.unmapped) return realm.throwTypeError(formatMessage("kRestrictedFunctionProperties"));
+  if (key !== "caller" && key !== "arguments") return undefined;
+  const functionPrototype = realm.intrinsics.functionPrototype;
+  let reaches = false;
+  for (let o: JSObject | null = receiver; o !== null; o = o.prototype) {
+    if (OrdinaryGetOwnProperty(o, key)) return undefined;
+    if (o === functionPrototype) reaches = true;
+  }
+  if (!reaches) return undefined;
+  const code = receiver instanceof JSFunction ? receiver.code : undefined;
+  if (code && !code.strict && code.constructable && code.kind === "normal") {
+    if (access === "set") return "read-only";
+    // While the function runs, V8 answers its caller or a fresh arguments object: not modeled.
+    if (realm.isActive(receiver as JSFunction)) throw new SimulationHalt({ kind: "unsupported", reason: `${key} of a running sloppy function` });
+    return { type: "normal", value: null };
+  }
+  return realm.throwTypeError(formatMessage("kRestrictedFunctionProperties"));
+}
+
+/** Get on `holder`'s chain; a member real Node has but the model lacks halts the run instead of reading as `undefined`. */
+function getMember(realm: Realm, holder: JSObject, key: string): JSValue {
+  for (let o: JSObject | null = holder; o !== null; o = o.prototype) {
+    const desc = OrdinaryGetOwnProperty(o, key);
+    if (desc) return desc.value;
+    realm.requireModeled(o, key);
+  }
+  return undefined;
+}
+
+/** The loaded value of `key` on a primitive receiver: a string's own index and `length`, else its wrapper prototype's property. */
+function loadFromPrimitive(realm: Realm, receiver: string | number | boolean, key: string): JSValue {
+  if (typeof receiver === "string") {
+    if (key === "length") return receiver.length;
+    const index = toArrayIndex(key);
+    if (index !== undefined && index < receiver.length) return receiver.charAt(index);
+  }
+  const { stringPrototype, numberPrototype, booleanPrototype } = realm.intrinsics;
+  return getMember(realm, typeof receiver === "string" ? stringPrototype : typeof receiver === "number" ? numberPrototype : booleanPrototype, key);
 }
 
 /** `LoadIC`: the property `key` of `receiver`, or the V8 TypeError for undefined and null. */
@@ -55,8 +96,12 @@ function loadProperty(realm: Realm, receiver: JSValue, key: JSValue): Completion
   }
   const name = ToPropertyKey(realm, key);
   if (isThrow(name)) return name;
-  if (receiver instanceof JSObject) return { type: "normal", value: OrdinaryGet(receiver, name.value) };
-  return { type: "normal", value: loadFromPrimitive(receiver, name.value) };
+  if (receiver instanceof JSObject) {
+    const restricted = restrictedFunctionAccess(realm, receiver, name.value, "get");
+    if (restricted && restricted !== "read-only") return restricted;
+    return { type: "normal", value: getMember(realm, receiver, name.value) };
+  }
+  return { type: "normal", value: loadFromPrimitive(realm, receiver as string | number | boolean, name.value) };
 }
 
 /**
@@ -77,16 +122,24 @@ function storeProperty(realm: Realm, frame: Frame, receiver: JSValue, key: JSVal
   if (receiver === undefined || receiver === null) {
     return realm.throwError("TypeError", formatMessage("kNonObjectPropertyStoreWithProperty", String(receiver), keyForMessage(key)));
   }
-  if (!(receiver instanceof JSObject)) unsupported(`storing a property on a ${typeof receiver} (wrapper objects are not modeled)`);
   const name = ToPropertyKey(realm, key);
   if (isThrow(name)) return name;
+  if (!(receiver instanceof JSObject)) {
+    // OrdinarySet on the wrapper with the primitive as Receiver always fails: sloppy code ignores it, strict code throws.
+    if (!frame.code.strict) return undefined;
+    const index = toArrayIndex(name.value);
+    const readOnly = typeof receiver === "string" && (name.value === "length" || (index !== undefined && index < receiver.length));
+    return realm.throwTypeError(formatMessage(readOnly ? "kStrictReadOnlyProperty" : "kStrictCannotCreateProperty", name.value, typeof receiver, String(receiver)));
+  }
   let stored: JSValue = value;
   if (receiver instanceof JSArray && name.value === "length") {
     const length = validatedArrayLength(realm, value);
     if (isThrow(length)) return length;
     stored = length.value;
   }
-  if (!OrdinarySet(realm, receiver, name.value, stored) && frame.code.strict) {
+  const restricted = restrictedFunctionAccess(realm, receiver, name.value, "set");
+  if (restricted && restricted !== "read-only") return restricted;
+  if (!(restricted ? false : OrdinarySet(realm, receiver, name.value, stored)) && frame.code.strict) {
     unsupported(`strict assignment to the read-only property ${name.value} (the TypeError text is not modeled)`);
   }
   return undefined;

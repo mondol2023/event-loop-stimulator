@@ -10,12 +10,12 @@ import type { Tick } from "./Tick";
 // and record the timeline (SimulationEngine).
 
 /**
- * `host` is a test-only mode (D7): only Node is modeled so far. `record: false` runs without
+ * `host: "test262"` is a test-only mode (D7): Node plus test262's harness builtins. `record: false` runs without
  * building ticks and narration (the conformance suites compare output only); the run, its output
  * and where it stops are identical either way, which the exactness firewall tests prove.
  */
 export type SimulationOptions = {
-  readonly host?: "node";
+  readonly host?: "node" | "test262";
   /** Test-only natives mode (D2): `%Name(args)` compiles to the V8 runtime probes in RUNTIME_NATIVES. */
   readonly natives?: boolean;
   readonly record?: boolean;
@@ -49,7 +49,6 @@ function refused(diagnostics: Diagnostic[]): SimulationResult {
 }
 
 export function simulate(source: string, lang: Language, opts: SimulationOptions = {}): SimulationResult {
-  if ((opts.host ?? "node") !== "node") throw new Error(`host mode ${String(opts.host)} is not modeled yet`);
   const compiled = new CompilationManager().compile(source, lang, { natives: opts.natives ?? false });
   if (!compiled.program) return refused(compiled.diagnostics);
   return new SimulationEngine().run(compiled.program, opts);

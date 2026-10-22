@@ -1,5 +1,6 @@
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import { DETACHED_HOST, NodeEventLoop } from "@/core/host/NodeEventLoop";
+import { installTest262Harness } from "@/core/host/test262Harness";
 import { IgnitionInterpreter, type StepObserver } from "@/core/interpreter/IgnitionInterpreter";
 import { GcModel } from "@/core/runtime/heap/GcModel";
 import { Realm } from "@/core/runtime/Realm";
@@ -23,6 +24,7 @@ export class SimulationEngine {
     const observer: StepObserver = new GcObserver(recorder ?? limiter ?? { onCommand: () => undefined }, gc, world);
     const interpreter = new IgnitionInterpreter(program, realm, observer);
     const loop = new NodeEventLoop(realm, interpreter, observer);
+    if (opts.host === "test262") installTest262Harness(realm);
     recorder?.attach({ interpreter, realm, gc, host: () => loop.view(), warnings: () => loop.warnings });
     const base = { diagnostics: [], ticks: recorder?.ticks ?? [] };
     const counted = (): number => recorder?.tickCount ?? limiter?.ticks ?? 0;

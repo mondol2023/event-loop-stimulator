@@ -48,7 +48,7 @@ These are refused with a diagnostic instead of approximated, so they can never p
 | labeled statements | `E_NOT_YET_SUPPORTED` | It can be added later, with fixtures recorded on real Node. |
 | destructuring patterns | `E_NOT_YET_SUPPORTED` | Destructuring uses the iterator protocol for arrays. It can be added later, with fixtures recorded on real Node. |
 | spread and rest (`...`) | `E_NOT_YET_SUPPORTED` | Spread uses the iterator protocol. It can be added later, with fixtures recorded on real Node. |
-| `arguments` | `E_NOT_YET_SUPPORTED` | Mapped/unmapped arguments objects differ by strictness and parameter lists. It can be added later, with fixtures recorded on real Node. |
+| `arguments` of a sloppy function with parameters | `E_NOT_YET_SUPPORTED` | A sloppy function's arguments object aliases its parameters, which is not modeled; the unmapped object of strict code, of parameter expressions and of a function with no parameters is. It can be added later, with fixtures recorded on real Node. |
 | `instanceof` | `E_NOT_YET_SUPPORTED` | It depends on Symbol.hasInstance and prototype chains. It can be added later, with fixtures recorded on real Node. |
 | `in` | `E_NOT_YET_SUPPORTED` | It walks the prototype chain. It can be added later, with fixtures recorded on real Node. |
 | `with` | `E_NOT_YET_SUPPORTED` | `with` makes name resolution dynamic, which the scope model does not represent. |

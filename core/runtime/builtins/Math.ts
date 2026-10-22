@@ -39,7 +39,8 @@ export function installMath(realm: Realm, math: JSObject): void {
   for (const [name, op] of [["max", Math.max], ["min", Math.min]] as const) {
     realm.defineMethod(math, name, 2, (r, _receiver, args) => {
       const numbers = numbersOf(r, args);
-      return isThrow(numbers) ? numbers : normal(op(...numbers.value));
+      // A fold, not a spread: `apply` can pass many arguments.
+      return isThrow(numbers) ? numbers : normal(numbers.value.reduce((acc, n) => op(acc, n), op()));
     });
   }
 }

@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { type RealRun, runReal as spawnReal } from "../../scripts/conformance/run-real.mts";
 import { minimizeProgram, programModelArbitrary, renderProgram } from "./generator/programs";
+import { NONDETERMINISM_WARNING } from "./runner";
 import type { Simulator } from "./support/simulator";
 
 // The differential property (PROMPT.md §3.4): for every generated program, a simulator's
@@ -77,8 +78,10 @@ export function differentialProperty(sim: Simulator, opts: DifferentialOptions =
   let discarded = 0;
 
   const judge = (source: string): Verdict => {
-    const expected = real(source);
     const actual = sim.run(source, "js");
+    // The simulator flags an order real Node does not guarantee (a nondeterminism rule): no stable oracle.
+    if (actual.warnings.some((w) => NONDETERMINISM_WARNING.test(w))) return { kind: "unstable" };
+    const expected = real(source);
     if (sameRun(expected, actual)) return { kind: "same" };
     for (let i = 0; i < reruns; i++) {
       if (!sameRun(expected, real(source))) return { kind: "unstable" };

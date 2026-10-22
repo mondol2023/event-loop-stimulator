@@ -17,6 +17,8 @@ export class Frame {
   readonly registers: RegisterValue[];
   /** The formal parameters after the receiver; missing arguments are `undefined`, extra ones are dropped. */
   readonly args: JSValue[];
+  /** Every argument the call passed (the arguments object's elements). */
+  readonly actualArgs: readonly JSValue[];
   accumulator: RegisterValue = undefined;
   context: Context;
   receiver: JSValue;
@@ -24,6 +26,8 @@ export class Frame {
   offset = 0;
   /** Offset of the instruction that runs next; a jump overwrites it. */
   next = 0;
+  /** The frame runs a [[Construct]] (`new F`): its stack-trace entry reads `new F`. */
+  isConstruct = false;
 
   constructor(fn: JSFunction, code: BytecodeFunction, receiver: JSValue, args: readonly JSValue[]) {
     this.fn = fn;
@@ -32,6 +36,7 @@ export class Frame {
     this.receiver = receiver;
     this.registers = new Array<RegisterValue>(code.registerCount).fill(undefined);
     this.args = Array.from({ length: Math.max(code.parameterCount - 1, 0) }, (_, i) => args[i]);
+    this.actualArgs = args;
   }
 }
 

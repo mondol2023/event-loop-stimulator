@@ -2,7 +2,7 @@ import type { MemberExpression, Node } from "estree";
 import type { Diagnostic, SourceRange } from "@/core/shared/diagnostics";
 import { childNodes, rangeOf } from "../ast";
 import type { ParsedProgram } from "../parse";
-import type { ReferenceInfo, ScopeTree } from "../scope/Scope";
+import type { ReferenceInfo, ScopeTree, Variable } from "../scope/Scope";
 import {
   ALLOWED_GLOBALS,
   CONSTRUCTOR_GLOBALS,
@@ -114,6 +114,15 @@ const has = (table: object, key: string): boolean => Object.hasOwn(table, key);
 function isWrapperParameter(ref: ReferenceInfo): boolean {
   const v = ref.resolved;
   return v !== "global" && v.kind === "param" && v.scope.parent === null && v.declaredAt.start === 0 && v.declaredAt.end === 0;
+}
+
+/**
+ * The arguments object of a sloppy function with simple formal parameters aliases them
+ * (CreateMappedArguments); only the unmapped kind (strict code, parameter expressions, no formals) is modeled.
+ */
+function isMappedArguments(v: Variable): boolean {
+  const owner = v.scope;
+  return owner.argumentsVariable === v && !owner.strict && owner.hasSimpleParameters && owner.parameterNames.length > 0;
 }
 
 // ---- the walk -----------------------------------------------------------------------------------
@@ -298,12 +307,12 @@ class Validator {
     if (!ref) return;
     if (parent?.type === "MemberExpression" && parent.object === node && this.judged.has(parent)) return;
     if (ref.resolved === "global") this.globalReference(ref, parent);
+    else if (isMappedArguments(ref.resolved)) this.report("arguments-object", ref.range);
     else if (isWrapperParameter(ref)) this.wrapperReference(ref);
   }
 
   private globalReference(ref: ReferenceInfo, parent: Node | null): void {
     const name = ref.name;
-    if (name === "arguments") return this.report("arguments-object", ref.range);
     if (has(SPECIFIC_EXCLUDED_GLOBALS, name)) return this.report(SPECIFIC_EXCLUDED_GLOBALS[name] as string, ref.range);
     if (FREE_USE_GLOBALS.has(name)) return;
     if (ALLOWED_GLOBALS.has(name)) {

@@ -20,6 +20,8 @@ export interface DispatchContext {
   /** The bytecode of any function in the program (a `CreateClosure` constant names one). */
   functionCode(id: FunctionId): BytecodeFunction;
   call(fn: JSFunction, receiver: JSValue, args: readonly JSValue[]): Completion;
+  /** [[Construct]] of an ordinary function. */
+  construct(fn: JSFunction, args: readonly JSValue[]): Completion;
   /** ResumeGeneratorTrampoline: re-enters a suspended function with `value` and how to resume. */
   resumeGenerator(generator: JSGeneratorObject, value: JSValue, mode: ResumeMode): Completion;
   /** CallPrinter's text for the callee of the call `frame` is at, if the program recorded one. */

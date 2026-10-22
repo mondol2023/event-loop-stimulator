@@ -518,4 +518,100 @@ describe("async functions", () => {
     const f = fnScope(analyze("function f() { let a = 1; return a; }"), "f");
     expect(variable(f, "a").allocation).toEqual({ kind: "register", index: 0 });
   });
+
+  it("puts the generator object after the parameters that take registers", () => {
+    const f = fnScope(analyze("async function f(a, b = a) { var v = 1; return v + b; }"), "f");
+    expect(variable(f, "a").allocation).toEqual({ kind: "register", index: 0 });
+    expect(variable(f, "b").allocation).toEqual({ kind: "register", index: 1 });
+    expect(f.generatorRegister).toBe(2);
+  });
+});
+
+describe("parameter expressions: the body's var block", () => {
+  it("declares the body's vars and functions apart from the parameters", () => {
+    const tree = analyze("var x = 0; function f(a = x) { var x = 1; function g() {} return a + x; }");
+    const f = fnScope(tree, "f");
+    const body = tree.scopeOf.get((f.node as { body: Node }).body) as Scope;
+    expect(body.varBlock).toBe(true);
+    expect(body.parent).toBe(f);
+    expect(body.variables.map((v) => v.name)).toEqual(["x", "g"]);
+    // The parameter's initializer sees the outer x; the body sees its own.
+    const [inParameter, inBody] = refs(tree, "x").filter((r) => r.range.start > 12);
+    expect(inParameter?.resolved).toBe(tree.root.variables.find((v) => v.name === "x"));
+    expect(inBody?.resolved).toBe(variable(body, "x"));
+  });
+
+  it("makes no var block for simple parameters", () => {
+    const tree = analyze("function f(a) { var v = a; return v; }");
+    expect(tree.scopes.some((s) => s.varBlock)).toBe(false);
+  });
+
+  it("lists the body vars named like a parameter, one per declaration", () => {
+    const tree = analyze("function f(a, b = 1) { var a; var c; var b; var a; }");
+    const body = tree.scopes.find((s) => s.varBlock) as Scope;
+    expect(body.parameterShadows.map((s) => s.variable.name)).toEqual(["a", "b", "a"]);
+    expect(body.parameterShadows.every((s) => s.parameter.kind === "param" && s.parameter.scope === fnScope(tree, "f"))).toBe(true);
+  });
+
+  it("allocates the var block's registers after the parameters", () => {
+    const f = fnScope(analyze("function f(a = 1) { var v = a; return v; }"), "f");
+    expect(variable(f, "a").allocation).toEqual({ kind: "register", index: 0 });
+  });
+});
+
+describe("Annex B block functions", () => {
+  it("assigns the block function to the function-level var, existing or new", () => {
+    const tree = analyze("function f() { var w; { function q() {} } { function w() {} } }");
+    const f = fnScope(tree, "f");
+    const targets = [...tree.hoistedFunctionOf.values()];
+    expect(targets).toEqual([variable(f, "q"), variable(f, "w")]);
+    expect(variable(f, "q").annexB).toBe(true);
+    expect(variable(f, "w").annexB).toBe(false);
+    expect(targets.every((v) => v.used && v.maybeAssigned)).toBe(true);
+  });
+
+  it("leaves a name alone that a parameter or an enclosing lexical declaration has", () => {
+    expect(analyze("function f(p) { { function p() {} } }").hoistedFunctionOf.size).toBe(0);
+    expect(analyze("function f() { let l; { function l() {} } }").hoistedFunctionOf.size).toBe(0);
+  });
+
+  it("hoists a function directly in a var block to nothing: it is a top-level declaration", () => {
+    const tree = analyze("function f(a = 1) { function g() {} }");
+    expect(tree.hoistedFunctionOf.size).toBe(0);
+  });
+});
+
+describe("the arguments binding", () => {
+  it("is declared in a function that reads it, and not in an arrow", () => {
+    const tree = analyze("function f() { return () => arguments; }");
+    const f = fnScope(tree, "f");
+    expect(variable(f, "arguments").kind).toBe("arguments");
+    expect(f.argumentsVariable).toBe(variable(f, "arguments"));
+    expect(variable(f, "arguments").captured).toBe(true);
+    expect(tree.scopes.find((s) => s.node.type === "ArrowFunctionExpression")?.variables).toEqual([]);
+  });
+
+  it("is not created for a function that never reads it", () => {
+    const f = fnScope(analyze("function f() { return 1; }"), "f");
+    expect(f.argumentsVariable).toBeNull();
+    expect(f.variables.some((v) => v.name === "arguments")).toBe(false);
+  });
+
+  it("belongs to the wrapper at the top level", () => {
+    const tree = analyze("arguments;");
+    expect(tree.root.argumentsVariable?.kind).toBe("arguments");
+  });
+
+  it("is shadowed by a parameter or a lexical declaration of the same name", () => {
+    expect(fnScope(analyze("function f(arguments) { return arguments; }"), "f").argumentsVariable).toBeNull();
+    expect(fnScope(analyze("function f() { let arguments = 1; return arguments; }"), "f").argumentsVariable).toBeNull();
+  });
+
+  it("is the var of that name in the function scope, and a parameter expression still sees the implicit one", () => {
+    const tree = analyze("function f() { var arguments = 1; return arguments; } function g(x = arguments) { let arguments; }");
+    expect(fnScope(tree, "f").argumentsVariable).toBe(variable(fnScope(tree, "f"), "arguments"));
+    const g = fnScope(tree, "g");
+    expect(g.argumentsVariable?.kind).toBe("arguments");
+    expect(g.argumentsVariable?.scope).toBe(g);
+  });
 });

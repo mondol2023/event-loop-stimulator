@@ -45,6 +45,33 @@ describe("Array.prototype", () => {
     expect(out("const g = [1, 2]; let n = 0; g.forEach(() => { n++; g.push(0); }); console.log(n, g.length);")).toBe("2 4\n");
   });
 
+  it("sort calls the comparison function in TimSort's order (binary insertion for short arrays)", () => {
+    const source = "const log = []; [5, 1, 4, 2, 3, 9, 7, 8, 6, 0].sort(function (x, y) { log.push(x + ':' + y); return x - y; }); console.log(log.toString());";
+    expect(out(source)).toBe("1:5,4:1,4:5,4:1,2:4,2:1,3:4,3:2,9:3,9:5,7:4,7:9,7:5,8:4,8:7,8:9,6:5,6:8,6:7,0:5,0:3,0:2,0:1\n");
+  });
+
+  it("sort puts undefined last and drops holes to the end; the default order compares strings", () => {
+    expect(out("const b = [3, , undefined, 1, , 2]; b.sort(); console.log(b, b.length);")).toBe("[ 1, 2, 3, undefined, <2 empty items> ] 6\n");
+    expect(out("console.log([10, 9, 1, 100].sort(), ['b', undefined, 'a'].sort(), [2, 1].sort(function () { return NaN; }));")).toBe("[ 1, 10, 100, 9 ] [ 'a', 'b', undefined ] [ 2, 1 ]\n");
+  });
+
+  it("sort refuses a comparison function that is not one, and unwinds a throwing one", () => {
+    expect(out("try { [1].sort(1); } catch (e) { console.log(e.message); }")).toBe("The comparison function must be either a function or undefined: 1\n");
+    expect(out("try { [2, 1].sort(function () { throw new Error('x'); }); } catch (e) { console.log(e.message); }")).toBe("x\n");
+  });
+
+  it("sort stops for 64 elements or more, where TimSort starts merging runs", () => {
+    expect(() => runSource("Array(64).sort();")).not.toThrow();
+    const attempt = () => runSource("const a = []; for (let i = 0; i < 64; i++) a.push(63 - i); a.sort();");
+    expect(attempt).toThrow(SimulationHalt);
+  });
+
+  it("concat spreads array arguments, keeps holes and adds other values as elements", () => {
+    expect(out("console.log([1].concat(2, [3, [4]]), [1, 2, , 3].concat([, 5]), [].concat().length);")).toBe(
+      "[ 1, 2, 3, [ 4 ] ] [ 1, 2, <1 empty item>, 3, <1 empty item>, 5 ] 0\n",
+    );
+  });
+
   it("stops with the work limit instead of spinning over a huge holey array", () => {
     const attempt = () => runSource("const a = []; a.length = 4294967295; a.forEach(() => {});");
     expect(attempt).toThrow(SimulationHalt);

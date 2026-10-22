@@ -41,7 +41,8 @@ describe("excluded syntax: one diagnostic over the offending token, with a hint"
     { name: "destructuring assignment", source: "let a; [a] = [1];", code: "E_NOT_YET_SUPPORTED", token: "[a]" },
     { name: "spread", source: "f(...[1]);", code: "E_NOT_YET_SUPPORTED", token: "...[1]" },
     { name: "rest parameter", source: "function f(...r) {}", code: "E_NOT_YET_SUPPORTED", token: "...r" },
-    { name: "arguments", source: "function f() { return arguments; }", code: "E_NOT_YET_SUPPORTED", token: "arguments" },
+    { name: "arguments of a sloppy function with parameters", source: "function f(a) { return arguments; }", code: "E_NOT_YET_SUPPORTED", token: "arguments" },
+    { name: "arguments read by an arrow of such a function", source: "function f(a) { return () => arguments; }", code: "E_NOT_YET_SUPPORTED", token: "arguments" },
     { name: "instanceof", source: "a instanceof b;", code: "E_NOT_YET_SUPPORTED", token: "instanceof" },
     { name: "in", source: "'a' in b;", code: "E_NOT_YET_SUPPORTED", token: "in" },
     { name: "with", source: "with (a) {}", code: "E_NOT_YET_SUPPORTED", token: "with" },
@@ -64,6 +65,18 @@ describe("excluded syntax: one diagnostic over the offending token, with a hint"
     { name: "__proto__ literal key", source: "({ __proto__: null });", code: "E_EXCLUDED_FEATURE", token: "__proto__" },
   ];
   for (const c of cases) it(c.name, () => expectSingle(c));
+
+  it("accepts the arguments object that needs no parameter aliasing", () => {
+    for (const source of [
+      "function f() { return arguments; }",
+      "function f(a) { 'use strict'; return arguments; }",
+      "function f(a = 1) { return arguments; }",
+      "function f() { return () => arguments; }",
+      "'use strict'; arguments;",
+    ]) {
+      expect(diagnose(source), source).toEqual([]);
+    }
+  });
 
   it("a class reports once, not once per member", () => {
     expect(diagnose("class A { a() {} b() { switch (1) {} } }")).toHaveLength(1);

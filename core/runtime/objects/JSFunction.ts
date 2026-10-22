@@ -6,7 +6,7 @@ import type { Realm } from "../Realm";
 import type { JSValue } from "../values/JSValue";
 import type { Context } from "./Context";
 import { FeedbackCell } from "./FeedbackCell";
-import { JSObject } from "./JSObject";
+import { JSObject, type NamedEntry } from "./JSObject";
 import type { V8Map } from "./V8Map";
 
 /** A builtin: runs on the host, called with the receiver and the arguments of the call. */
@@ -28,19 +28,29 @@ export interface JSFunctionInit {
   readonly hiddenFromStackTrace?: boolean;
   /** What a builtin closure keeps alive (its captured variables); the modeled GC follows them. */
   readonly captures?: readonly unknown[];
+  /** [[BoundTargetFunction]] of a bound function. */
+  readonly boundTarget?: JSFunction | undefined;
 }
 
 /** V8's JSFunction: a closure over a Context (user code) or a builtin. `name` and `length` are ordinary properties. */
 export class JSFunction extends JSObject {
   readonly code: BytecodeFunction | undefined;
   readonly native: NativeFunction | undefined;
-  /** Present only on constructors; user functions are not constructible (the validator refuses `new F`). */
+  /** A builtin constructor's [[Construct]]; a user function is constructed by the interpreter (see `isConstructor`). */
   readonly construct: NativeConstruct | undefined;
   readonly context: Context;
   readonly kind: FunctionKind;
   readonly feedbackCell: FeedbackCell;
   readonly hiddenFromStackTrace: boolean;
   readonly captures: readonly unknown[];
+  readonly boundTarget: JSFunction | undefined;
+  /**
+   * V8 allocates a function's `prototype` object on first use. The property exists from the start,
+   * holding `undefined`; the first read of it runs this, which stores the real object.
+   */
+  materializePrototype: ((fn: JSFunction) => void) | undefined;
+  /** The Map of the objects `new F` makes (`JSFunction::initial_map`), made on the first construct. */
+  initialMap: V8Map | undefined;
 
   constructor(id: ObjectId, map: V8Map, prototype: JSObject | null, init: JSFunctionInit) {
     super(id, map, prototype);
@@ -52,9 +62,24 @@ export class JSFunction extends JSObject {
     this.feedbackCell = init.feedbackCell ?? new FeedbackCell();
     this.hiddenFromStackTrace = init.hiddenFromStackTrace ?? false;
     this.captures = init.captures ?? [];
+    this.boundTarget = init.boundTarget;
   }
 
   override get isCallable(): boolean {
     return true;
+  }
+
+  /** IsConstructor: a builtin constructor, or a user function that is neither an arrow, a method nor async. */
+  get isConstructor(): boolean {
+    return this.construct !== undefined || (this.code?.constructable ?? false);
+  }
+
+  override getOwnNamed(key: string): NamedEntry | undefined {
+    if (key === "prototype" && this.materializePrototype) {
+      const materialize = this.materializePrototype;
+      this.materializePrototype = undefined;
+      materialize(this);
+    }
+    return super.getOwnNamed(key);
   }
 }

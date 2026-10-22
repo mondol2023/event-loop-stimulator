@@ -65,7 +65,7 @@ Every row below is refused with the code shown. `E_NOT_YET_SUPPORTED` means "cou
 | labeled statements | `E_NOT_YET_SUPPORTED` | Restructure the loops, or use a flag variable or an early `return`. |
 | destructuring patterns | `E_NOT_YET_SUPPORTED` | Read each property or element with `obj.name` / `arr[0]` into its own variable. |
 | spread and rest (`...`) | `E_NOT_YET_SUPPORTED` | Pass arguments explicitly, and copy arrays or objects with a loop. |
-| `arguments` | `E_NOT_YET_SUPPORTED` | Name the parameters you need. |
+| `arguments` of a sloppy function with parameters | `E_NOT_YET_SUPPORTED` | Name the parameters you need, or add 'use strict' to the function. |
 | `instanceof` | `E_NOT_YET_SUPPORTED` | Check a property you set yourself, or use `typeof`. |
 | `in` | `E_NOT_YET_SUPPORTED` | Compare the property with `undefined`, or look it up in `Object.keys(obj)`. |
 | `with` | `E_NOT_YET_SUPPORTED` | Refer to the object's properties explicitly. |
