@@ -74,7 +74,7 @@ export function ToNumeric(realm: SpecRealm, v: JSValue): Completion<number> {
   return ToNumber(realm, v);
 }
 
-function primitiveToString(v: Exclude<JSValue, HeapObject>): string {
+export function primitiveToString(v: Exclude<JSValue, HeapObject>): string {
   return String(v);
 }
 

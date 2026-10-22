@@ -1,17 +1,19 @@
 import { CompilationManager, type Language } from "@/core/compile/CompilationManager";
-import { DETACHED_HOST, NodeEventLoop } from "@/core/host/NodeEventLoop";
-import { IgnitionInterpreter } from "@/core/interpreter/IgnitionInterpreter";
-import { Realm } from "@/core/runtime/Realm";
 import type { Diagnostic } from "@/core/shared/diagnostics";
-import { SimulationHalt, type SimulationStop } from "@/core/shared/simulationHalt";
-import { stopNotice, TickLimiter } from "./limits";
+import type { SimulationStop } from "@/core/shared/simulationHalt";
+import { SimulationEngine } from "./SimulationEngine";
+import type { Tick } from "./Tick";
 
 // The whole pipeline for one program: compile, then run it on a fresh realm under Node's event
-// loop (core/host/NodeEventLoop), which also prints uncaught exceptions and unhandled rejections.
-// No ticks or timeline yet (Tasks 19 and 20).
+// loop (core/host/NodeEventLoop), which also prints uncaught exceptions and unhandled rejections,
+// and record the timeline (SimulationEngine).
 
-/** Test-only host modes (D7) arrive with the test262 harness; only Node is modeled so far. */
-export type SimulationOptions = { readonly host?: "node" };
+/**
+ * `host` is a test-only mode (D7): only Node is modeled so far. `record: false` runs without
+ * building ticks and narration (the conformance suites compare output only); the run, its output
+ * and where it stops are identical either way, which the exactness firewall tests prove.
+ */
+export type SimulationOptions = { readonly host?: "node"; readonly record?: boolean };
 
 export type SimulationResult = {
   readonly diagnostics: Diagnostic[];
@@ -25,29 +27,22 @@ export type SimulationResult = {
    * the process never exited: `stop` is what says the run is incomplete.
    */
   readonly stop?: SimulationStop;
+  /** The timeline: one Tick per step (empty when the program was refused or `record` is false). */
+  readonly ticks: readonly Tick[];
+  /** How many ticks the run made, recorded or not. */
+  readonly tickCount: number;
 };
 
 /** A refused program: `<code>: <message>` lines and exit code 1 (D1, the test262 contract's format). */
 function refused(diagnostics: Diagnostic[]): SimulationResult {
-  const stderr = diagnostics.map((d) => `${d.code}: ${d.message}\n`).join("");
-  return { diagnostics, stdout: "", stderr, exitCode: 1, warnings: [] };
+  const stderr = diagnostics.map((d) => `${d.code}: ${d.message}
+`).join("");
+  return { diagnostics, stdout: "", stderr, exitCode: 1, warnings: [], ticks: [], tickCount: 0 };
 }
 
 export function simulate(source: string, lang: Language, opts: SimulationOptions = {}): SimulationResult {
   if ((opts.host ?? "node") !== "node") throw new Error(`host mode ${String(opts.host)} is not modeled yet`);
   const compiled = new CompilationManager().compile(source, lang);
-  const program = compiled.program;
-  if (!program) return refused(compiled.diagnostics);
-
-  const realm = new Realm(DETACHED_HOST);
-  const observer = new TickLimiter(program);
-  const interpreter = new IgnitionInterpreter(program, realm, observer);
-  const loop = new NodeEventLoop(realm, interpreter, observer);
-  try {
-    const { exitCode } = loop.run();
-    return { diagnostics: [], stdout: loop.stdout, stderr: loop.stderr, exitCode, warnings: [...loop.warnings] };
-  } catch (e) {
-    if (!(e instanceof SimulationHalt)) throw e;
-    return { diagnostics: [], stdout: loop.stdout, stderr: loop.stderr, exitCode: 0, warnings: [...loop.warnings, stopNotice(e.stop)], stop: e.stop };
-  }
+  if (!compiled.program) return refused(compiled.diagnostics);
+  return new SimulationEngine().run(compiled.program, opts);
 }

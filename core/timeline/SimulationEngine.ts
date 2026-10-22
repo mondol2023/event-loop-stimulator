@@ -1,0 +1,41 @@
+import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
+import { DETACHED_HOST, NodeEventLoop } from "@/core/host/NodeEventLoop";
+import { IgnitionInterpreter, type StepObserver } from "@/core/interpreter/IgnitionInterpreter";
+import { Realm } from "@/core/runtime/Realm";
+import { SimulationHalt } from "@/core/shared/simulationHalt";
+import { stopNotice, TickLimiter } from "./limits";
+import type { SimulationOptions, SimulationResult } from "./simulate";
+import { TickRecorder } from "./TickRecorder";
+
+// Runs a compiled program on a fresh realm under Node's event loop and, unless asked not to,
+// records its timeline. This is the only place a SimulationHalt is caught: a limit or an
+// unsupported behavior ends the run with what it printed so far (Decision D3).
+
+export class SimulationEngine {
+  run(program: BytecodeProgram, opts: SimulationOptions = {}): SimulationResult {
+    const realm = new Realm(DETACHED_HOST);
+    const recorder = opts.record === false ? undefined : new TickRecorder(program);
+    const limiter = recorder ? undefined : new TickLimiter(program);
+    const observer: StepObserver = recorder ?? limiter ?? { onCommand: () => undefined };
+    const interpreter = new IgnitionInterpreter(program, realm, observer);
+    const loop = new NodeEventLoop(realm, interpreter, observer);
+    recorder?.attach({ interpreter, realm, host: () => loop.view(), warnings: () => loop.warnings });
+    const base = { diagnostics: [], ticks: recorder?.ticks ?? [] };
+    const counted = (): number => recorder?.tickCount ?? limiter?.ticks ?? 0;
+    try {
+      const { exitCode } = loop.run();
+      return { ...base, stdout: loop.stdout, stderr: loop.stderr, exitCode, warnings: [...loop.warnings], tickCount: counted() };
+    } catch (e) {
+      if (!(e instanceof SimulationHalt)) throw e;
+      return {
+        ...base,
+        stdout: loop.stdout,
+        stderr: loop.stderr,
+        exitCode: 0,
+        warnings: [...loop.warnings, stopNotice(e.stop)],
+        stop: e.stop,
+        tickCount: counted(),
+      };
+    }
+  }
+}

@@ -6,6 +6,17 @@ import type { ElementsKind } from "./ElementsKind";
 // V8 mutates too: a field's representation, its transition table and the deprecated bit. Those
 // are changed only by `TransitionTree`.
 
+/**
+ * Counts the in-place changes a Map can undergo (a field's representation, the deprecated bit).
+ * The timeline compares it, with the number of Maps, to know when its snapshots of them are stale.
+ * It is a cache key and nothing else: it never influences a run.
+ */
+let mutationEpoch = 0;
+
+export function mapMutationEpoch(): number {
+  return mutationEpoch;
+}
+
 /** Field representations (src/objects/property-details.h Representation). */
 export type Representation = "Smi" | "Double" | "HeapObject" | "Tagged";
 
@@ -61,6 +72,7 @@ export class FieldDescriptor {
   /** In-place generalization (`Map::GeneralizeField` when the change needs no migration). */
   generalizeInPlace(representation: Representation): void {
     this.#representation = representation;
+    mutationEpoch += 1;
   }
 }
 
@@ -114,6 +126,7 @@ export class V8Map {
   /** Tree-internal: `Map::DeprecateTransitionTree`. */
   markDeprecated(): void {
     this.#deprecated = true;
+    mutationEpoch += 1;
   }
 
   /** Index of a named field in the descriptor array, or -1. */

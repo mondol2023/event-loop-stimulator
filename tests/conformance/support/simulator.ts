@@ -28,7 +28,7 @@ export const SIMULATOR: Simulator | undefined = undefined;
 
 /** One run of `core/timeline/simulate`, in the shape the comparison reads. */
 export function simulatorRun(fixture: { readonly source: string; readonly lang: "js" | "ts" }): SimOutput {
-  const r = simulate(fixture.source, fixture.lang);
+  const r = simulate(fixture.source, fixture.lang, { record: false });
   const out = { stdout: r.stdout, stderr: r.stderr, exitCode: r.exitCode, warnings: r.warnings };
   if (!r.stop) return out;
   return { ...out, stop: { kind: r.stop.kind, detail: r.stop.kind === "limit" ? r.stop.limit : r.stop.reason } };

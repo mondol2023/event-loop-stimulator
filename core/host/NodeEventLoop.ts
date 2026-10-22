@@ -9,7 +9,9 @@ import { positionOf } from "@/core/runtime/stack";
 import type { JSValue } from "@/core/runtime/values/JSValue";
 import { sourceRangeForPos } from "@/core/views/types";
 import { printUncaught, printUnhandledRejection } from "./errorPrinter";
-import { NextTickQueue } from "./nextTick";
+import type { ConsoleLine, HostEntry } from "@/core/timeline/Tick";
+import type { LoopPhase, TaskRef } from "@/core/timeline/Command";
+import { NextTickQueue, tickRef } from "./nextTick";
 import { type EntryPoint, type RunNextTicksCaller, unhandledRejectionFrames } from "./nodeFrames";
 import { installNodeGlobals } from "./nodeGlobals";
 import { NondeterminismWatch } from "./nondeterminism";
@@ -25,7 +27,17 @@ import { type ProcessWarning, ProcessWarnings } from "./warnings";
 // runNextTicks, src/api/callback.cc InternalCallbackScope::Close), and only then are unhandled
 // rejections checked (lib/internal/process/promises.js).
 
-export type LoopPhase = "timers" | "pending" | "poll" | "check" | "close";
+export type { LoopPhase };
+
+/** What the timeline reads from the host between two commands. Read-only: nothing here changes the run. */
+export type HostView = {
+  readonly nextTickQueue: readonly TaskRef[];
+  readonly timerQueue: readonly TaskRef[];
+  readonly immediateQueue: readonly TaskRef[];
+  readonly hostApis: readonly HostEntry[];
+  readonly console: readonly ConsoleLine[];
+  readonly virtualTimeMs: number;
+};
 
 /** The host a realm starts with before its loop exists: using it is a programmer error. */
 export const DETACHED_HOST: HostHooks = {
@@ -42,7 +54,7 @@ export class NodeEventLoop implements HostHooks {
   readonly #interp: IgnitionInterpreter;
   readonly #observer: StepObserver;
   readonly #clock = new VirtualClock();
-  readonly #ticks = new NextTickQueue();
+  readonly #ticks: NextTickQueue;
   readonly #rejections = new PromiseRejections();
   readonly #processWarnings = new ProcessWarnings();
   readonly #nondeterminism = new NondeterminismWatch();
@@ -52,11 +64,13 @@ export class NodeEventLoop implements HostHooks {
   #entry: EntryPoint = "main";
   /** The process ended on an uncaught exception or an unhandled rejection. */
   #died = false;
+  readonly #consoleLines: ConsoleLine[] = [];
   stdout = "";
   stderr = "";
 
   constructor(realm: Realm, interp: IgnitionInterpreter, observer: StepObserver) {
     this.#realm = realm;
+    this.#ticks = new NextTickQueue(realm.taskIds);
     this.#interp = interp;
     this.#observer = observer;
     this.#timers = new NodeTimers(realm, this.#clock, (warning) => this.#emitWarning(warning));
@@ -69,6 +83,35 @@ export class NodeEventLoop implements HostHooks {
     return this.#nondeterminism.warnings;
   }
 
+  /** The queues, timers and console as the timeline shows them. */
+  view(): HostView {
+    const timeouts = this.#timers.pendingTimeouts();
+    const immediates = this.#timers.pendingImmediates();
+    const timerRefs = timeouts.map((t) => this.#timers.timeoutRef(t));
+    const immediateRefs = immediates.map((i) => this.#timers.immediateRef(i));
+    return {
+      nextTickQueue: this.#ticks.pending().map(tickRef),
+      timerQueue: timerRefs,
+      immediateQueue: immediateRefs,
+      hostApis: [
+        ...timeouts.map(
+          (t, i): HostEntry => ({
+            id: t.id,
+            kind: timerRefs[i]?.kind === "interval" ? "interval" : "timeout",
+            label: timerRefs[i]?.label ?? "",
+            dueMs: t.idleStart + t.idleTimeout,
+            refed: t.refed,
+          }),
+        ),
+        ...immediates.map(
+          (im, i): HostEntry => ({ id: im.id, kind: "immediate", label: immediateRefs[i]?.label ?? "", dueMs: null, refed: im.refed === true }),
+        ),
+      ],
+      console: this.#consoleLines,
+      virtualTimeMs: this.#clock.now(),
+    };
+  }
+
   // ---- HostHooks ----
 
   /**
@@ -78,8 +121,11 @@ export class NodeEventLoop implements HostHooks {
    * processTicksAndRejections, which shows in stack traces (probed).
    */
   write(stream: ConsoleStream, text: string): void {
-    if (stream === "stdout") this.stdout += text;
-    else this.stderr += text;
+    this.#writeFrom("console", stream, text);
+  }
+
+  #writeFrom(origin: ConsoleLine["origin"], stream: ConsoleStream, text: string): void {
+    this.#print(stream, text, origin);
     if (this.#afterWritePending[stream]) return;
     this.#afterWritePending[stream] = true;
     this.#ticks.push({
@@ -89,6 +135,13 @@ export class NodeEventLoop implements HostHooks {
         this.#afterWritePending[stream] = false;
       },
     });
+  }
+
+  /** Appends to a stream and to the timeline's console. */
+  #print(stream: ConsoleStream, text: string, origin: ConsoleLine["origin"]): void {
+    if (stream === "stdout") this.stdout += text;
+    else this.stderr += text;
+    this.#consoleLines.push({ stream, text, origin });
   }
 
   entryPoint(): EntryPoint {
@@ -101,23 +154,39 @@ export class NodeEventLoop implements HostHooks {
 
   // ---- the run ----
 
-  /** The main script, its drain, then the loop until nothing is ref'd. */
+  /** The main script, its drain, then the loop until nothing is ref'd; the `exit` command ends the run. */
   run(): { exitCode: number } {
-    if (!this.#runMain()) return { exitCode: 1 };
+    const exitCode = this.#loop() ? 0 : 1;
+    this.#observer.onCommand({ kind: "exit", code: exitCode });
+    return { exitCode };
+  }
+
+  #loop(): boolean {
+    if (!this.#runMain()) return false;
     // uv_run(UV_RUN_DEFAULT): the timers run once before the first iteration.
     let alive = this.#alive();
     if (alive) {
       this.#nondeterminism.loopStarts(this.#timers.lists(), this.#timers.hasImmediates, this.#clock.now());
-      if (!this.#timersPhase()) return { exitCode: 1 };
+      this.#enterPhase("timers");
+      if (!this.#timersPhase()) return false;
     }
     while (alive) {
+      this.#enterPhase("poll");
       this.#poll();
-      if (!this.#checkPhase()) return { exitCode: 1 };
+      this.#enterPhase("check");
+      if (!this.#checkPhase()) return false;
       // The close phase has nothing to close (no handles in the subset); then the clock and the timers.
-      if (!this.#timersPhase()) return { exitCode: 1 };
+      this.#enterPhase("close");
+      this.#enterPhase("timers");
+      if (!this.#timersPhase()) return false;
       alive = this.#alive();
     }
-    return { exitCode: 0 };
+    return true;
+  }
+
+  /** The loop moves on to a phase (the `pending` phase has no work in the subset and is not reported). */
+  #enterPhase(phase: LoopPhase): void {
+    this.#observer.onCommand({ kind: "loop-phase", phase });
   }
 
   #runMain(): boolean {
@@ -155,14 +224,24 @@ export class NodeEventLoop implements HostHooks {
   }
 
   readonly #timerLoop: TimerLoop = {
-    invoke: (callback: JSFunction, receiver: JSValue, args: readonly JSValue[], entry: "timer" | "immediate"): Completion =>
-      this.#call(callback, receiver, args, entry),
+    invoke: (task: TaskRef, callback: JSFunction, receiver: JSValue, args: readonly JSValue[], entry: "timer" | "immediate"): Completion =>
+      this.#task(entry === "timer" ? "timers" : "check", task, () => this.#call(callback, receiver, args, entry)),
     uncaught: (exception: JSValue) => {
       this.#uncaught(exception);
     },
     runNextTicks: (within: RunNextTicksCaller) => this.#runNextTicks(within),
     listReArmed: (list: TimersList, others: readonly TimersList[]) => this.#nondeterminism.listReArmed(list, others),
   };
+
+  /** Runs one task between its job-start and job-end commands. */
+  #task<T>(queue: "nextTick" | "timers" | "check", task: TaskRef, body: () => T): T {
+    this.#observer.onCommand({ kind: "job-start", queue, task });
+    try {
+      return body();
+    } finally {
+      this.#observer.onCommand({ kind: "job-end", task });
+    }
+  }
 
   #call(fn: JSFunction, receiver: JSValue, args: readonly JSValue[], entry: EntryPoint): Completion {
     this.#entry = entry;
@@ -196,10 +275,10 @@ export class NodeEventLoop implements HostHooks {
     do {
       for (let tick = this.#ticks.shift(); tick; tick = this.#ticks.shift()) {
         if (tick.kind === "internal") {
-          tick.run();
+          this.#task("nextTick", tickRef(tick), () => tick.run());
           continue;
         }
-        const done = this.#call(tick.callback, undefined, tick.args, at("nextTick"));
+        const done = this.#task("nextTick", tickRef(tick), () => this.#call(tick.callback, undefined, tick.args, at("nextTick")));
         if (done.type === "throw") return this.#uncaught(done.value);
       }
       if (!this.#runMicrotasks(at("microtask"))) return false;
@@ -218,7 +297,7 @@ export class NodeEventLoop implements HostHooks {
   #processPromiseRejections(within: RunNextTicksCaller | undefined): boolean {
     const unhandled = this.#rejections.takeFirstUnhandled();
     if (!unhandled) return false;
-    this.stderr += printUnhandledRejection(unhandled.reason, this.#printContext(), unhandledRejectionFrames(within));
+    this.#print("stderr", printUnhandledRejection(unhandled.reason, this.#printContext(), unhandledRejectionFrames(within)), "node");
     this.#died = true;
     return false;
   }
@@ -238,7 +317,7 @@ export class NodeEventLoop implements HostHooks {
     this.#ticks.push({
       kind: "internal",
       label: `emit ${warning.name}`,
-      run: () => this.write("stderr", this.#processWarnings.emit(warning)),
+      run: () => this.#writeFrom("node", "stderr", this.#processWarnings.emit(warning)),
     });
   }
 
@@ -251,7 +330,7 @@ export class NodeEventLoop implements HostHooks {
     const program = this.#interp.program;
     const message = this.#interp.pendingMessage;
     const range = message ? sourceRangeForPos(program, message.pos) : undefined;
-    this.stderr += printUncaught(exception, { ...this.#printContext(), throwPosition: positionOf(program.source, range?.start ?? 0) });
+    this.#print("stderr", printUncaught(exception, { ...this.#printContext(), throwPosition: positionOf(program.source, range?.start ?? 0) }), "node");
     this.#died = true;
     return false;
   }

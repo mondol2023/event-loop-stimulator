@@ -2,6 +2,8 @@ import type { Completion } from "@/core/interpreter/Completion";
 import { isThrow, normal } from "@/core/interpreter/Completion";
 import type { StepObserver } from "@/core/interpreter/IgnitionInterpreter";
 import type { TaskId } from "@/core/shared/ids";
+import type { TaskRef } from "@/core/timeline/Command";
+import type { TaskIds } from "./TaskIds";
 
 // V8's MicrotaskQueue (src/execution/microtask-queue.h): one FIFO of jobs shared by promise
 // reactions, thenable adoption and queueMicrotask. A job queued while draining goes to the back
@@ -16,17 +18,25 @@ export interface Job {
   run(): Completion;
   /** What the narration says about this job. */
   readonly label: string;
+  /** The abstract operation or API that queued it (`PerformPromiseThen`, `queueMicrotask`). */
+  readonly origin: string;
 }
 
 export type JobSpec = Omit<Job, "id">;
 
+/** The timeline's name for a job. */
+export function taskRefOf(job: Job): TaskRef {
+  return { id: job.id, kind: job.kind, label: job.label, origin: job.origin };
+}
+
 export class MicrotaskQueue {
   readonly #jobs: Job[] = [];
   #head = 0;
-  #nextId = 1;
+  readonly #ids: TaskIds;
   readonly #onEnqueue: ((job: Job) => void) | undefined;
 
-  constructor(onEnqueue?: (job: Job) => void) {
+  constructor(ids: TaskIds, onEnqueue?: (job: Job) => void) {
+    this.#ids = ids;
     this.#onEnqueue = onEnqueue;
   }
 
@@ -34,10 +44,15 @@ export class MicrotaskQueue {
     return this.#jobs.length - this.#head;
   }
 
+  /** The jobs that have not started, in the order they will run. */
+  pending(): readonly Job[] {
+    return this.#jobs.slice(this.#head);
+  }
+
   enqueue(spec: JobSpec): Job {
-    const job: Job = { id: this.#nextId as TaskId, ...spec };
-    this.#nextId += 1;
+    const job: Job = { id: this.#ids.next(), ...spec };
     this.#jobs.push(job);
+    this.#ids.record(taskRefOf(job));
     this.#onEnqueue?.(job);
     return job;
   }
@@ -51,9 +66,10 @@ export class MicrotaskQueue {
     while (this.#head < this.#jobs.length) {
       const job = this.#jobs[this.#head++];
       if (!job) break;
-      observer.onCommand({ kind: "job-start", jobId: job.id, jobKind: job.kind, label: job.label });
+      const task = taskRefOf(job);
+      observer.onCommand({ kind: "job-start", queue: "microtask", task });
       const done = job.run();
-      observer.onCommand({ kind: "job-end", jobId: job.id });
+      observer.onCommand({ kind: "job-end", task });
       if (isThrow(done)) return done;
     }
     // The consumed prefix is dropped once the queue is empty, so a long run does not keep it alive.

@@ -4,7 +4,8 @@ import { simulate } from "./simulate";
 describe("simulate", () => {
   it("runs a synchronous program to completion", () => {
     const r = simulate("console.log(1 + 2 * 3); console.error('e');", "js");
-    expect(r).toEqual({ diagnostics: [], stdout: "7\n", stderr: "e\n", exitCode: 0, warnings: [] });
+    expect(r.ticks.length).toBeGreaterThan(0);
+    expect({ ...r, ticks: [] }).toEqual({ diagnostics: [], stdout: "7\n", stderr: "e\n", exitCode: 0, warnings: [], ticks: [], tickCount: r.ticks.length });
   });
 
   it("refuses a program with diagnostics as `<code>: <message>` lines and exit code 1", () => {

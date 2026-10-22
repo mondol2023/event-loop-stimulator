@@ -3,6 +3,7 @@ import { typeNameOf } from "@/core/interpreter/callSites";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import { formatMessage } from "../messages";
 import { JSArray } from "../objects/JSArray";
+import { displayName } from "../objects/functionName";
 import { JSFunction } from "../objects/JSFunction";
 import { JSObject } from "../objects/JSObject";
 import { JSPromise, type PromiseCapability, type PromiseReaction } from "../objects/JSPromise";
@@ -126,14 +127,22 @@ export function RejectPromise(realm: Realm, promise: JSPromise, reason: JSValue)
 }
 
 export function TriggerPromiseReactions(realm: Realm, reactions: readonly PromiseReaction[], argument: JSValue): void {
-  for (const reaction of reactions) realm.microtasks.enqueue(NewPromiseReactionJob(realm, reaction, argument));
+  for (const reaction of reactions) realm.microtasks.enqueue(NewPromiseReactionJob(realm, reaction, argument, "TriggerPromiseReactions"));
+}
+
+/** What the timeline shows for a reaction job: the handler, or the await it resumes. */
+function reactionLabel(reaction: PromiseReaction): string {
+  if (!reaction.capability) return "await continuation";
+  const which = reaction.type === "fulfill" ? "then" : "catch";
+  return reaction.handler ? `${which}(${displayName(reaction.handler)})` : `${which} pass-through`;
 }
 
 /** NewPromiseReactionJob: run the handler, then settle the derived promise with its result or its throw. */
-export function NewPromiseReactionJob(realm: Realm, reaction: PromiseReaction, argument: JSValue): JobSpec {
+export function NewPromiseReactionJob(realm: Realm, reaction: PromiseReaction, argument: JSValue, origin: string): JobSpec {
   return {
     kind: "PromiseReactionJob",
-    label: reaction.type === "fulfill" ? "fulfilled reaction" : "rejected reaction",
+    label: reactionLabel(reaction),
+    origin,
     run() {
       const { capability, handler, type } = reaction;
       const handlerResult: Completion = handler
@@ -162,6 +171,7 @@ export function NewPromiseResolveThenableJob(realm: Realm, promise: JSPromise, t
   return {
     kind: "PromiseResolveThenableJob",
     label: "adopt thenable",
+    origin: "Resolving a promise with a thenable",
     run() {
       const { resolve, reject } = CreateResolvingFunctions(realm, promise);
       if (thenable instanceof JSPromise && then === realm.promise.then) {
@@ -202,12 +212,12 @@ export function PerformPromiseThen(
       promise.rejectReactions.push(rejectReaction);
       break;
     case "fulfilled":
-      realm.microtasks.enqueue(NewPromiseReactionJob(realm, fulfillReaction, promise.result));
+      realm.microtasks.enqueue(NewPromiseReactionJob(realm, fulfillReaction, promise.result, "PerformPromiseThen"));
       break;
     case "rejected":
       // HostPromiseRejectionTracker(promise, "handle"): a rejection nobody listened to now has a listener.
       if (!promise.isHandled) realm.host.promiseRejectionTracker?.(promise, "handle");
-      realm.microtasks.enqueue(NewPromiseReactionJob(realm, rejectReaction, promise.result));
+      realm.microtasks.enqueue(NewPromiseReactionJob(realm, rejectReaction, promise.result, "PerformPromiseThen"));
       break;
     default:
       assertNever(promise.state);

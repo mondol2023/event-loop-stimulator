@@ -1,12 +1,15 @@
 import { type Completion, isThrow, normal } from "@/core/interpreter/Completion";
 import type { Realm } from "@/core/runtime/Realm";
+import { displayName } from "@/core/runtime/objects/functionName";
 import { JSFunction } from "@/core/runtime/objects/JSFunction";
 import { JSHostObject } from "@/core/runtime/objects/JSHostObject";
 import { JSObject } from "@/core/runtime/objects/JSObject";
 import { ToBoolean, ToNumber } from "@/core/runtime/spec/conversions";
 import { OrdinaryDefineOwnProperty, OrdinaryGet } from "@/core/runtime/spec/objectOps";
 import type { JSValue } from "@/core/runtime/values/JSValue";
+import type { TaskId } from "@/core/shared/ids";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
+import type { TaskRef } from "@/core/timeline/Command";
 import type { RunNextTicksCaller } from "./nodeFrames";
 import type { VirtualClock } from "./VirtualClock";
 import { type ProcessWarning, timeoutNaNWarning, timeoutNegativeWarning, timeoutOverflowWarning } from "./warnings";
@@ -20,6 +23,7 @@ export const TIMEOUT_MAX = 2 ** 31 - 1;
 
 /** A Timeout: its JS object (holding `_onTimeout`) and the fields the loop reads. */
 export class TimeoutRecord {
+  readonly id: TaskId;
   readonly object: JSHostObject;
   /** `_idleTimeout`: the delay, or -1 once unenrolled. */
   idleTimeout: number;
@@ -34,7 +38,8 @@ export class TimeoutRecord {
   /** The list it is linked into (`_idleNext`/`_idlePrev` non-null), or null. */
   list: TimersList | null = null;
 
-  constructor(object: JSHostObject, after: number, args: readonly JSValue[] | undefined, isRepeat: boolean) {
+  constructor(id: TaskId, object: JSHostObject, after: number, args: readonly JSValue[] | undefined, isRepeat: boolean) {
+    this.id = id;
     this.object = object;
     this.idleTimeout = after;
     this.repeat = isRepeat ? after : null;
@@ -59,6 +64,7 @@ export class TimersList {
 
 /** An Immediate: its JS object (holding `_onImmediate`) and its bookkeeping. */
 export class ImmediateRecord {
+  readonly id: TaskId;
   readonly object: JSHostObject;
   readonly args: readonly JSValue[] | undefined;
   destroyed = false;
@@ -67,7 +73,8 @@ export class ImmediateRecord {
   /** clearImmediate unlinked it from the queue. */
   cleared = false;
 
-  constructor(object: JSHostObject, args: readonly JSValue[] | undefined) {
+  constructor(id: TaskId, object: JSHostObject, args: readonly JSValue[] | undefined) {
+    this.id = id;
     this.object = object;
     this.args = args;
   }
@@ -76,7 +83,7 @@ export class ImmediateRecord {
 /** What the timers ask of the loop around each callback. */
 export interface TimerLoop {
   /** Calls a timer or immediate callback with the entry point set for its stack frames. */
-  invoke(callback: JSFunction, receiver: JSValue, args: readonly JSValue[], entry: "timer" | "immediate"): Completion;
+  invoke(task: TaskRef, callback: JSFunction, receiver: JSValue, args: readonly JSValue[], entry: "timer" | "immediate"): Completion;
   /** An exception escaped a callback: print it; the process exits. */
   uncaught(exception: JSValue): void;
   /** runNextTicks() between two callbacks; false when the process died in it. */
@@ -143,6 +150,30 @@ export class NodeTimers {
     return this.#immediates.length > 0;
   }
 
+  /** The pending timeouts in the order they will fire (lists by expiry then id, each list in insertion order). */
+  pendingTimeouts(): readonly TimeoutRecord[] {
+    return [...this.#queue].sort(compareLists).flatMap((list) => list.timers.filter((t) => !t.destroyed));
+  }
+
+  /** The immediates the next check phase will run, in order. */
+  pendingImmediates(): readonly ImmediateRecord[] {
+    return this.#immediates.filter((i) => !i.destroyed);
+  }
+
+  /** `setTimeout(callback, delay)` as the timeline names it (an interval says `setInterval`). */
+  timeoutRef(timer: TimeoutRecord): TaskRef {
+    const callback = OrdinaryGet(timer.object, "_onTimeout");
+    const name = callback instanceof JSFunction ? displayName(callback) : "(cleared)";
+    const kind = timer.repeat !== null ? "interval" : "timeout";
+    const api = kind === "interval" ? "setInterval" : "setTimeout";
+    return { id: timer.id, kind, label: `${api}(${name}, ${timer.repeat ?? timer.idleTimeout})`, origin: api };
+  }
+
+  immediateRef(immediate: ImmediateRecord): TaskRef {
+    const callback = OrdinaryGet(immediate.object, "_onImmediate");
+    return { id: immediate.id, kind: "immediate", label: `setImmediate(${callback instanceof JSFunction ? displayName(callback) : "(cleared)"})`, origin: "setImmediate" };
+  }
+
   // ---- the JS-visible API ----
 
   /** `setTimeout` / `setInterval`: new Timeout(...) then insert(). */
@@ -152,10 +183,11 @@ export class NodeTimers {
     if (isThrow(delay)) return delay;
     const object = this.#hostObject("Timeout", this.#timeoutProto());
     OrdinaryDefineOwnProperty(this.#realm, object, "_onTimeout", { value: callback, ...DATA });
-    const timer = new TimeoutRecord(object, delay.value, args.length > 0 ? args : undefined, isRepeat);
+    const timer = new TimeoutRecord(this.#realm.taskIds.next(), object, delay.value, args.length > 0 ? args : undefined, isRepeat);
     this.#timeouts.set(object, timer);
     this.refCount += 1;
     this.#insert(timer, timer.idleTimeout);
+    this.#realm.taskIds.record(this.timeoutRef(timer));
     return normal(object);
   }
 
@@ -175,10 +207,11 @@ export class NodeTimers {
     if (!(callback instanceof JSFunction)) notAFunction("setImmediate");
     const object = this.#hostObject("Immediate", this.#immediateProto());
     OrdinaryDefineOwnProperty(this.#realm, object, "_onImmediate", { value: callback, ...DATA });
-    const immediate = new ImmediateRecord(object, args.length > 0 ? args : undefined);
+    const immediate = new ImmediateRecord(this.#realm.taskIds.next(), object, args.length > 0 ? args : undefined);
     this.#immediateRecords.set(object, immediate);
     this.immediateRefCount += 1;
     this.#immediates.push(immediate);
+    this.#realm.taskIds.record(this.immediateRef(immediate));
     return normal(object);
   }
 
@@ -304,7 +337,7 @@ export class NodeTimers {
       }
       const start = timer.repeat !== null ? this.#clock.now() : undefined;
       if (!(onTimeout instanceof JSFunction)) throw new SimulationHalt({ kind: "unsupported", reason: "a Timeout whose _onTimeout is not a function" });
-      const done = loop.invoke(onTimeout, timer.object, timer.args ?? [], "timer");
+      const done = loop.invoke(this.timeoutRef(timer), onTimeout, timer.object, timer.args ?? [], "timer");
       // The `finally`: an interval re-arms from its callback's start time; a one-shot timeout is destroyed.
       if (timer.repeat !== null && timer.idleTimeout !== -1) {
         timer.idleTimeout = timer.repeat;
@@ -352,7 +385,7 @@ export class NodeTimers {
       immediate.refed = null;
       const callback = OrdinaryGet(immediate.object, "_onImmediate");
       if (!(callback instanceof JSFunction)) throw new SimulationHalt({ kind: "unsupported", reason: "an Immediate whose _onImmediate is not a function" });
-      const done = loop.invoke(callback, immediate.object, immediate.args ?? [], "immediate");
+      const done = loop.invoke(this.immediateRef(immediate), callback, immediate.object, immediate.args ?? [], "immediate");
       // The `finally` clears `_onImmediate` before an uncaught exception is reported.
       OrdinaryDefineOwnProperty(this.#realm, immediate.object, "_onImmediate", { value: null, ...DATA });
       i = next(i);

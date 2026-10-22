@@ -8,26 +8,22 @@ import type { StepObserver } from "@/core/interpreter/IgnitionInterpreter";
 import { LIMITS, SIMULATION_LIMIT_NOTICE } from "@/core/shared/limits";
 import { SimulationHalt, type SimulationStop } from "@/core/shared/simulationHalt";
 import type { Command } from "./Command";
+import { TickBoundary } from "./tickBoundary";
 
 export { LIMITS, SIMULATION_LIMIT_NOTICE, SimulationHalt };
 export type { SimulationLimit, SimulationStop } from "@/core/shared/simulationHalt";
 
 /**
  * Counts ticks and halts the run at the tick limit, so `while (true) {}` stops instead of
- * hanging. A tick is statement-level (the owner's ruling on the D4 gate: recursion-factorial
- * needs 28,491 dispatches): a dispatch at a statement position (the `S>` marks), a `JumpLoop`
- * back edge (so an empty loop body still ticks), the entry of a function, and a microtask job
- * start. Every other dispatch belongs to the statement it sits in. Task 19's TickRecorder takes
- * over the counting and adds the phase, GC and exit ticks.
+ * hanging. It is the observer of a run that records nothing; the TickRecorder counts the same
+ * ticks (see TickBoundary), so a run stops at the same place whether or not it is recorded.
  */
 export class TickLimiter implements StepObserver {
   #ticks = 0;
-  readonly #statements: readonly ReadonlySet<number>[];
+  readonly #boundary: TickBoundary;
 
   constructor(program: BytecodeProgram) {
-    this.#statements = program.functions.map(
-      (fn) => new Set(fn.positions.entries.filter((e) => e.kind === "statement").map((e) => e.offset)),
-    );
+    this.#boundary = new TickBoundary(program);
   }
 
   get ticks(): number {
@@ -35,15 +31,9 @@ export class TickLimiter implements StepObserver {
   }
 
   onCommand(c: Command): void {
-    if (c.kind === "job-end") return;
-    if (c.kind === "dispatch") {
-      const { functionId, bytecodeOffset } = c.pos;
-      const boundary =
-        bytecodeOffset === 0 || c.opcode === "JumpLoop" || this.#statements[functionId]?.has(bytecodeOffset) === true;
-      if (!boundary) return;
-    }
+    if (!this.#boundary.isTick(c)) return;
+    if (this.#ticks >= LIMITS.ticks) throw new SimulationHalt({ kind: "limit", limit: "ticks" });
     this.#ticks += 1;
-    if (this.#ticks > LIMITS.ticks) throw new SimulationHalt({ kind: "limit", limit: "ticks" });
   }
 }
 

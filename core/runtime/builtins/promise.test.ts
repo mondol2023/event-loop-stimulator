@@ -30,7 +30,7 @@ function thrown(completion: Completion): string {
 }
 
 function jobKinds(source: string): string[] {
-  return runSource(source).commands.flatMap((c) => (c.kind === "job-start" ? [c.jobKind] : []));
+  return runSource(source).commands.flatMap((c) => (c.kind === "job-start" ? [c.task.kind] : []));
 }
 
 describe("the Promise constructor", () => {
@@ -122,7 +122,7 @@ describe("jobs", () => {
     const { commands } = runSource(`queueMicrotask(() => {}); Promise.resolve().then(() => {});`);
     const jobs = commands.filter((c) => c.kind === "job-start" || c.kind === "job-end");
     expect(jobs.map((c) => c.kind)).toEqual(["job-start", "job-end", "job-start", "job-end"]);
-    const ids = jobs.flatMap((c) => (c.kind === "job-start" ? [c.jobId] : []));
+    const ids = jobs.flatMap((c) => (c.kind === "job-start" ? [c.task.id] : []));
     expect(new Set(ids).size).toBe(2);
   });
 });

@@ -151,6 +151,11 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
     realm.attach(this);
   }
 
+  /** The active user frames, outermost first. Read-only: the timeline's view of the stack. */
+  get activeFrames(): readonly Frame[] {
+    return this.#frames;
+  }
+
   /** The program this interpreter runs (the host prints code frames from its source). */
   get program(): BytecodeProgram {
     return this.#program;

@@ -8,7 +8,7 @@ import { runSource } from "./interpreterTestWorld";
 const stdoutOf = (source: string): string => runSource(source).stdout;
 
 function jobKinds(source: string): string[] {
-  return runSource(source).commands.flatMap((c) => (c.kind === "job-start" ? [c.jobKind] : []));
+  return runSource(source).commands.flatMap((c) => (c.kind === "job-start" ? [c.task.kind] : []));
 }
 
 describe("an async function", () => {

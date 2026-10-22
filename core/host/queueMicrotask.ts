@@ -1,5 +1,6 @@
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import { normal } from "@/core/interpreter/Completion";
+import { displayName } from "@/core/runtime/objects/functionName";
 import { JSFunction } from "@/core/runtime/objects/JSFunction";
 import type { Realm } from "@/core/runtime/Realm";
 
@@ -14,7 +15,7 @@ export function queueMicrotaskFunction(realm: Realm): JSFunction {
     if (!(callback instanceof JSFunction)) {
       throw new SimulationHalt({ kind: "unsupported", reason: "queueMicrotask with a callback that is not a function (ERR_INVALID_ARG_TYPE is not modeled)" });
     }
-    r.microtasks.enqueue({ kind: "CallbackJob", label: "queueMicrotask callback", run: () => r.call(callback, undefined, []) });
+    r.microtasks.enqueue({ kind: "CallbackJob", label: `queueMicrotask(${displayName(callback)})`, origin: "queueMicrotask", run: () => r.call(callback, undefined, []) });
     return normal(undefined);
   });
 }

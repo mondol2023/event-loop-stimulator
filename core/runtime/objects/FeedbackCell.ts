@@ -16,6 +16,11 @@ export class FeedbackCell {
     return this.#vector;
   }
 
+  /** The vector if one was allocated (a builtin has none). Read-only: the timeline's view. */
+  vectorOrUndefined(): FeedbackVector | undefined {
+    return this.#vector;
+  }
+
   requireVector(): FeedbackVector {
     if (!this.#vector) throw new Error("this feedback cell has no vector (a builtin has no inline caches)");
     return this.#vector;

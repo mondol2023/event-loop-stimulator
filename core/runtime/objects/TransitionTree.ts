@@ -67,6 +67,17 @@ function transitionKey(key: string, attributes: PropertyAttributes): string {
 export class TransitionTree {
   #nextId = 0;
   readonly #roots = new Map<string, V8Map>();
+  readonly #all: V8Map[] = [];
+
+  /** Every Map made so far, in id order. Read-only: the timeline's view of the hidden classes. */
+  all(): readonly V8Map[] {
+    return this.#all;
+  }
+
+  #register(map: V8Map): V8Map {
+    this.#all.push(map);
+    return map;
+  }
 
   #newId(): MapId {
     this.#nextId += 1;
@@ -77,15 +88,17 @@ export class TransitionTree {
     const key = `${family}:${inObjectCapacity}:${elementsKind}`;
     let root = this.#roots.get(key);
     if (!root) {
-      root = new V8Map({
-        id: this.#newId(),
-        family,
-        instanceType: INSTANCE_TYPES[family],
-        descriptors: [],
-        inObjectCapacity,
-        isDictionary: false,
-        elementsKind,
-      });
+      root = this.#register(
+        new V8Map({
+          id: this.#newId(),
+          family,
+          instanceType: INSTANCE_TYPES[family],
+          descriptors: [],
+          inObjectCapacity,
+          isDictionary: false,
+          elementsKind,
+        }),
+      );
       this.#roots.set(key, root);
     }
     return root;
@@ -139,15 +152,17 @@ export class TransitionTree {
   }
 
   #dictionaryCopy(map: V8Map, elementsKind: ElementsKind): V8Map {
-    return new V8Map({
-      id: this.#newId(),
-      family: map.family,
-      instanceType: map.instanceType,
-      descriptors: [],
-      inObjectCapacity: 0,
-      isDictionary: true,
-      elementsKind,
-    });
+    return this.#register(
+      new V8Map({
+        id: this.#newId(),
+        family: map.family,
+        instanceType: map.instanceType,
+        descriptors: [],
+        inObjectCapacity: 0,
+        isDictionary: true,
+        elementsKind,
+      }),
+    );
   }
 
   #ensureField(parent: V8Map, key: string, attributes: PropertyAttributes, wanted: Representation): V8Map {
@@ -169,17 +184,19 @@ export class TransitionTree {
   #addChild(parent: V8Map, tk: string, key: string, attributes: PropertyAttributes, rep: Representation): V8Map {
     const index = parent.descriptors.length;
     const location = index < parent.inObjectCapacity ? "in-object" : "backing-store";
-    const child = new V8Map({
-      id: this.#newId(),
-      family: parent.family,
-      instanceType: parent.instanceType,
-      descriptors: [...parent.descriptors, new FieldDescriptor(key, attributes, location, rep)],
-      inObjectCapacity: parent.inObjectCapacity,
-      isDictionary: false,
-      elementsKind: parent.elementsKind,
-      back: parent,
-      root: parent.root,
-    });
+    const child = this.#register(
+      new V8Map({
+        id: this.#newId(),
+        family: parent.family,
+        instanceType: parent.instanceType,
+        descriptors: [...parent.descriptors, new FieldDescriptor(key, attributes, location, rep)],
+        inObjectCapacity: parent.inObjectCapacity,
+        isDictionary: false,
+        elementsKind: parent.elementsKind,
+        back: parent,
+        root: parent.root,
+      }),
+    );
     parent.transitions.set(tk, child);
     return child;
   }

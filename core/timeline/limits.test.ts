@@ -72,7 +72,7 @@ describe("simulation limits", () => {
 
   it("gives the same stop for the same input", () => {
     const src = "while (true) {}";
-    expect(simulate(src, "js")).toEqual(simulate(src, "js"));
+    expect(simulate(src, "js", { record: false })).toEqual(simulate(src, "js", { record: false }));
   });
 });
 

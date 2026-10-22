@@ -8,6 +8,7 @@ import { installMath } from "./builtins/Math";
 import { installObject } from "./builtins/Object";
 import { installPromise, type PromiseIntrinsics } from "./builtins/Promise";
 import { type Job, MicrotaskQueue } from "./MicrotaskQueue";
+import { TaskIds } from "./TaskIds";
 import { WorkBudget } from "./WorkBudget";
 import { type ConsoleMethod, type ConsoleRealm, type ConsoleStream, consoleMethod } from "./builtins/console";
 import type { FunctionKind, InspectRealm, PromiseDetails } from "./builtins/inspect";
@@ -82,7 +83,9 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   /** The context builtins close over: it holds nothing. */
   readonly emptyContext = new Context(null, 0);
   /** V8's MicrotaskQueue: promise reactions, thenable adoption and queueMicrotask callbacks. */
-  readonly microtasks = new MicrotaskQueue((job) => this.host.enqueueMicrotaskObserved?.(job));
+  /** Ids of every queued task of this realm: microtask jobs, nextTick callbacks, timers and immediates. */
+  readonly taskIds = new TaskIds();
+  readonly microtasks = new MicrotaskQueue(this.taskIds, (job) => this.host.enqueueMicrotaskObserved?.(job));
   /** The Promise constructor and the intrinsic `then`. */
   readonly promise: PromiseIntrinsics;
   readonly #wellKnown = new Map<JSObject, string>();

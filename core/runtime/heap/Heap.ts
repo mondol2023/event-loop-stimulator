@@ -14,9 +14,15 @@ export const HEAP_OBJECT_LIMIT = LIMITS.heapObjects;
 export class Heap {
   #count = 0;
   #intrinsics = 0;
+  readonly #objects: HeapObject[] = [];
 
   get allocatedCount(): number {
     return this.#count;
+  }
+
+  /** The program's own objects in allocation order (at most the heap-object limit). Read-only: the timeline's view of the heap. */
+  objects(): readonly HeapObject[] {
+    return this.#objects;
   }
 
   allocate<T extends HeapObject>(make: (id: ObjectId) => T): T {
@@ -24,7 +30,9 @@ export class Heap {
       throw new SimulationHalt({ kind: "limit", limit: "heapObjects" });
     }
     this.#count += 1;
-    return make(this.#count as ObjectId);
+    const object = make(this.#count as ObjectId);
+    this.#objects.push(object);
+    return object;
   }
 
   /**
