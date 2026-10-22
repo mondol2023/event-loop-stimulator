@@ -1,3 +1,4 @@
+import { LIMITS } from "@/core/shared/limits";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 
 // The loop's clock: libuv's cached loop time (uv_now) relative to the environment's timer base,
@@ -5,7 +6,7 @@ import { SimulationHalt } from "@/core/shared/simulationHalt";
 // virtual ms, so the clock moves only when the poll phase waits for the next timer.
 
 /** The longest virtual run (PROMPT.md §7.1): past it the run stops with a limit notice. */
-export const VIRTUAL_TIME_LIMIT_MS = 60_000;
+export const VIRTUAL_TIME_LIMIT_MS = LIMITS.virtualTimeMs;
 
 export class VirtualClock {
   #now = 0;

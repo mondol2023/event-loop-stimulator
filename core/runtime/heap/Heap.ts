@@ -1,9 +1,10 @@
+import { LIMITS } from "@/core/shared/limits";
 import type { ObjectId } from "@/core/shared/ids";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import type { HeapObject } from "../objects/HeapObject";
 
 /** Heap-object limit (§7.1). */
-export const HEAP_OBJECT_LIMIT = 1024;
+export const HEAP_OBJECT_LIMIT = LIMITS.heapObjects;
 
 /**
  * Counts JS-visible allocations of the program (objects, arrays, closures, promises, errors,

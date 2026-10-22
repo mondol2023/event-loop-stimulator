@@ -1,3 +1,4 @@
+import { LIMITS } from "@/core/shared/limits";
 import type { Instruction } from "@/core/bytecode/BytecodeArray";
 import type { BytecodeFunction, BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import type { Opcode } from "@/core/bytecode/bytecodes";
@@ -33,7 +34,7 @@ import { Frame, writeRegister } from "./Frame";
 // reported to the observer before it executes.
 
 /** User JS frames that may be active at once, the wrapper included (PROMPT §7.1). */
-export const CALL_DEPTH_LIMIT = 64;
+export const CALL_DEPTH_LIMIT = LIMITS.callDepth;
 
 export interface StepObserver {
   onCommand(c: Command): void;

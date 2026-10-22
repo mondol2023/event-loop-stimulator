@@ -1,9 +1,10 @@
+import { LIMITS } from "@/core/shared/limits";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 
 // The `work` limit (Decision D3): every element a builtin visits is one unit, so a `map` over
 // `length = 2**32 - 1` stops with the "real Node would continue" notice instead of spinning.
 
-export const WORK_LIMIT = 1_000_000;
+export const WORK_LIMIT = LIMITS.work;
 
 export class WorkBudget {
   #used = 0;
