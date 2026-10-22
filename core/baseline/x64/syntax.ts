@@ -24,27 +24,27 @@ function att(op: Operand, indirect: boolean): string {
   }
 }
 
-function intel(op: Operand): string {
+function intel(op: Operand, sized: boolean): string {
   switch (op.kind) {
     case "reg":
       return op.reg;
     case "imm":
       return `${op.value}`;
     case "mem":
-      return `qword ptr [${op.base}${op.disp === 0 ? "" : op.disp < 0 ? ` - ${-op.disp}` : ` + ${op.disp}`}]`;
+      return `${sized ? "qword ptr " : ""}[${op.base}${op.disp === 0 ? "" : op.disp < 0 ? ` - ${-op.disp}` : ` + ${op.disp}`}]`;
     case "label":
       return op.label.name;
   }
 }
 
 // llvm-mc prints the 64-bit q suffix on these (callq/retq included); branches take none.
-const ATT_SUFFIXED = new Set(["push", "pop", "mov", "cmp", "test", "call", "ret"]);
+const ATT_SUFFIXED = new Set(["push", "pop", "mov", "lea", "cmp", "test", "call", "ret"]);
 
 export function formatInstruction(ins: Instruction, syntax: Syntax = "att"): string {
   const movabs = isMovabs(ins);
   if (syntax === "intel") {
     const name = movabs ? "movabs" : ins.mnemonic;
-    return ins.operands.length === 0 ? name : `${name} ${ins.operands.map(intel).join(", ")}`;
+    return ins.operands.length === 0 ? name : `${name} ${ins.operands.map((o) => intel(o, ins.mnemonic !== "lea")).join(", ")}`;
   }
   // The indirect jmp (FF /4) is spelled like the indirect call: jmpq *disp(%base).
   const indirect = ins.mnemonic === "call" || (ins.mnemonic === "jmp" && ins.operands[0]?.kind === "mem");

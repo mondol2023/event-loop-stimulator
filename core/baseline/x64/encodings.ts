@@ -16,7 +16,7 @@ export const CONDITION_CODES = ["o", "no", "b", "ae", "e", "ne", "be", "a", "s",
 export type ConditionCode = (typeof CONDITION_CODES)[number];
 
 export type JccMnemonic = `j${ConditionCode}`;
-export type Mnemonic = "push" | "pop" | "mov" | "cmp" | "test" | "jmp" | "call" | "ret" | JccMnemonic;
+export type Mnemonic = "push" | "pop" | "mov" | "lea" | "cmp" | "test" | "jmp" | "call" | "ret" | JccMnemonic;
 
 export type OperandPattern = "r64" | "m64" | "rm64" | "rax" | "imm8" | "imm32" | "imm64" | "rel8" | "rel32";
 
@@ -64,12 +64,16 @@ export const FORMS: readonly Form[] = [
   { mnemonic: "mov", operands: ["r64", "m64"], rexW: true, opcode: [0x8b], modrm: { reg: 0, rm: 1 } },
   { mnemonic: "mov", operands: ["r64", "imm32"], rexW: true, opcode: [0xc7], modrm: { reg: { ext: 0 }, rm: 0 } },
   { mnemonic: "mov", operands: ["r64", "imm64"], rexW: true, opcode: [0xb8], plusReg: 0 },
+  // REX.W 8D /r (Intel SDM, LEA), for the slot address MacroAssembler::RecordWriteField hands the write barrier.
+  { mnemonic: "lea", operands: ["r64", "m64"], rexW: true, opcode: [0x8d], modrm: { reg: 0, rm: 1 } },
   { mnemonic: "cmp", operands: ["rm64", "r64"], rexW: true, opcode: [0x39], modrm: { reg: 1, rm: 0 } },
   { mnemonic: "cmp", operands: ["r64", "m64"], rexW: true, opcode: [0x3b], modrm: { reg: 0, rm: 1 } },
   { mnemonic: "cmp", operands: ["rm64", "imm8"], rexW: true, opcode: [0x83], modrm: { reg: { ext: 7 }, rm: 0 } },
   { mnemonic: "cmp", operands: ["rax", "imm32"], rexW: true, opcode: [0x3d] },
   { mnemonic: "cmp", operands: ["rm64", "imm32"], rexW: true, opcode: [0x81], modrm: { reg: { ext: 7 }, rm: 0 } },
   { mnemonic: "test", operands: ["rm64", "r64"], rexW: true, opcode: [0x85], modrm: { reg: 1, rm: 0 } },
+  // REX.W F7 /0 id (Intel SDM, TEST), the Smi-tag test of MacroAssembler::JumpIfSmi.
+  { mnemonic: "test", operands: ["rm64", "imm32"], rexW: true, opcode: [0xf7], modrm: { reg: { ext: 0 }, rm: 0 } },
   { mnemonic: "jmp", operands: ["rel8"], rexW: false, opcode: [0xeb] },
   { mnemonic: "jmp", operands: ["rel32"], rexW: false, opcode: [0xe9] },
   // Indirect FF /4, for BaselineCompiler::TailCallBuiltin through the builtin entry table.

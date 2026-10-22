@@ -2,8 +2,8 @@
 
 import type { Instruction as BytecodeInstruction } from "../bytecode/BytecodeArray";
 import type { BytecodeFunction } from "../bytecode/BytecodeProgram";
-import type { Instruction, Label, Mnemonic, Operand } from "./x64/Encoder";
-import { builtinEntry } from "./isolateData";
+import { imm, reg, type Instruction, type Label, type Mnemonic, type Operand } from "./x64/Encoder";
+import { builtinEntry, runtimeFunctionAddress } from "./isolateData";
 
 /** What a template emits: an instruction (with an optional `; comment`) or a label binding, in order. */
 export type Emit =
@@ -60,6 +60,15 @@ export function callBuiltin(builtin: string): Emit {
 /** As callBuiltin, for BaselineCompiler::TailCallBuiltin. */
 export function tailCallBuiltin(builtin: string): Emit {
   return asm("jmp", [builtinEntry(builtin)], `Builtin::k${builtin}`);
+}
+
+/** MacroAssembler::CallRuntime: argc in rax, the Runtime::Function address in rbx, then the CEntry builtin (result size 1). */
+export function callRuntime(runtime: string, argc: number): Emit[] {
+  return [
+    asm("mov", [reg("rax"), imm(argc)], "argc"),
+    asm("mov", [reg("rbx"), imm(runtimeFunctionAddress(runtime))], `Runtime::k${runtime}`),
+    callBuiltin("CEntry_Return1_ArgvOnStack_NoBuiltinExit"),
+  ];
 }
 
 /** A bytecode's numeric operand; a name here means the table and the template disagree, a bug in core. */
