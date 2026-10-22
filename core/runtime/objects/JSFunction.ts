@@ -26,6 +26,8 @@ export interface JSFunctionInit {
   readonly feedbackCell?: FeedbackCell;
   /** A builtin V8 leaves out of stack traces (an await's resume closures); visible when absent. */
   readonly hiddenFromStackTrace?: boolean;
+  /** What a builtin closure keeps alive (its captured variables); the modeled GC follows them. */
+  readonly captures?: readonly unknown[];
 }
 
 /** V8's JSFunction: a closure over a Context (user code) or a builtin. `name` and `length` are ordinary properties. */
@@ -38,6 +40,7 @@ export class JSFunction extends JSObject {
   readonly kind: FunctionKind;
   readonly feedbackCell: FeedbackCell;
   readonly hiddenFromStackTrace: boolean;
+  readonly captures: readonly unknown[];
 
   constructor(id: ObjectId, map: V8Map, prototype: JSObject | null, init: JSFunctionInit) {
     super(id, map, prototype);
@@ -48,6 +51,7 @@ export class JSFunction extends JSObject {
     this.kind = init.kind ?? "normal";
     this.feedbackCell = init.feedbackCell ?? new FeedbackCell();
     this.hiddenFromStackTrace = init.hiddenFromStackTrace ?? false;
+    this.captures = init.captures ?? [];
   }
 
   override get isCallable(): boolean {

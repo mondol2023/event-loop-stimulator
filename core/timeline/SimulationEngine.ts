@@ -1,8 +1,10 @@
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import { DETACHED_HOST, NodeEventLoop } from "@/core/host/NodeEventLoop";
 import { IgnitionInterpreter, type StepObserver } from "@/core/interpreter/IgnitionInterpreter";
+import { GcModel } from "@/core/runtime/heap/GcModel";
 import { Realm } from "@/core/runtime/Realm";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
+import { GcObserver, type GcWorld } from "./GcObserver";
 import { stopNotice, TickLimiter } from "./limits";
 import type { SimulationOptions, SimulationResult } from "./simulate";
 import { TickRecorder } from "./TickRecorder";
@@ -16,10 +18,12 @@ export class SimulationEngine {
     const realm = new Realm(DETACHED_HOST);
     const recorder = opts.record === false ? undefined : new TickRecorder(program);
     const limiter = recorder ? undefined : new TickLimiter(program);
-    const observer: StepObserver = recorder ?? limiter ?? { onCommand: () => undefined };
+    const gc = new GcModel(realm.heap, opts.gc);
+    const world = (): GcWorld => ({ realm, interpreter, loop });
+    const observer: StepObserver = new GcObserver(recorder ?? limiter ?? { onCommand: () => undefined }, gc, world);
     const interpreter = new IgnitionInterpreter(program, realm, observer);
     const loop = new NodeEventLoop(realm, interpreter, observer);
-    recorder?.attach({ interpreter, realm, host: () => loop.view(), warnings: () => loop.warnings });
+    recorder?.attach({ interpreter, realm, gc, host: () => loop.view(), warnings: () => loop.warnings });
     const base = { diagnostics: [], ticks: recorder?.ticks ?? [] };
     const counted = (): number => recorder?.tickCount ?? limiter?.ticks ?? 0;
     try {

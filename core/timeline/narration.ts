@@ -7,7 +7,7 @@ import type { Realm } from "@/core/runtime/Realm";
 import { isSmi } from "@/core/runtime/values/Smi";
 import { isTheHole } from "@/core/runtime/values/TheHole";
 import type { JSValue } from "@/core/runtime/values/JSValue";
-import type { Command, LoopPhase, TaskRef } from "./Command";
+import type { Command, GcEvent, LoopPhase, TaskRef } from "./Command";
 import { previewOf } from "./snapshots";
 import type { DeepReadonly, FeedbackSnapshot, MapSnapshot, Tick, TickDraft } from "./Tick";
 
@@ -45,7 +45,7 @@ function headline(command: Command, after: State, ctx: NarrationContext): string
     case "loop-phase":
       return loopPhaseSentence(command.phase);
     case "gc":
-      return `V8 ran a ${command.event.type} (Illustrative): ${command.event.freedObjects} objects freed, ${command.event.promotedObjects} promoted. A garbage collection never changes what your program prints.`;
+      return gcSentence(command.event);
     case "exit":
       return command.code === 0
         ? "Node exits with code 0: no ref'd timers or immediates are left, so the event loop ends."
@@ -53,6 +53,16 @@ function headline(command: Command, after: State, ctx: NarrationContext): string
     default:
       return command satisfies never;
   }
+}
+
+/** Illustrative: the model decides when a collection runs and invents the addresses and timing. */
+function gcSentence(e: GcEvent): string {
+  const objects = (n: number): string => `${n} object${n === 1 ? "" : "s"}`;
+  const what =
+    e.type === "scavenge"
+      ? `V8 ran a scavenge (Illustrative): the young generation was full, so ${objects(e.survivedObjects + e.promotedObjects)} that ${e.survivedObjects + e.promotedObjects === 1 ? "is" : "are"} still reachable moved from ${e.fromSpace} to ${e.toSpace} (${e.promotedObjects} promoted to the old generation) and ${objects(e.freedObjects)} (${e.freedBytes} bytes) ${e.freedObjects === 1 ? "was" : "were"} freed.`
+      : `V8 ran a mark-compact (Illustrative): the old generation outgrew its limit, so ${objects(e.freedObjects)} (${e.freedBytes} bytes) ${e.freedObjects === 1 ? "was" : "were"} freed and ${objects(e.survivedObjects)} compacted in place.`;
+  return `${what} It took about ${e.durationMs} ms. A garbage collection never changes what your program prints.`;
 }
 
 function functionLabel(ctx: NarrationContext, functionId: number): string {

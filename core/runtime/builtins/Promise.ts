@@ -77,13 +77,13 @@ export function CreateResolvingFunctions(realm: Realm, promise: JSPromise): { re
     alreadyResolved = true;
     ResolvePromise(r, promise, args[0]);
     return normal(undefined);
-  });
+  }, [promise]);
   const reject = realm.runtimeFunction("", 1, (r, _receiver, args) => {
     if (alreadyResolved) return normal(undefined);
     alreadyResolved = true;
     RejectPromise(r, promise, args[0]);
     return normal(undefined);
-  });
+  }, [promise]);
   return { resolve, reject };
 }
 
@@ -143,6 +143,7 @@ export function NewPromiseReactionJob(realm: Realm, reaction: PromiseReaction, a
     kind: "PromiseReactionJob",
     label: reactionLabel(reaction),
     origin,
+    roots: [reaction.handler, reaction.capability?.promise, reaction.capability?.resolve, reaction.capability?.reject, argument],
     run() {
       const { capability, handler, type } = reaction;
       const handlerResult: Completion = handler
@@ -172,6 +173,7 @@ export function NewPromiseResolveThenableJob(realm: Realm, promise: JSPromise, t
     kind: "PromiseResolveThenableJob",
     label: "adopt thenable",
     origin: "Resolving a promise with a thenable",
+    roots: [promise, thenable, then],
     run() {
       const { resolve, reject } = CreateResolvingFunctions(realm, promise);
       if (thenable instanceof JSPromise && then === realm.promise.then) {

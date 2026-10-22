@@ -20,6 +20,8 @@ export interface Job {
   readonly label: string;
   /** The abstract operation or API that queued it (`PerformPromiseThen`, `queueMicrotask`). */
   readonly origin: string;
+  /** The values the job keeps alive until it runs (the modeled GC's roots). */
+  readonly roots?: readonly unknown[];
 }
 
 export type JobSpec = Omit<Job, "id">;

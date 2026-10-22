@@ -33,6 +33,11 @@ export class PromiseRejections {
    * processPromiseRejections: takes every pending rejection; in `throw` mode the first one is
    * thrown as an uncaught exception, so it is the only one that matters.
    */
+  /** The promises and reasons that wait for the next check (the modeled GC's roots). */
+  roots(): unknown[] {
+    return [...this.#pending].flat();
+  }
+
   takeFirstUnhandled(): UnhandledRejection | undefined {
     const first = this.#pending.entries().next();
     this.#pending = new Map();

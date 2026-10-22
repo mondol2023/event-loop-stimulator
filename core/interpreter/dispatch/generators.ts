@@ -89,7 +89,7 @@ function invokeIntrinsic(ctx: DispatchContext, frame: Frame, instr: Instruction)
       const generator = asyncFunction();
       const promise = PromiseResolve(realm, args[1] as JSValue);
       const resume = (mode: ResumeMode) =>
-        realm.internalFunction("", 1, (_r, _receiver, values) => ctx.resumeGenerator(generator, values[0], mode));
+        realm.internalFunction("", 1, (_r, _receiver, values) => ctx.resumeGenerator(generator, values[0], mode), [generator]);
       PerformPromiseThen(realm, promise, resume(ResumeMode.kNext), resume(ResumeMode.kThrow), undefined);
       frame.accumulator = generator.promise;
       return undefined;

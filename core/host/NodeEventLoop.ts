@@ -152,6 +152,14 @@ export class NodeEventLoop implements HostHooks {
     this.#rejections.track(promise, operation);
   }
 
+  /** What the host keeps alive: queued ticks, pending timers and immediates, and rejections not yet reported (the modeled GC's roots). */
+  gcRoots(): unknown[] {
+    const ticks = this.#ticks.pending().flatMap((t) => (t.kind === "callback" ? [t.callback, ...t.args] : []));
+    const timeouts = this.#timers.pendingTimeouts().flatMap((t) => [t.object, ...(t.args ?? [])]);
+    const immediates = this.#timers.pendingImmediates().flatMap((i) => [i.object, ...(i.args ?? [])]);
+    return [...ticks, ...timeouts, ...immediates, ...this.#rejections.roots()];
+  }
+
   // ---- the run ----
 
   /** The main script, its drain, then the loop until nothing is ref'd; the `exit` command ends the run. */

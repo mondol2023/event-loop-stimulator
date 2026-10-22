@@ -1,6 +1,7 @@
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import type { HostView } from "@/core/host/NodeEventLoop";
 import type { IgnitionInterpreter, StepObserver } from "@/core/interpreter/IgnitionInterpreter";
+import type { GcModel } from "@/core/runtime/heap/GcModel";
 import type { V8Map } from "@/core/runtime/objects/V8Map";
 import { mapMutationEpoch } from "@/core/runtime/objects/V8Map";
 import type { Realm } from "@/core/runtime/Realm";
@@ -23,6 +24,8 @@ import { TickBoundary } from "./tickBoundary";
 export interface TimelineWorld {
   readonly interpreter: IgnitionInterpreter;
   readonly realm: Realm;
+  /** The modeled generations. */
+  readonly gc: GcModel;
   /** The queues, timers and console. */
   host(): HostView;
   /** The fidelity warnings raised so far. */
@@ -145,7 +148,7 @@ export class TickRecorder implements StepObserver {
       maps,
       feedback: snapshotFeedback(objects),
       elementsKinds: snapshotElementsKinds(objects),
-      heap: { young: { objectCount: realm.heap.allocatedCount }, old: { objectCount: 0 } },
+      heap: world.gc.snapshot(),
     };
     const changed = previousMaps ? changedMap(previousMaps, maps) : undefined;
     if (changed !== undefined) v8.changedMapId = changed;

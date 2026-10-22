@@ -165,16 +165,16 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   }
 
   /** A function a builtin creates while the program runs (a promise's resolving functions): a closure, so it counts toward the heap limit. */
-  runtimeFunction(name: string, length: number, behavior: NativeFunction): JSFunctionType {
-    return this.#nativeFunction(name, length, { native: behavior }, true);
+  runtimeFunction(name: string, length: number, behavior: NativeFunction, captures: readonly unknown[] = []): JSFunctionType {
+    return this.#nativeFunction(name, length, { native: behavior, captures }, true);
   }
 
   /**
    * A closure the engine creates for itself and never hands to user code (an await's resume
    * functions): not JS-visible, so it is free for the heap limit, and absent from stack traces.
    */
-  internalFunction(name: string, length: number, behavior: NativeFunction): JSFunctionType {
-    return this.#nativeFunction(name, length, { native: behavior, hiddenFromStackTrace: true });
+  internalFunction(name: string, length: number, behavior: NativeFunction, captures: readonly unknown[] = []): JSFunctionType {
+    return this.#nativeFunction(name, length, { native: behavior, hiddenFromStackTrace: true, captures });
   }
 
   /** `F.prototype` (constant) and `prototype.constructor` (hidden), as V8 links a builtin constructor to its prototype. */
@@ -196,7 +196,7 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   #nativeFunction(
     name: string,
     length: number,
-    init: { native: NativeFunction; construct?: NativeConstruct; kind?: FunctionKind; hiddenFromStackTrace?: boolean },
+    init: { native: NativeFunction; construct?: NativeConstruct; kind?: FunctionKind; hiddenFromStackTrace?: boolean; captures?: readonly unknown[] },
     counted = false,
   ): JSFunctionType {
     const make = (id: JSFunctionType["id"]): JSFunctionType =>

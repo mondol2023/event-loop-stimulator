@@ -1,4 +1,5 @@
 import { CompilationManager, type Language } from "@/core/compile/CompilationManager";
+import type { GcOptions } from "@/core/runtime/heap/GcModel";
 import type { Diagnostic } from "@/core/shared/diagnostics";
 import type { SimulationStop } from "@/core/shared/simulationHalt";
 import { SimulationEngine } from "./SimulationEngine";
@@ -13,7 +14,12 @@ import type { Tick } from "./Tick";
  * building ticks and narration (the conformance suites compare output only); the run, its output
  * and where it stops are identical either way, which the exactness firewall tests prove.
  */
-export type SimulationOptions = { readonly host?: "node"; readonly record?: boolean };
+export type SimulationOptions = {
+  readonly host?: "node";
+  readonly record?: boolean;
+  /** The sizes of the modeled generations (Illustrative; they never change what a program prints). */
+  readonly gc?: Partial<GcOptions>;
+};
 
 export type SimulationResult = {
   readonly diagnostics: Diagnostic[];

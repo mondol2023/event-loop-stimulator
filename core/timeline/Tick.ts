@@ -81,8 +81,8 @@ export type FeedbackSlotSnapshot = {
 
 export type FeedbackSnapshot = { functionId: FunctionId; functionName: string; slots: FeedbackSlotSnapshot[] };
 
-/** Illustrative: the modeled heap's generations (Task 21 fills in the sizes). */
-export type HeapRegion = { objectCount: number };
+/** Illustrative: one generation of the modeled heap (sizes come from estimated instance sizes). */
+export type HeapRegion = { objectCount: number; usedBytes: number; capacityBytes: number };
 
 export type FidelityWarning = { kind: "nondeterminism"; message: string } | { kind: "stopped"; message: string };
 

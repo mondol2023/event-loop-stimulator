@@ -28,7 +28,17 @@ export type JobQueue = "nextTick" | "microtask" | "timers" | "check";
 export type GcEvent = {
   readonly type: "scavenge" | "mark-compact";
   readonly freedObjects: number;
+  readonly freedBytes: number;
+  /** Objects that survived: moved to the other semi-space (scavenge) or compacted in place (mark-compact). */
+  readonly survivedObjects: number;
+  /** Objects a scavenge moved to the old generation (always 0 for a mark-compact). */
   readonly promotedObjects: number;
+  /** Where the collected space starts and where the survivors went, as hex addresses. */
+  readonly fromSpace: string;
+  readonly toSpace: string;
+  readonly durationMs: number;
+  /** The addresses and the timing are made up by the model (they never reach the Exact layer). */
+  readonly illustrative: true;
 };
 
 export type Command =
