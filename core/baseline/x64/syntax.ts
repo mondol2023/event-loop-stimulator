@@ -11,10 +11,24 @@ function isMovabs(ins: Instruction): boolean {
   return ins.mnemonic === "mov" && dst?.kind === "reg" && src?.kind === "imm" && !fitsInt32(src.value);
 }
 
-function att(op: Operand, indirect: boolean): string {
+// The sub-width forms: Intel mnemonic, memory-operand size, and whether the register operand is the 8-bit name.
+const NARROW: Readonly<Record<string, { readonly intel: string; readonly ptr: string; readonly byteReg: boolean }>> = {
+  addl: { intel: "add", ptr: "dword ptr", byteReg: false },
+  cmpw: { intel: "cmp", ptr: "word ptr", byteReg: false },
+  movb: { intel: "mov", ptr: "byte ptr", byteReg: true },
+  testb: { intel: "test", ptr: "byte ptr", byteReg: true },
+};
+
+// Low-byte names of the registers the byte patterns admit (encodings.ts "r8b").
+const BYTE_NAMES: Readonly<Record<string, string>> = { rax: "al", rcx: "cl", rdx: "dl", rbx: "bl" };
+function byteName(reg: string): string {
+  return BYTE_NAMES[reg] ?? `${reg}b`;
+}
+
+function att(op: Operand, indirect: boolean, byteReg = false): string {
   switch (op.kind) {
     case "reg":
-      return `%${op.reg}`;
+      return `%${byteReg ? byteName(op.reg) : op.reg}`;
     case "imm":
       return `$${op.value}`;
     case "mem":
@@ -24,14 +38,14 @@ function att(op: Operand, indirect: boolean): string {
   }
 }
 
-function intel(op: Operand, sized: boolean): string {
+function intel(op: Operand, ptr: string | undefined, byteReg = false): string {
   switch (op.kind) {
     case "reg":
-      return op.reg;
+      return byteReg ? byteName(op.reg) : op.reg;
     case "imm":
       return `${op.value}`;
     case "mem":
-      return `${sized ? "qword ptr " : ""}[${op.base}${op.disp === 0 ? "" : op.disp < 0 ? ` - ${-op.disp}` : ` + ${op.disp}`}]`;
+      return `${ptr === undefined ? "" : `${ptr} `}[${op.base}${op.disp === 0 ? "" : op.disp < 0 ? ` - ${-op.disp}` : ` + ${op.disp}`}]`;
     case "label":
       return op.label.name;
   }
@@ -42,14 +56,16 @@ const ATT_SUFFIXED = new Set(["push", "pop", "mov", "lea", "cmp", "test", "call"
 
 export function formatInstruction(ins: Instruction, syntax: Syntax = "att"): string {
   const movabs = isMovabs(ins);
+  const narrow = NARROW[ins.mnemonic];
   if (syntax === "intel") {
-    const name = movabs ? "movabs" : ins.mnemonic;
-    return ins.operands.length === 0 ? name : `${name} ${ins.operands.map((o) => intel(o, ins.mnemonic !== "lea")).join(", ")}`;
+    const name = movabs ? "movabs" : (narrow?.intel ?? ins.mnemonic);
+    const ptr = narrow?.ptr ?? (ins.mnemonic === "lea" ? undefined : "qword ptr");
+    return ins.operands.length === 0 ? name : `${name} ${ins.operands.map((o) => intel(o, ptr, narrow?.byteReg)).join(", ")}`;
   }
   // The indirect jmp (FF /4) is spelled like the indirect call: jmpq *disp(%base).
   const indirect = ins.mnemonic === "call" || (ins.mnemonic === "jmp" && ins.operands[0]?.kind === "mem");
   const name = movabs ? "movabsq" : ATT_SUFFIXED.has(ins.mnemonic) || indirect ? `${ins.mnemonic}q` : ins.mnemonic;
   // AT&T lists sources first, so the Intel destination-first order is reversed.
-  const ops = ins.operands.map((o) => att(o, indirect)).reverse();
+  const ops = ins.operands.map((o) => att(o, indirect, narrow?.byteReg)).reverse();
   return ops.length === 0 ? name : `${name} ${ops.join(", ")}`;
 }

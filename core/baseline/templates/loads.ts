@@ -10,9 +10,9 @@ import { loadContext } from "./contexts";
 const ACC = RegisterRoles.accumulator;
 
 // V8's x64 Smi tagging under pointer compression: the 31-bit value shifted past the tag bit.
-const smi = (value: number): number => value * 2;
+export const smi = (value: number): number => value * 2;
 // TaggedIndex::FromIntptr: the value shifted past the tag bit, with the tag set (IndexAsTagged, UintAsTagged).
-const taggedIndex = (value: number): number => value * 2 + 1;
+export const taggedIndex = (value: number): number => value * 2 + 1;
 
 // BaselineCompiler::Constant<T>(i) moved into a register: Move(reg, Handle<HeapObject>).
 function constant({ bytecode, fn }: TemplateInput, operand: number): bigint {

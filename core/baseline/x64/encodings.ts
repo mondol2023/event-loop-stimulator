@@ -1,7 +1,7 @@
 // Closed table of x64 instruction forms, encoded per the Intel SDM vol. 2 (REX, ModRM, SIB, opcode maps).
 // Only the forms Sparkplug-style baseline code needs are present; anything else is an error, never a fallback.
 
-import type { RegisterName } from "./registers";
+import { Registers, type RegisterName } from "./registers";
 
 export type Label = { readonly id: number; readonly name: string };
 
@@ -16,14 +16,33 @@ export const CONDITION_CODES = ["o", "no", "b", "ae", "e", "ne", "be", "a", "s",
 export type ConditionCode = (typeof CONDITION_CODES)[number];
 
 export type JccMnemonic = `j${ConditionCode}`;
-export type Mnemonic = "push" | "pop" | "mov" | "lea" | "cmp" | "test" | "jmp" | "call" | "ret" | JccMnemonic;
+// The l/w/b mnemonics are the AT&T width-suffixed spellings (V8 assembler: addl, cmpw, movb, testb); the q forms are implicit.
+export type Mnemonic = "push" | "pop" | "mov" | "lea" | "cmp" | "test" | "jmp" | "call" | "ret" | "addl" | "cmpw" | "movb" | "testb" | JccMnemonic;
 
-export type OperandPattern = "r64" | "m64" | "rm64" | "rax" | "imm8" | "imm32" | "imm64" | "rel8" | "rel32";
+// r8b: a register with a REX-free byte form (al, cl, dl, bl, r8b..r15b); spl/bpl/sil/dil would need a bare REX, which the encoder never emits.
+export type OperandPattern =
+  | "r64"
+  | "m64"
+  | "m32"
+  | "m16"
+  | "m8"
+  | "rm64"
+  | "rax"
+  | "al"
+  | "r8b"
+  | "imm8"
+  | "imm16"
+  | "imm32"
+  | "imm64"
+  | "rel8"
+  | "rel32";
 
 export type Form = {
   readonly mnemonic: Mnemonic;
   readonly operands: readonly OperandPattern[];
   readonly rexW: boolean;
+  // Legacy prefix bytes before REX (0x66 selects 16-bit operand size).
+  readonly prefix?: readonly number[];
   readonly opcode: readonly number[];
   // ModRM byte: `reg` is an operand index or an opcode extension digit (/n); `rm` is an operand index.
   readonly modrm?: { readonly reg: number | { readonly ext: number }; readonly rm: number };
@@ -43,6 +62,9 @@ export function fitsInt8(v: bigint): boolean {
 }
 export function fitsInt32(v: bigint): boolean {
   return v >= INT32_MIN && v <= INT32_MAX;
+}
+export function fitsInt16(v: bigint): boolean {
+  return v >= -(2n ** 15n) && v <= 2n ** 16n - 1n;
 }
 function fitsImm64(v: bigint): boolean {
   return v >= INT64_MIN && v <= UINT64_MAX;
@@ -74,6 +96,19 @@ export const FORMS: readonly Form[] = [
   { mnemonic: "test", operands: ["rm64", "r64"], rexW: true, opcode: [0x85], modrm: { reg: 1, rm: 0 } },
   // REX.W F7 /0 id (Intel SDM, TEST), the Smi-tag test of MacroAssembler::JumpIfSmi.
   { mnemonic: "test", operands: ["rm64", "imm32"], rexW: true, opcode: [0xf7], modrm: { reg: { ext: 0 }, rm: 0 } },
+  // FF /6 (Intel SDM, PUSH r/m64), for CallRuntime pushing FunctionOperand straight from the frame.
+  { mnemonic: "push", operands: ["m64"], rexW: false, opcode: [0xff], modrm: { reg: { ext: 6 }, rm: 0 } },
+  // 83 /0 ib and 81 /0 id without REX.W (Intel SDM, ADD r/m32), for the int32 FeedbackCell::interrupt_budget.
+  { mnemonic: "addl", operands: ["m32", "imm8"], rexW: false, opcode: [0x83], modrm: { reg: { ext: 0 }, rm: 0 } },
+  { mnemonic: "addl", operands: ["m32", "imm32"], rexW: false, opcode: [0x81], modrm: { reg: { ext: 0 }, rm: 0 } },
+  // 66 83 /7 ib and 66 81 /7 iw (Intel SDM, CMP r/m16), MacroAssembler::CmpInstanceType on Map::instance_type.
+  { mnemonic: "cmpw", operands: ["m16", "imm8"], rexW: false, prefix: [0x66], opcode: [0x83], modrm: { reg: { ext: 7 }, rm: 0 } },
+  { mnemonic: "cmpw", operands: ["m16", "imm16"], rexW: false, prefix: [0x66], opcode: [0x81], modrm: { reg: { ext: 7 }, rm: 0 } },
+  // 8A /r (Intel SDM, MOV r8, r/m8), BaselineAssembler::LoadWord8Field.
+  { mnemonic: "movb", operands: ["r8b", "m8"], rexW: false, opcode: [0x8a], modrm: { reg: 0, rm: 1 } },
+  // A8 ib and F6 /0 ib (Intel SDM, TEST AL/r/m8, imm8), MacroAssembler::CheckSmi and BaselineAssembler::TestAndBranch.
+  { mnemonic: "testb", operands: ["al", "imm8"], rexW: false, opcode: [0xa8] },
+  { mnemonic: "testb", operands: ["r8b", "imm8"], rexW: false, opcode: [0xf6], modrm: { reg: { ext: 0 }, rm: 0 } },
   { mnemonic: "jmp", operands: ["rel8"], rexW: false, opcode: [0xeb] },
   { mnemonic: "jmp", operands: ["rel32"], rexW: false, opcode: [0xe9] },
   // Indirect FF /4, for BaselineCompiler::TailCallBuiltin through the builtin entry table.
@@ -94,11 +129,20 @@ export function operandMatches(pattern: OperandPattern, op: Operand): boolean {
     case "rax":
       return op.kind === "reg" && op.reg === "rax";
     case "m64":
+    case "m32":
+    case "m16":
+    case "m8":
       return op.kind === "mem" && isMemValid(op);
+    case "al":
+      return op.kind === "reg" && op.reg === "rax";
+    case "r8b":
+      return op.kind === "reg" && (Registers[op.reg] < 4 || Registers[op.reg] >= 8);
     case "rm64":
       return op.kind === "reg" || (op.kind === "mem" && isMemValid(op));
     case "imm8":
       return op.kind === "imm" && fitsInt8(op.value);
+    case "imm16":
+      return op.kind === "imm" && fitsInt16(op.value);
     case "imm32":
       return op.kind === "imm" && fitsInt32(op.value);
     case "imm64":

@@ -106,13 +106,13 @@ function encodeForm(form: Form, operands: readonly Operand[], relDisp: bigint): 
   }
   form.operands.forEach((pattern, i) => {
     const op = operands[i];
-    if (op?.kind === "imm") tail.push(...le(op.value, pattern === "imm8" ? 1 : pattern === "imm32" ? 4 : 8));
+    if (op?.kind === "imm") tail.push(...le(op.value, pattern === "imm8" ? 1 : pattern === "imm16" ? 2 : pattern === "imm32" ? 4 : 8));
     if (pattern === "rel8") tail.push(...le(relDisp, 1));
     if (pattern === "rel32") tail.push(...le(relDisp, 4));
   });
 
   const rex = (form.rexW ? 8 : 0) | (rexR << 2) | rexB;
-  return [...(rex === 0 ? [] : [0x40 | rex]), ...opcode, ...tail];
+  return [...(form.prefix ?? []), ...(rex === 0 ? [] : [0x40 | rex]), ...opcode, ...tail];
 }
 
 export class Encoder {
