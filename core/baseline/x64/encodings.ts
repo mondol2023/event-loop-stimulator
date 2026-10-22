@@ -72,6 +72,8 @@ export const FORMS: readonly Form[] = [
   { mnemonic: "test", operands: ["rm64", "r64"], rexW: true, opcode: [0x85], modrm: { reg: 1, rm: 0 } },
   { mnemonic: "jmp", operands: ["rel8"], rexW: false, opcode: [0xeb] },
   { mnemonic: "jmp", operands: ["rel32"], rexW: false, opcode: [0xe9] },
+  // Indirect FF /4, for BaselineCompiler::TailCallBuiltin through the builtin entry table.
+  { mnemonic: "jmp", operands: ["m64"], rexW: false, opcode: [0xff], modrm: { reg: { ext: 4 }, rm: 0 } },
   ...JCC_FORMS,
   { mnemonic: "call", operands: ["m64"], rexW: false, opcode: [0xff], modrm: { reg: { ext: 2 }, rm: 0 } },
   { mnemonic: "ret", operands: [], rexW: false, opcode: [0xc3] },

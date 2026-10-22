@@ -46,8 +46,9 @@ export function formatInstruction(ins: Instruction, syntax: Syntax = "att"): str
     const name = movabs ? "movabs" : ins.mnemonic;
     return ins.operands.length === 0 ? name : `${name} ${ins.operands.map(intel).join(", ")}`;
   }
-  const name = movabs ? "movabsq" : ATT_SUFFIXED.has(ins.mnemonic) ? `${ins.mnemonic}q` : ins.mnemonic;
-  const indirect = ins.mnemonic === "call";
+  // The indirect jmp (FF /4) is spelled like the indirect call: jmpq *disp(%base).
+  const indirect = ins.mnemonic === "call" || (ins.mnemonic === "jmp" && ins.operands[0]?.kind === "mem");
+  const name = movabs ? "movabsq" : ATT_SUFFIXED.has(ins.mnemonic) || indirect ? `${ins.mnemonic}q` : ins.mnemonic;
   // AT&T lists sources first, so the Intel destination-first order is reversed.
   const ops = ins.operands.map((o) => att(o, indirect)).reverse();
   return ops.length === 0 ? name : `${name} ${ops.join(", ")}`;
