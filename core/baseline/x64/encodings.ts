@@ -17,7 +17,7 @@ export type ConditionCode = (typeof CONDITION_CODES)[number];
 
 export type JccMnemonic = `j${ConditionCode}`;
 // The l/w/b mnemonics are the AT&T width-suffixed spellings (V8 assembler: addl, cmpw, movb, testb); the q forms are implicit.
-export type Mnemonic = "push" | "pop" | "mov" | "lea" | "cmp" | "test" | "jmp" | "call" | "ret" | "addl" | "cmpw" | "movb" | "testb" | JccMnemonic;
+export type Mnemonic = "push" | "pop" | "mov" | "lea" | "cmp" | "test" | "jmp" | "call" | "ret" | "addl" | "cmpw" | "movb" | "testb" | "int3" | JccMnemonic;
 
 // r8b: a register with a REX-free byte form (al, cl, dl, bl, r8b..r15b); spl/bpl/sil/dil would need a bare REX, which the encoder never emits.
 export type OperandPattern =
@@ -109,6 +109,13 @@ export const FORMS: readonly Form[] = [
   // A8 ib and F6 /0 ib (Intel SDM, TEST AL/r/m8, imm8), MacroAssembler::CheckSmi and BaselineAssembler::TestAndBranch.
   { mnemonic: "testb", operands: ["al", "imm8"], rexW: false, opcode: [0xa8] },
   { mnemonic: "testb", operands: ["r8b", "imm8"], rexW: false, opcode: [0xf6], modrm: { reg: { ext: 0 }, rm: 0 } },
+  // 6A ib and 68 id (Intel SDM, PUSH imm8/imm32, sign-extended), MacroAssembler::Push(Immediate) for Smi and int32 builtin arguments.
+  { mnemonic: "push", operands: ["imm8"], rexW: false, opcode: [0x6a] },
+  { mnemonic: "push", operands: ["imm32"], rexW: false, opcode: [0x68] },
+  // REX.W C7 /0 id with a memory operand (Intel SDM, MOV r/m64, imm32), MacroAssembler::StoreTaggedSignedField.
+  { mnemonic: "mov", operands: ["m64", "imm32"], rexW: true, opcode: [0xc7], modrm: { reg: { ext: 0 }, rm: 0 } },
+  // CC (Intel SDM, INT3), MacroAssembler::Trap / DebugBreak after calls that never return.
+  { mnemonic: "int3", operands: [], rexW: false, opcode: [0xcc] },
   { mnemonic: "jmp", operands: ["rel8"], rexW: false, opcode: [0xeb] },
   { mnemonic: "jmp", operands: ["rel32"], rexW: false, opcode: [0xe9] },
   // Indirect FF /4, for BaselineCompiler::TailCallBuiltin through the builtin entry table.

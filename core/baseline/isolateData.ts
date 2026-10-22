@@ -33,3 +33,8 @@ export function constantHandle(functionId: number, index: number): bigint {
 export function runtimeFunctionAddress(runtime: string): bigint {
   return 0x0000_7ff6_0000_0000n + BigInt(illustrativeSlot(`Runtime::k${runtime}`)) * 16n;
 }
+
+// Illustrative address for an ExternalReference such as address_of_pending_message, loaded with one movabs.
+export function externalReferenceAddress(name: string): bigint {
+  return 0x0000_7ff6_2000_0000n + BigInt(illustrativeSlot(`ExternalReference::${name}`)) * 8n;
+}

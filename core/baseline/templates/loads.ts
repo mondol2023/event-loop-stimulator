@@ -15,7 +15,7 @@ export const smi = (value: number): number => value * 2;
 export const taggedIndex = (value: number): number => value * 2 + 1;
 
 // BaselineCompiler::Constant<T>(i) moved into a register: Move(reg, Handle<HeapObject>).
-function constant({ bytecode, fn }: TemplateInput, operand: number): bigint {
+export function constant({ bytecode, fn }: TemplateInput, operand: number): bigint {
   return constantHandle(fn.id, numericOperand(bytecode, operand));
 }
 
@@ -78,7 +78,7 @@ export const StaGlobal: Template = (input) => [
 ];
 
 // BaselineCompiler::CallRuntime: LoadContext(rsi), push the arguments, then MacroAssembler::CallRuntime.
-function runtimeWithName(runtime: string, input: TemplateInput, withAccumulator: boolean): Emit[] {
+export function runtimeWithName(runtime: string, input: TemplateInput, withAccumulator: boolean): Emit[] {
   return [
     loadContext(RegisterRoles.context),
     asm("mov", [reg(RegisterRoles.scratch), imm(constant(input, 0))], "name"),
