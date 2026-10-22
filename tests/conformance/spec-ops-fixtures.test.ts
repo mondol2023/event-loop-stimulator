@@ -23,6 +23,7 @@ function recordedStdout(fixture: string): string[] {
 }
 
 const realm: SpecRealm = {
+  strings: { charge: () => undefined },
   call: () => {
     throw new Error("primitives never call user code");
   },

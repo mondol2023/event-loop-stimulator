@@ -74,11 +74,13 @@ describe("inputs that would break the host stop instead", () => {
   const long = (doublings: number) => `let s = "ab"; for (let i = 0; i < ${doublings}; i++) s += s;`;
 
   it.each([
-    [`${long(25)} Object.keys(s);`, { kind: "limit", limit: "work" }],
+    // 2**20 characters: past the work budget, inside the strings budget.
+    [`${long(19)} Object.keys(s);`, { kind: "limit", limit: "work" }],
     [`${long(20)} Object.keys(new String(s));`, { kind: "limit", limit: "work" }],
     [`const a = []; a.length = 900000; Math.max.apply(null, a);`, { kind: "unsupported", reason: "an argument list of more than 65535 values" }],
     [`${long(20)} const a = []; a.length = 100000; a.join(s);`, { kind: "unsupported", reason: "a string longer than V8's maximum length" }],
-    [`${long(30)}`, { kind: "unsupported", reason: "a string longer than V8's maximum length" }],
+    // The strings budget stops a doubling loop long before V8's maximum length.
+    [`${long(30)}`, { kind: "limit", limit: "strings" }],
     [`function g() { return g.caller; } g();`, { kind: "unsupported", reason: "caller of a running sloppy function" }],
   ])("%s", (source, stop) => {
     expect(stopOf(source)).toMatchObject(stop);

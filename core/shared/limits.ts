@@ -13,6 +13,14 @@ export const LIMITS = {
   virtualTimeMs: 60000,
   /** Element visits inside builtins (a `map` over `length = 2**32 - 1`); an addition to §7.1. */
   work: 1_000_000,
+  /**
+   * Characters written to stdout and stderr together; an addition to §7.1. With `stringChars` it
+   * bounds the memory of the host running the model: a worker thread that runs out of heap on a
+   * huge string can abort its whole process, not only itself.
+   */
+  outputChars: 1_048_576,
+  /** Characters of every string the program builds by concatenation or `join`, cumulative; an addition to §7.1. */
+  stringChars: 8_388_608,
 } as const;
 
 /** Written to `warnings` (never to stdout or stderr) when a run hits a limit. */

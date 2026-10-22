@@ -27,6 +27,7 @@ import {
 type Primitive = undefined | null | boolean | number | string;
 
 const realm: SpecRealm = {
+  strings: { charge: () => undefined },
   call: () => {
     throw new Error("primitives never call user code");
   },

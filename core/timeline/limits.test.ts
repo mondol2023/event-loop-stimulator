@@ -16,7 +16,15 @@ function expectLimit(r: SimulationResult, limit: string): void {
 
 describe("LIMITS", () => {
   it("pins the §7.1 values and the work budget", () => {
-    expect(LIMITS).toEqual({ ticks: 5000, callDepth: 64, heapObjects: 1024, virtualTimeMs: 60000, work: 1_000_000 });
+    expect(LIMITS).toEqual({
+      ticks: 5000,
+      callDepth: 64,
+      heapObjects: 1024,
+      virtualTimeMs: 60000,
+      work: 1_000_000,
+      outputChars: 1_048_576,
+      stringChars: 8_388_608,
+    });
   });
 
   it("carries the stop on SimulationHalt", () => {
@@ -26,6 +34,35 @@ describe("LIMITS", () => {
 });
 
 describe("simulation limits", () => {
+  // The output and string budgets bound the memory of the host running the model: a worker thread
+  // that runs out of heap on a huge string can abort the whole server process, not only itself.
+  it("output: printing past outputChars stops before the oversized write", () => {
+    const r = simulate("console.log('start'); let s = 'y'; for (let i = 0; i < 21; i++) s = s + s; console.log(s);", "js");
+    expectLimit(r, "output");
+    expect(r.stdout).toBe("start\n");
+  });
+
+  it("output: the budget is stdout and stderr together", () => {
+    // Four lines of 2**18 + 1 characters: the fourth would pass 1 Mi in total.
+    const src = "let s = 'y'; for (let i = 0; i < 18; i++) s = s + s; console.log(s); console.error(s); console.log(s); console.log(s);";
+    const r = simulate(src, "js");
+    expectLimit(r, "output");
+    expect(r.stdout.length).toBe(2 * (2 ** 18 + 1));
+    expect(r.stderr.length).toBe(2 ** 18 + 1);
+  });
+
+  it("strings: building strings past stringChars stops, whether or not they are printed", () => {
+    expectLimit(simulate("let s = 'y'; for (let i = 0; i < 26; i++) s = s + s; s.length;", "js"), "strings");
+    expectLimit(simulate("let a = ['y']; for (let i = 0; i < 26; i++) a = [a.join(''), a.join('')];", "js"), "strings");
+    expectLimit(simulate("let s = 'y'; for (let i = 0; i < 26; i++) s = `${s}${s}`;", "js"), "strings");
+  });
+
+  it("strings: ordinary string building stays well inside the budget", () => {
+    const r = simulate("let s = ''; for (let i = 0; i < 200; i++) s += i; console.log(s.length);", "js");
+    expect(r.stop).toBeUndefined();
+    expect(r.stdout).toBe("490\n");
+  });
+
   it("ticks: an infinite loop stops instead of hanging", () => {
     expectLimit(simulate("console.log('start'); while (true) {}", "js"), "ticks");
   });

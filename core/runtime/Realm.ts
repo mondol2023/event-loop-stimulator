@@ -15,7 +15,7 @@ import { installObject } from "./builtins/Object";
 import { installPromise, type PromiseIntrinsics } from "./builtins/Promise";
 import { type Job, MicrotaskQueue } from "./MicrotaskQueue";
 import { TaskIds } from "./TaskIds";
-import { WorkBudget } from "./WorkBudget";
+import { StringBudget, WorkBudget } from "./WorkBudget";
 import { type ConsoleMethod, type ConsoleRealm, type ConsoleStream, consoleMethod } from "./builtins/console";
 import type { FunctionKind, InspectRealm, PromiseDetails } from "./builtins/inspect";
 import { Heap } from "./heap/Heap";
@@ -97,6 +97,8 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   host: HostHooks;
   /** Element visits inside builtins (Decision D3's `work` limit). */
   readonly work = new WorkBudget();
+  /** Characters of built strings (the `strings` limit). */
+  readonly strings = new StringBudget();
   /** The test262 host (D7) runs scripts: the top-level `this` is the global object, not `module.exports`. */
   scriptThisIsGlobal = false;
   readonly intrinsics: Intrinsics;

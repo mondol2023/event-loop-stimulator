@@ -3,6 +3,7 @@ import { Heap } from "../heap/Heap";
 import { JSObject } from "../objects/JSObject";
 import { TransitionTree } from "../objects/TransitionTree";
 import type { JSValue } from "../values/JSValue";
+import { StringBudget } from "../WorkBudget";
 import { OrdinarySet } from "./objectOps";
 import type { SpecRealm } from "./conversions";
 
@@ -30,6 +31,7 @@ export function specTestWorld() {
   const ctx = { maps };
   const calls: string[] = [];
   const realm: SpecRealm = {
+    strings: new StringBudget(),
     call(fn, receiver, args) {
       if (!(fn instanceof TestFunction)) throw new Error("test realm can only call TestFunction");
       return fn.behavior(receiver, args);

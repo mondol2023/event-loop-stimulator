@@ -1,5 +1,6 @@
 import "server-only";
 import { DIAGNOSTIC_CODES } from "@/core/shared/diagnostics";
+import { LIMITS } from "@/core/shared/limits";
 import { z } from "@/core/shared/zod";
 
 /** Source size cap, in UTF-8 bytes (not UTF-16 length). */
@@ -38,21 +39,31 @@ const Diagnostic = z
   })
   .strict();
 
+// Model-written notes (warnings, stop reasons) are short fixed texts; the caps only bound a bad answer.
+const NOTE_CHARS = 1024;
+const STREAM = z.string().max(LIMITS.outputChars);
+
 const SimulationStop = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("limit"), limit: z.enum(["ticks", "callDepth", "heapObjects", "virtualTime", "work"]) }).strict(),
-  z.object({ kind: z.literal("unsupported"), reason: z.string() }).strict(),
+  z
+    .object({
+      kind: z.literal("limit"),
+      limit: z.enum(["ticks", "callDepth", "heapObjects", "virtualTime", "work", "output", "strings"]),
+    })
+    .strict(),
+  z.object({ kind: z.literal("unsupported"), reason: z.string().max(NOTE_CHARS) }).strict(),
 ]);
 
 /**
  * What /api/compile answers (Decision D8): a summary of the run, not its timeline. The parent
- * parses every worker answer with this before using it. `output` is absent when the program was
+ * parses every worker answer with this before using it, and the caps keep an oversized answer
+ * from reaching the client. `output` is absent when the program was
  * refused (then `diagnostics` is not empty); `stop` is present when the run ended early.
  */
 export const CompileSummary = z
   .object({
     diagnostics: z.array(Diagnostic),
-    output: z.object({ stdout: z.string(), stderr: z.string(), exitCode: z.number().int() }).strict().optional(),
-    warnings: z.array(z.string()),
+    output: z.object({ stdout: STREAM, stderr: STREAM, exitCode: z.number().int() }).strict().optional(),
+    warnings: z.array(z.string().max(NOTE_CHARS)).max(32),
     stop: SimulationStop.optional(),
     tickCount: z.number().int().nonnegative(),
   })

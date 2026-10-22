@@ -11,9 +11,13 @@ import { ToInt32, ToNumeric, ToPrimitive, ToString, ToUint32, type SpecRealm } f
 /** V8's String::kMaxLength on 64-bit. */
 export const MAX_STRING_LENGTH = 2 ** 29 - 24;
 
-/** Halts before the host builds a string past V8's limit (real Node throws RangeError "Invalid string length", not modeled). */
-export function checkStringLength(length: number): void {
+/**
+ * Called before the host builds a string of `length`: halts past V8's limit (real Node throws
+ * RangeError "Invalid string length", not modeled), then charges the realm's `strings` budget.
+ */
+export function checkStringLength(realm: SpecRealm, length: number): void {
   if (length > MAX_STRING_LENGTH) throw new SimulationHalt({ kind: "unsupported", reason: "a string longer than V8's maximum length" });
+  realm.strings.charge(length);
 }
 
 export function Add(realm: SpecRealm, left: JSValue, right: JSValue): Completion {
@@ -28,7 +32,7 @@ export function Add(realm: SpecRealm, left: JSValue, right: JSValue): Completion
     if (isThrow(ls)) return ls;
     const rs = ToString(realm, r);
     if (isThrow(rs)) return rs;
-    checkStringLength(ls.value.length + rs.value.length);
+    checkStringLength(realm, ls.value.length + rs.value.length);
     return normal(ls.value + rs.value);
   }
   const ln = ToNumeric(realm, l);

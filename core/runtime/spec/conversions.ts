@@ -11,6 +11,8 @@ import { OrdinaryGet } from "./objectOps";
 
 /** What the conversions need from the realm: calling user code and raising a TypeError. */
 export interface SpecRealm {
+  /** The `strings` limit (core/runtime/WorkBudget.ts). */
+  readonly strings: { charge(length: number): void };
   call(fn: HeapObject, receiver: JSValue, args: readonly JSValue[]): Completion;
   /** Completes with a thrown TypeError whose message is already formatted (V8 message-template.h). */
   throwTypeError(message: string): Completion<never>;

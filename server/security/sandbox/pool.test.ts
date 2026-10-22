@@ -56,6 +56,15 @@ describe("SandboxPool with the real compile worker", () => {
     expect(summary.output?.stderr).toBe("");
   }, 60_000);
 
+  it("stops a program whose output would exhaust the worker's heap, instead of aborting the process", async () => {
+    // Without the output and string budgets this ~100-byte program aborted the parent (exit 134).
+    const pool = make({ ...realWorker, size: 1, timeoutMs: SLOW_START_MS });
+    const code = 'let s="y"; for(let i=0;i<26;i++) s=s+s; console.log(s); console.log(s); console.error(s)';
+    const summary = summaryOf(await pool.run({ code, lang: "js" }));
+    expect(summary.stop?.kind).toBe("limit");
+    expect(summary.output?.stdout).toBe("");
+  }, 60_000);
+
   it("interprets input, never runs it: process.exit leaves the worker alive", async () => {
     const pool = make({ ...realWorker, size: 1, timeoutMs: SLOW_START_MS });
     expect((await pool.run({ code: "process.exit(1)", lang: "js" })).status).toBe("ok");

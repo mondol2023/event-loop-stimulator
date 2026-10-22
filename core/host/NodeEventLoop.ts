@@ -7,6 +7,8 @@ import type { JSFunction } from "@/core/runtime/objects/JSFunction";
 import type { JSPromise } from "@/core/runtime/objects/JSPromise";
 import { positionOf } from "@/core/runtime/stack";
 import type { JSValue } from "@/core/runtime/values/JSValue";
+import { LIMITS } from "@/core/shared/limits";
+import { SimulationHalt } from "@/core/shared/simulationHalt";
 import { sourceRangeForPos } from "@/core/views/types";
 import { printUncaught, printUnhandledRejection } from "./errorPrinter";
 import type { ConsoleLine, HostEntry } from "@/core/timeline/Tick";
@@ -143,8 +145,11 @@ export class NodeEventLoop implements HostHooks {
     });
   }
 
-  /** Appends to a stream and to the timeline's console. */
+  /** Appends to a stream and to the timeline's console; a write past the `output` limit halts before it lands. */
   #print(stream: ConsoleStream, text: string, origin: ConsoleLine["origin"]): void {
+    if (this.stdout.length + this.stderr.length + text.length > LIMITS.outputChars) {
+      throw new SimulationHalt({ kind: "limit", limit: "output" });
+    }
     if (stream === "stdout") this.stdout += text;
     else this.stderr += text;
     this.#consoleLines.push({ stream, text, origin });

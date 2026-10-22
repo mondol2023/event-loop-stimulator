@@ -19,3 +19,16 @@ export class WorkBudget {
     return this.#used;
   }
 }
+
+/**
+ * The `strings` limit: every string the program builds by concatenation or `join` charges its
+ * length, so no run can make the host hold more than LIMITS.stringChars characters of them.
+ */
+export class StringBudget {
+  #used = 0;
+
+  charge(length: number): void {
+    this.#used += length;
+    if (this.#used > LIMITS.stringChars) throw new SimulationHalt({ kind: "limit", limit: "strings" });
+  }
+}

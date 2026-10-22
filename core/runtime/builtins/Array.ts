@@ -103,7 +103,7 @@ export function installArray(realm: Realm): void {
         if (isThrow(text)) return text;
         parts.push(text.value);
       }
-      checkStringLength(parts.reduce((n, p) => n + p.length, separator.length * Math.max(parts.length - 1, 0)));
+      checkStringLength(r, parts.reduce((n, p) => n + p.length, separator.length * Math.max(parts.length - 1, 0)));
       return normal(parts.join(separator));
     } finally {
       joining.delete(array);
