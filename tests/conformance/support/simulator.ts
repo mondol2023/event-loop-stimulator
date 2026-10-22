@@ -1,4 +1,4 @@
-import { simulate } from "@/core/timeline/simulate";
+import { simulate, type SimulationOptions } from "@/core/timeline/simulate";
 
 // The contract Phase 3's IgnitionInterpreter + Node event loop implements, and
 // the single slot the conformance suite reads it from.
@@ -19,17 +19,13 @@ export interface Simulator {
   run(source: string, lang: "js" | "ts"): SimOutput;
 }
 
-/**
- * Phase 3 sets this to the real simulator. While it is `undefined`, every
- * "simulator output equals real node" test is an `it.todo`; once it is set,
- * fixtures.test.ts fails until those todos are replaced by real comparisons.
- */
-export const SIMULATOR: Simulator | undefined = undefined;
-
 /** One run of `core/timeline/simulate`, in the shape the comparison reads. */
-export function simulatorRun(fixture: { readonly source: string; readonly lang: "js" | "ts" }): SimOutput {
-  const r = simulate(fixture.source, fixture.lang, { record: false });
+export function simulatorRun(fixture: { readonly source: string; readonly lang: "js" | "ts" }, opts: SimulationOptions = {}): SimOutput {
+  const r = simulate(fixture.source, fixture.lang, { ...opts, record: false });
   const out = { stdout: r.stdout, stderr: r.stderr, exitCode: r.exitCode, warnings: r.warnings };
   if (!r.stop) return out;
   return { ...out, stop: { kind: r.stop.kind, detail: r.stop.kind === "limit" ? r.stop.limit : r.stop.reason } };
 }
+
+/** The real simulator: `core/timeline/simulate` without recording a timeline (the firewall test proves recording changes no output). */
+export const SIMULATOR: Simulator = { run: (source, lang) => simulatorRun({ source, lang }) };

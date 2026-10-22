@@ -22,6 +22,8 @@ export interface DispatchContext {
   call(fn: JSFunction, receiver: JSValue, args: readonly JSValue[]): Completion;
   /** ResumeGeneratorTrampoline: re-enters a suspended function with `value` and how to resume. */
   resumeGenerator(generator: JSGeneratorObject, value: JSValue, mode: ResumeMode): Completion;
+  /** CallPrinter's text for the callee of the call `frame` is at, if the program recorded one. */
+  calleeText(frame: Frame): string | undefined;
   /** The isolate's pending message: set when an exception is thrown, cleared by a handler's `SetPendingMessage`. */
   pendingMessage: JSMessageObject | undefined;
 }

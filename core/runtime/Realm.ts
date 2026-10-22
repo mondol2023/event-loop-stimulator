@@ -3,7 +3,9 @@ import type { Completion } from "@/core/interpreter/Completion";
 import type { EntryPoint } from "@/core/host/nodeFrames";
 import { nodeFrameTail } from "@/core/host/nodeFrames";
 import { installArray } from "./builtins/Array";
-import { createError, type JSError } from "./builtins/errors";
+import { createError, errorToString, type JSError } from "./builtins/errors";
+import { installString } from "./builtins/String";
+import { formatMessage } from "./messages";
 import { installMath } from "./builtins/Math";
 import { installObject } from "./builtins/Object";
 import { installPromise, type PromiseIntrinsics } from "./builtins/Promise";
@@ -22,7 +24,7 @@ import { JSObject } from "./objects/JSObject";
 import { JSPromise } from "./objects/JSPromise";
 import { TransitionTree } from "./objects/TransitionTree";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
-import type { SpecRealm } from "./spec/conversions";
+import { type SpecRealm, ToUint32 } from "./spec/conversions";
 import { HasProperty, OrdinaryDefineOwnProperty, OrdinaryGet } from "./spec/objectOps";
 import { captureStack, type CallSite } from "./stack";
 import type { JSValue } from "./values/JSValue";
@@ -129,7 +131,7 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     for (const kind of ERROR_KINDS) this.#define(this.globalObject, kind, this.#errorConstructor(kind), HIDDEN);
 
     const objectConstructor = this.#builtinConstructor("Object", objectPrototype);
-    const arrayConstructor = this.#builtinConstructor("Array", arrayPrototype);
+    const arrayConstructor = this.#arrayConstructor();
     // %AsyncFunction% is not a global; user code reaches it only as `asyncFn.constructor`.
     this.#builtinConstructor("AsyncFunction", asyncFunctionPrototype);
     this.defineToStringTag(asyncFunctionPrototype, "AsyncFunction");
@@ -143,6 +145,18 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     installMath(this, math);
     this.promise = installPromise(this);
     this.#define(this.globalObject, "Promise", this.promise.constructor, HIDDEN);
+    this.#define(this.globalObject, "String", installString(this), HIDDEN);
+    // Node's global object has Symbol.toStringTag "global": a sloppy `this + ""` is "[object global]".
+    this.#tags.set(this.globalObject, "global");
+    this.defineMethod(errorPrototype, "toString", 0, (_realm, receiver) => {
+      if (!(receiver instanceof JSObject)) throw new SimulationHalt({ kind: "unsupported", reason: "Error.prototype.toString on a primitive" });
+      return { type: "normal", value: errorToString(receiver) };
+    });
+    // Function.prototype.toString returns the function's source text, which is not modeled; without
+    // this, OrdinaryToPrimitive would reach Object.prototype.toString and print "[object Function]".
+    this.defineMethod(functionPrototype, "toString", 0, () => {
+      throw new SimulationHalt({ kind: "unsupported", reason: "converting a function to a string (Function.prototype.toString's source text is not modeled)" });
+    });
   }
 
   /** Called by the interpreter that runs this realm's functions. */
@@ -269,7 +283,7 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
   }
 
   /**
-   * `Object` and `Array`: reachable as `prototype.constructor` and named for stack frames and inspect.
+   * `Object` (and %AsyncFunction%): reachable as `prototype.constructor` and named for stack frames and inspect.
    * Calling or constructing them is not modeled (no fixture), so it halts rather than guessing.
    */
   #builtinConstructor(name: string, prototype: JSObject): JSFunctionType {
@@ -279,6 +293,25 @@ export class Realm implements SpecRealm, InspectRealm, ConsoleRealm {
     const constructor = this.nativeConstructor(name, 1, unsupported, unsupported);
     this.#define(constructor, "prototype", prototype, CONSTANT);
     this.#define(prototype, "constructor", constructor, HIDDEN);
+    return constructor;
+  }
+
+  /**
+   * The Array constructor (ECMA-262 Array ( ...values )): `Array(...)` and `new Array(...)` alike.
+   * One number argument is the length (holes, so a HOLEY kind, as V8's ArrayConstructor gives),
+   * any other single argument or several are the elements.
+   */
+  #arrayConstructor(): JSFunctionType {
+    const create = (realm: Realm, args: readonly JSValue[]): Completion => {
+      const [only] = args;
+      if (args.length !== 1 || typeof only !== "number") return { type: "normal", value: realm.newArray(args) };
+      if (ToUint32(only) !== only) return realm.throwError("RangeError", formatMessage("kInvalidArrayLength"));
+      const array = realm.newArray();
+      array.setLength(realm.maps, only);
+      return { type: "normal", value: array };
+    };
+    const constructor = this.nativeConstructor("Array", 1, (realm, _receiver, args) => create(realm, args), create);
+    this.linkConstructor(constructor, this.intrinsics.arrayPrototype);
     return constructor;
   }
 

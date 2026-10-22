@@ -55,6 +55,13 @@ export type BytecodeProgram = {
   readonly functions: readonly BytecodeFunction[];
   /** The text the offsets in every `positions` table index into (V8 keeps it on the Script). */
   readonly source: string;
+  /**
+   * What V8's CallPrinter prints for the callee of each call, keyed by the call's expression
+   * position: the `x.y` of "x.y is not a function". V8 re-parses the function and finds the call
+   * at that position; the model records the text while it has the tree. A call whose callee
+   * CallPrinter would not print simply has no entry.
+   */
+  readonly callPrinter: Readonly<Record<number, string>>;
 };
 
 /** The printer's view of a function. */

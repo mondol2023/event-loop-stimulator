@@ -28,6 +28,7 @@ import { jumpHandler } from "./dispatch/jumps";
 import { loadHandler } from "./dispatch/loads";
 import { propertyHandler } from "./dispatch/properties";
 import { Frame, writeRegister } from "./Frame";
+import { sourceRangeForPos } from "@/core/views/types";
 
 // Ignition, V8's bytecode interpreter, over the BytecodeArrays the generator produced: the
 // same ones the bytecode pane prints. The register file is the Frame; every dispatch is
@@ -239,6 +240,11 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
 
   clearPendingMessage(): void {
     this.pendingMessage = undefined;
+  }
+
+  calleeText(frame: Frame): string | undefined {
+    const range = sourceRangeForPos(this.#program, { functionId: frame.code.id, bytecodeOffset: frame.offset });
+    return range === undefined ? undefined : this.#program.callPrinter[range.start];
   }
 
   functionCode(id: FunctionId): BytecodeFunction {

@@ -51,7 +51,7 @@ function probe(): { vectors: FeedbackVector[]; install: (realm: Realm) => void }
 
 describe("named and keyed loads", () => {
   it("read own and inherited properties, and undefined for a missing one", () => {
-    expect(stdoutOf(`var o = { a: 1 }; console.log(o.a, o["a"], o.missing, o.toString);`)).toBe("1 1 undefined undefined\n");
+    expect(stdoutOf(`var o = { a: 1 }; console.log(o.a, o["a"], o.missing, o.toString);`)).toBe("1 1 undefined [Function: toString]\n");
   });
 
   it("read array elements, holes and length", () => {

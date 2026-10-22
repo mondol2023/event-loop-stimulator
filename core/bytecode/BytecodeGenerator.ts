@@ -32,6 +32,7 @@ function notYetSupported(error: NotYetSupported, source: string): Diagnostic {
 /** Hands out function ids as closures are created and keeps what each one compiled to. */
 class ProgramCompiler implements FunctionCompiler {
   readonly functions: (BytecodeFunction | undefined)[] = [];
+  readonly callPrinter: Record<number, string> = {};
 
   constructor(
     private readonly program: ParsedProgram,
@@ -70,6 +71,10 @@ class ProgramCompiler implements FunctionCompiler {
     return asFunctionId(id);
   }
 
+  recordCallPrinter(position: number, text: string): void {
+    this.callPrinter[position] = text;
+  }
+
   private reserve(): number {
     this.functions.push(undefined);
     return this.functions.length - 1;
@@ -89,7 +94,7 @@ export function generateBytecode(program: ParsedProgram, scopes: ScopeTree): Res
   try {
     const compiler = new ProgramCompiler(program, scopes);
     compiler.compileWrapper();
-    return ok({ functions: compiler.functions.map((fn) => fn as BytecodeFunction), source: program.source });
+    return ok({ functions: compiler.functions.map((fn) => fn as BytecodeFunction), source: program.source, callPrinter: compiler.callPrinter });
   } catch (error) {
     if (error instanceof NotYetSupported) return err([notYetSupported(error, program.source)]);
     throw error;

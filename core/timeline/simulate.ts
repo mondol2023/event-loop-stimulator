@@ -16,6 +16,8 @@ import type { Tick } from "./Tick";
  */
 export type SimulationOptions = {
   readonly host?: "node";
+  /** Test-only natives mode (D2): `%Name(args)` compiles to the V8 runtime probes in RUNTIME_NATIVES. */
+  readonly natives?: boolean;
   readonly record?: boolean;
   /** The sizes of the modeled generations (Illustrative; they never change what a program prints). */
   readonly gc?: Partial<GcOptions>;
@@ -48,7 +50,7 @@ function refused(diagnostics: Diagnostic[]): SimulationResult {
 
 export function simulate(source: string, lang: Language, opts: SimulationOptions = {}): SimulationResult {
   if ((opts.host ?? "node") !== "node") throw new Error(`host mode ${String(opts.host)} is not modeled yet`);
-  const compiled = new CompilationManager().compile(source, lang);
+  const compiled = new CompilationManager().compile(source, lang, { natives: opts.natives ?? false });
   if (!compiled.program) return refused(compiled.diagnostics);
   return new SimulationEngine().run(compiled.program, opts);
 }

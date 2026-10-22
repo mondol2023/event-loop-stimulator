@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import { UNREACHABLE_OPCODES } from "@/core/interpreter/IgnitionInterpreter";
 import { compileOrThrow, runSource } from "@/core/interpreter/interpreterTestWorld";
 
-// The interpreter against the recorded fixtures: a program's stdout, stderr and exit status
-// are what real Node printed, never retyped. Only fixtures the interpreter can run so far are
-// replayed; the list grows with each task that adds opcodes.
+// The interpreter alone (no Node loop) against the recorded fixtures: a program's stdout, stderr
+// and exit status are what real Node printed, never retyped. fixtures.test.ts runs every fixture
+// end to end through the whole simulator.
 
 const FIXTURES = join(__dirname, "fixtures");
 
@@ -43,9 +43,6 @@ describe("calls, closures, contexts and TDZ against recorded fixtures", () => {
       expect(run.stderr).toBe(want.stderr);
     });
   }
-
-  // Replayed once the opcodes they also need exist: try/catch (Task 11) and Array.prototype.push (Task 14).
-  it.todo("default-params (needs Task 14 push)");
 });
 
 describe("properties, literals and optional chaining against recorded fixtures", () => {
@@ -66,11 +63,6 @@ describe("properties, literals and optional chaining against recorded fixtures",
       expect(run.stderr).toBe(want.stderr);
     });
   }
-
-  // Each of these also needs something from a later task.
-  it.todo("object-key-order (Object.keys and reduce: Task 14)");
-  it.todo("object-delete-and-methods (try/catch: Task 11; Object.keys and push: Task 14)");
-  it.todo("logical-nullish-optional (try/catch: Task 11, and the CallPrinter text of `x is not a function`)");
 });
 
 describe("exceptions, handler tables and finally against recorded fixtures", () => {
@@ -90,9 +82,6 @@ describe("exceptions, handler tables and finally against recorded fixtures", () 
       expect(run.stderr).toBe(want.stderr);
     });
   }
-
-  // map, forEach and reduce arrive with Task 14; core/interpreter/exceptions.test.ts covers the unwinding with a stub builtin.
-  it.todo("builtin-callback-throws (Array.prototype.map/forEach/reduce: Task 14)");
 });
 
 describe("per-iteration let bindings against recorded fixtures", () => {
@@ -157,8 +146,6 @@ describe("per-iteration let bindings against recorded fixtures", () => {
     expect(run.completion.type, run.stderr).toBe("normal");
     expect(run.stdout).toBe("returned 5 0 1 3 7\n");
   });
-
-  it.todo("closure-in-loop-let (push/map: Task 14; setTimeout: Task 15)");
 });
 
 describe("never-emitted opcodes", () => {

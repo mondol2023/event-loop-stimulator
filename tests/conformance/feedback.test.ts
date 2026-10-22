@@ -23,6 +23,11 @@ describe("extractFeedback (D2)", () => {
     );
   });
 
+  it("is idempotent: the simulator's %DebugPrint already prints the extracted lines, and the filter keeps them", () => {
+    const once = extractFeedback(SAMPLE);
+    expect(extractFeedback(once)).toBe(once);
+  });
+
   it("drops slots of every other kind, such as Call", () => {
     expect(SAMPLE).toContain("slot #4 Call MONOMORPHIC");
     expect(extractFeedback(SAMPLE)).not.toContain("Call");

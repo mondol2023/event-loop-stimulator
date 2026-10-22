@@ -16,6 +16,12 @@ import { type BytecodeViewOutput, bytecodeView } from "@/core/views/BytecodeView
 
 export type Language = "js" | "ts";
 
+/**
+ * Test-only compile options. `natives` compiles `%Name(args)` to `CallRuntime [Name]` (Decision
+ * D2). It is in no input schema, so nothing a user sends can turn it on.
+ */
+export type CompileOptions = { readonly natives?: boolean };
+
 export type CompilationResult = {
   /** Empty exactly when `program` exists. */
   readonly diagnostics: Diagnostic[];
@@ -46,7 +52,7 @@ function tooDeep(source: string): Diagnostic {
 
 export class CompilationManager {
   /** Never throws, whatever the string. */
-  compile(source: string, lang: Language): CompilationResult {
+  compile(source: string, lang: Language, opts: CompileOptions = {}): CompilationResult {
     const hasBom = source.charCodeAt(0) === BOM;
     // V8 never sees the BOM, so offsets are relative to the text without it. Only one is removed.
     const text = hasBom ? source.slice(1) : source;
@@ -61,7 +67,7 @@ export class CompilationManager {
       js = stripped.value;
     }
 
-    const parsed = parseScript(js);
+    const parsed = parseScript(js, { natives: opts.natives ?? false });
     if (!parsed.ok) return { diagnostics: parsed.error, hasBom, strippedJs: js };
     const { ast } = parsed.value;
 

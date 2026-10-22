@@ -34,6 +34,7 @@ import type {
 } from "estree";
 import type { ReferenceInfo, Scope, ScopeTree, Variable } from "@/core/frontend/scope/Scope";
 import type { FunctionId } from "@/core/shared/ids";
+import { RUNTIME_NATIVES } from "@/core/shared/natives";
 import { BytecodeArrayBuilder, type JumpTable, type Label } from "./BytecodeArrayBuilder";
 import { BytecodeLabels } from "./BytecodeLabels";
 import { CLOSURE, CURRENT_CONTEXT, type Opcode, THIS, argument, local } from "./bytecodes";
@@ -52,6 +53,39 @@ import { endOf, endWithParentheses, lastTokenStart, operatorPosition, startOf } 
 export class NotYetSupported extends Error {
   constructor(readonly node: Node) {
     super(`${node.type} is not compiled to bytecode yet`);
+  }
+}
+
+/**
+ * V8's CallPrinter (src/ast/prettyprinter.cc) for the callee shapes it prints as source: a name,
+ * `this`, a property (`.name` for a string key, `[key]` otherwise, `?.` in a chain) and a call
+ * (`f(...)`). `undefined` for anything else, which CallPrinter prints as "(intermediate value)"
+ * in ways the model does not follow.
+ */
+function printCallee(node: Node): string | undefined {
+  switch (node.type) {
+    case "Identifier":
+      return node.name;
+    case "ThisExpression":
+      return "this";
+    case "ChainExpression":
+      return printCallee(node.expression);
+    case "CallExpression": {
+      const callee = printCallee(node.callee);
+      return callee === undefined ? undefined : `${callee}(...)`;
+    }
+    case "MemberExpression": {
+      const object = printCallee(node.object);
+      if (object === undefined) return undefined;
+      const dot = node.optional ? "?." : ".";
+      if (!node.computed) return node.property.type === "Identifier" ? `${object}${dot}${node.property.name}` : undefined;
+      const key = node.property;
+      if (key.type === "Literal" && typeof key.value === "string") return `${object}${dot}${key.value}`;
+      const printedKey = key.type === "Literal" && typeof key.value === "number" ? String(key.value) : key.type === "Identifier" ? key.name : undefined;
+      return printedKey === undefined ? undefined : `${object}${node.optional ? "?." : ""}[${printedKey}]`;
+    }
+    default:
+      return undefined;
   }
 }
 
@@ -186,6 +220,8 @@ export interface FunctionCompiler {
    * `{ f: () => 1 }` assigned to `o`, which is `f` in the pool but `o.f` in the header.
    */
   compile(node: FunctionLiteral, name: string, debugName: string): FunctionId;
+  /** Records the CallPrinter text of the callee of the call whose expression position is `position`. */
+  recordCallPrinter(position: number, text: string): void;
 }
 
 /** Property names the scanner reads as keywords: V8 does not take them for an identifier before a call's `(`. */
@@ -1284,6 +1320,7 @@ export class FunctionGenerator {
   private visitCall(node: SimpleCallExpression): void {
     const callee = node.callee;
     if (callee.type === "Super") throw new NotYetSupported(node);
+    if ((callee as Node).type === ("V8IntrinsicIdentifier" as Node["type"])) return this.visitRuntimeCall(node);
     const b = this.builder;
     const top = b.registerTop;
     const calleeRegister = b.allocateRegister();
@@ -1311,7 +1348,10 @@ export class FunctionGenerator {
       args.push(register);
     }
     const slot = b.feedback.addSlot("call");
-    b.setExpressionPosition(this.callPosition(node));
+    const position = this.callPosition(node);
+    const printed = printCallee(callee);
+    if (printed !== undefined) this.functions.recordCallPrinter(position, printed);
+    b.setExpressionPosition(position);
     const target = local(calleeRegister);
     const regs = args.map(local);
     const [first = 0, second = 0, third = 0] = regs;
@@ -1324,6 +1364,27 @@ export class FunctionGenerator {
     else if (regs.length === 1) b.emit("CallUndefinedReceiver1", target, first, slot);
     else if (regs.length === 2) b.emit("CallUndefinedReceiver2", target, first, second, slot);
     else b.emit("CallUndefinedReceiver", target, first, regs.length, slot);
+    b.releaseRegisters(top);
+  }
+
+  /**
+   * `%Name(args)` in natives mode (only Babel's `v8intrinsic` plugin produces the callee): V8's
+   * VisitCallRuntime, `CallRuntime [Name], r_first-r_last` with the arguments in consecutive registers.
+   */
+  private visitRuntimeCall(node: SimpleCallExpression): void {
+    const name = (node.callee as unknown as { name: string }).name;
+    if (!RUNTIME_NATIVES.has(name)) throw new NotYetSupported(node);
+    const b = this.builder;
+    const top = b.registerTop;
+    const args: number[] = [];
+    for (const argument of node.arguments) {
+      if (argument.type === "SpreadElement") throw new NotYetSupported(argument);
+      this.visitForAccumulatorValue(argument);
+      const register = b.allocateRegister();
+      b.emit("Star", local(register));
+      args.push(register);
+    }
+    b.emit("CallRuntime", name, local(args[0] ?? 0), args.length);
     b.releaseRegisters(top);
   }
 

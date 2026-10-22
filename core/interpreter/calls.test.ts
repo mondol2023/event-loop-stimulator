@@ -200,3 +200,28 @@ describe("CreateCatchContext", () => {
     expect((created as Context).load(2)).toBe("boom");
   });
 });
+
+describe("calling a value that is not a function (Runtime_ThrowCalledNonCallable)", () => {
+  // Messages probed on the pinned node 24.19.0.
+  const PRELUDE = 'const o = { a: {} }; const k = "z"; let u; ';
+  it.each([
+    ["u()", "u is not a function"],
+    ["o.b()", "o.b is not a function"],
+    ["o.a.c()", "o.a.c is not a function"],
+    ['o["s p"]()', "o.s p is not a function"],
+    ["o[0]()", "o[0] is not a function"],
+    ["o[1.5]()", "o[1.5] is not a function"],
+    ["o[k]()", "o[k] is not a function"],
+    ["o?.b()", "o?.b is not a function"],
+    ["o.a?.c()", "o.a?.c is not a function"],
+    ['o?.["q"]()', "o?.q is not a function"],
+    ["o.a[k]()", "o.a[k] is not a function"],
+    ["const m = { f() { return this.q(); } }; m.f()", "this.q is not a function"],
+  ])("%s throws a TypeError naming the callee as CallPrinter prints it", (call, message) => {
+    expect(uncaught(PRELUDE + call)).toBe(`TypeError: ${message}`);
+  });
+
+  it("stops when CallPrinter would print an intermediate value", () => {
+    expect(stopOf(PRELUDE + "(() => o)()()").kind).toBe("unsupported");
+  });
+});

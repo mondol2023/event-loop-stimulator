@@ -49,7 +49,13 @@ function toDiagnostic(error: BabelError, source: string): Diagnostic {
   return { code: "E_SYNTAX", message, range: errorRange(source, start), hint };
 }
 
-export function parseScript(js: string): Result<ParsedProgram, Diagnostic[]> {
+/**
+ * `natives` (test-only, Decision D2) adds Babel's `v8intrinsic` plugin, so `%Name(args)` parses as
+ * a call whose callee is a `V8IntrinsicIdentifier`, as under node --allow-natives-syntax.
+ */
+export type ParseOptions = { readonly natives?: boolean };
+
+export function parseScript(js: string, opts: ParseOptions = {}): Result<ParsedProgram, Diagnostic[]> {
   if (js.charCodeAt(0) === 0xfeff) {
     return err([
       {
@@ -65,7 +71,7 @@ export function parseScript(js: string): Result<ParsedProgram, Diagnostic[]> {
   try {
     file = parse(js, {
       sourceType: "script",
-      plugins: ["estree"],
+      plugins: opts.natives ? ["estree", "v8intrinsic"] : ["estree"],
       ranges: true,
       errorRecovery: true,
       allowReturnOutsideFunction: true,

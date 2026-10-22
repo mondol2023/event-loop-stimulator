@@ -1,4 +1,5 @@
 import type { Instruction } from "@/core/bytecode/BytecodeArray";
+import { RUNTIME_NATIVE_FUNCTIONS } from "@/core/runtime/builtins/natives";
 import { formatMessage } from "@/core/runtime/messages";
 import { JSFunction } from "@/core/runtime/objects/JSFunction";
 import type { JSValue } from "@/core/runtime/values/JSValue";
@@ -42,7 +43,10 @@ export const callHandler: Handler = (ctx, frame, instr) => {
   const receiver = shape.receiver === "first" ? values[0] : undefined;
   const args = shape.receiver === "first" ? values.slice(1) : values;
   if (!(callee instanceof JSFunction)) {
-    throw new SimulationHalt({ kind: "unsupported", reason: "calling a value that is not a function (the CallPrinter text of the TypeError is not modeled yet)" });
+    // Runtime_ThrowCalledNonCallable: the message names the callee as CallPrinter prints it.
+    const text = ctx.calleeText(frame);
+    if (text === undefined) throw new SimulationHalt({ kind: "unsupported", reason: "calling a value that is not a function, through a callee CallPrinter prints as an intermediate value" });
+    return ctx.realm.throwTypeError(formatMessage("kCalledNonCallable", text));
   }
   const result = ctx.call(callee, receiver, args);
   if (isThrow(result)) return result;
@@ -69,15 +73,21 @@ export const constructHandler: Handler = (ctx, frame, instr) => {
   return undefined;
 };
 
-/** Runtime functions the bytecode calls directly (src/runtime/runtime.h), by the name the listing prints. */
-const RUNTIME: Readonly<Record<string, (ctx: DispatchContext) => Completion>> = {
+/**
+ * Runtime functions the bytecode calls directly (src/runtime/runtime.h), by the name the listing
+ * prints, plus the natives-mode probes (only a natives-mode compile emits a call to those).
+ */
+const RUNTIME: Readonly<Record<string, (ctx: DispatchContext, args: readonly JSValue[]) => Completion>> = {
   ThrowConstAssignError: (ctx) => ctx.realm.throwError("TypeError", formatMessage("kConstAssign")),
+  ...Object.fromEntries(Object.entries(RUNTIME_NATIVE_FUNCTIONS).map(([name, run]) => [name, (ctx: DispatchContext, args: readonly JSValue[]) => run(ctx.realm, args)])),
 };
 
-export const runtimeHandler: Handler = (ctx, _frame, instr) => {
+export const runtimeHandler: Handler = (ctx, frame, instr) => {
   const id = instr.operands[0];
-  const run = typeof id === "string" ? RUNTIME[id] : undefined;
+  const run = typeof id === "string" && Object.hasOwn(RUNTIME, id) ? RUNTIME[id] : undefined;
   if (!run) throw new Error(`runtime function ${String(id)} is not implemented`);
-  const result = run(ctx);
-  return isThrow(result) ? result : undefined;
+  const result = run(ctx, listValues(frame, instr, 1));
+  if (isThrow(result)) return result;
+  frame.accumulator = result.value;
+  return undefined;
 };

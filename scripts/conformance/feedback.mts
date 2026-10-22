@@ -16,8 +16,10 @@ const KEPT_SLOT_KINDS = new Set([
 ]);
 
 // The function's own line sits at one-space indent; a nested object's dump is indented deeper.
-const SHARED_INFO = /^ - shared_info: .*<SharedFunctionInfo ([^>]*)>/;
-const SLOT = /^ - slot #(\d+) (\w+) (\w+)(?: \{)?$/;
+// The second alternative is the normalized line itself, so extraction is idempotent: the
+// simulator's %DebugPrint prints the normalized lines and goes through the same filter.
+const SHARED_INFO = /^(?: - shared_info: .*<SharedFunctionInfo ([^>]*)>|function (.*))$/;
+const SLOT = /^(?: - )?slot #(\d+) (\w+) (\w+)(?: \{)?$/;
 
 /** Pure: the kept lines of a `%DebugPrint` transcript, in print order, each ending in "\n". */
 export function extractFeedback(stdout: string): string {
@@ -25,7 +27,7 @@ export function extractFeedback(stdout: string): string {
   for (const line of stdout.split("\n")) {
     const info = SHARED_INFO.exec(line);
     if (info) {
-      out += `function ${info[1]}\n`;
+      out += `function ${info[1] ?? info[2] ?? ""}\n`;
       continue;
     }
     const slot = SLOT.exec(line);
