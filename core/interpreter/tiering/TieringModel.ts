@@ -1,5 +1,6 @@
 import type { Opcode } from "@/core/bytecode/bytecodes";
 import type { IcState } from "@/core/runtime/ic/FeedbackVector";
+import { isSmi } from "@/core/runtime/values/Smi";
 import type { TruthLevel } from "@/core/shared/fidelity";
 import type { FunctionId, MapId } from "@/core/shared/ids";
 
@@ -183,3 +184,150 @@ export const NO_TIERING: TieringHooks = {
   onIcTransition: () => undefined,
   onBinaryOp: () => undefined,
 };
+
+type FunctionState = {
+  tier: Tier;
+  /** Sparkplug code exists, so a deopt lands there rather than in Ignition. */
+  hasBaseline: boolean;
+  /** The latest `BytecodeArray::length` seen for the function. */
+  length: number;
+  invocations: number;
+  /** Bytes charged to the interrupt budget by invocations and back edges since the first call. */
+  profile: number;
+  /** Bytes charged by back edges alone: the on-stack-replacement counter. */
+  loopBytes: number;
+  /** Optimization waits until `profile` reaches this (`minimum_invocations_after_ic_update`). */
+  gate: number;
+};
+
+const FLAGS = TIERING_FLAGS;
+const HINT_RANK: Readonly<Record<BinaryOperationHint, number>> = { kNone: 0, kSignedSmall: 1, kNumber: 2, kAny: 3 };
+
+function isOptimized(tier: Tier): tier is "maglev" | "turbofan" {
+  return tier === "maglev" || tier === "turbofan";
+}
+
+/** The hint one completed operation gives (BinaryOpFeedback): Smi operands and result are SignedSmall, other Numbers Number, anything else Any. */
+function hintOf(site: BinaryOpSite): BinaryOperationHint {
+  const { left, right, result } = site;
+  if (typeof left !== "number" || typeof right !== "number" || typeof result !== "number") return "kAny";
+  return isSmi(left) && isSmi(right) && isSmi(result) ? "kSignedSmall" : "kNumber";
+}
+
+/** Why optimized code would give up on a widened hint: a non-Number operand, a non-Smi operand, or a Smi operation that left the Smi range. */
+function deoptReasonFor(widenedTo: BinaryOperationHint, site: BinaryOpSite): DeoptimizeReason {
+  if (widenedTo === "kAny") return "kNotANumber";
+  const smiOperands = typeof site.left === "number" && typeof site.right === "number" && isSmi(site.left) && isSmi(site.right);
+  return smiOperands ? "kOverflow" : "kNotASmi";
+}
+
+export class TieringModel implements TieringHooks, TieringReadout {
+  readonly #functions = new Map<FunctionId, FunctionState>();
+  readonly #hints = new Map<FunctionId, Map<number, BinaryOperationHint>>();
+  #events: TierEvent[] = [];
+
+  onInvoke(site: InvokeSite): void {
+    const state = this.#state(site.functionId, site.bytecodeLength);
+    state.invocations += 1;
+    state.profile += state.length;
+    this.#tierUpByBudget(site.functionId, state, false);
+  }
+
+  onBackEdge(site: BackEdgeSite): void {
+    const state = this.#state(site.functionId, site.bytecodeLength);
+    const charge = Math.max(site.bytecodeOffset - site.loopHeaderOffset, 0);
+    state.profile += charge;
+    state.loopBytes += charge;
+    if (state.tier === "ignition") {
+      this.#tierUpByBudget(site.functionId, state, true);
+      return;
+    }
+    if (state.profile < state.gate) return;
+    if (state.tier === "sparkplug" && state.loopBytes >= FLAGS.invocation_count_for_maglev_osr * state.length) {
+      this.#tierUp(site.functionId, state, "sparkplug", "maglev", true);
+    } else if (state.tier === "maglev" && state.loopBytes >= FLAGS.invocation_count_for_osr * state.length) {
+      this.#tierUp(site.functionId, state, "maglev", "turbofan", true);
+    }
+  }
+
+  onIcTransition(site: IcTransitionSite): void {
+    const state = this.#state(site.functionId, 0);
+    // A site that never had feedback has nothing for optimized code to be wrong about.
+    if (site.from !== "UNINITIALIZED") this.#deopt(site.functionId, state, "kWrongMap", site.bytecodeOffset);
+    this.#rearm(state);
+  }
+
+  onBinaryOp(site: BinaryOpSite): void {
+    const state = this.#state(site.functionId, 0);
+    let hints = this.#hints.get(site.functionId);
+    if (!hints) this.#hints.set(site.functionId, (hints = new Map()));
+    const before = hints.get(site.bytecodeOffset) ?? "kNone";
+    const seen = hintOf(site);
+    if (HINT_RANK[seen] <= HINT_RANK[before]) return;
+    hints.set(site.bytecodeOffset, seen);
+    // The first hint is new feedback, not a broken speculation; V8 does not re-arm the budget for binary-op feedback.
+    if (before !== "kNone") this.#deopt(site.functionId, state, deoptReasonFor(seen, site), site.bytecodeOffset);
+  }
+
+  tiers(): ModeledTiers {
+    const byFunction: Record<FunctionId, Tier> = {};
+    for (const [id, state] of this.#functions) byFunction[id] = state.tier;
+    return { truth: TIERING_TRUTH, byFunction };
+  }
+
+  drainEvents(): readonly TierEvent[] {
+    const events = this.#events;
+    this.#events = [];
+    return events;
+  }
+
+  #state(id: FunctionId, length: number): FunctionState {
+    let state = this.#functions.get(id);
+    if (!state) {
+      state = { tier: "ignition", hasBaseline: false, length: 1, invocations: 0, profile: 0, loopBytes: 0, gate: 0 };
+      this.#functions.set(id, state);
+    }
+    if (length > 0) state.length = length;
+    return state;
+  }
+
+  /** `TieringManager::OnInterruptTick`: the next tier is due once the budget the earlier tiers add up to is spent. */
+  #tierUpByBudget(id: FunctionId, state: FunctionState, osr: boolean): void {
+    const { length, profile } = state;
+    switch (state.tier) {
+      case "ignition":
+        if (profile >= FLAGS[SPARKPLUG_AFTER] * length) this.#tierUp(id, state, "ignition", "sparkplug", osr);
+        return;
+      case "sparkplug":
+        if (profile >= Math.max(FLAGS.invocation_count_for_maglev * length, state.gate) && state.invocations >= FLAGS.minimum_invocations_before_optimization) {
+          this.#tierUp(id, state, "sparkplug", "maglev", false);
+        }
+        return;
+      case "maglev":
+        if (profile >= Math.max(FLAGS.invocation_count_for_turbofan * length, state.gate)) this.#tierUp(id, state, "maglev", "turbofan", false);
+        return;
+      case "turbofan":
+        return;
+    }
+  }
+
+  #tierUp(id: FunctionId, state: FunctionState, from: Exclude<Tier, "turbofan">, to: Exclude<Tier, "ignition">, osr: boolean): void {
+    state.tier = to;
+    if (to === "sparkplug") state.hasBaseline = true;
+    this.#events.push({ kind: "tier-up", truth: TIERING_TRUTH, functionId: id, from, to, osr });
+  }
+
+  /** Optimized code gives up its speculation and the function falls back to baseline code. */
+  #deopt(id: FunctionId, state: FunctionState, reason: DeoptimizeReason, bytecodeOffset: number): void {
+    const from = state.tier;
+    if (!isOptimized(from)) return;
+    state.tier = state.hasBaseline ? "sparkplug" : "ignition";
+    this.#events.push({ kind: "deopt", truth: TIERING_TRUTH, functionId: id, from, to: state.tier, reason, bytecodeOffset });
+    this.#rearm(state);
+  }
+
+  /** `TieringManager::NotifyICChanged`: raise the remaining budget to at least `minimum_invocations_after_ic_update` invocations. */
+  #rearm(state: FunctionState): void {
+    state.gate = Math.max(state.gate, state.profile + FLAGS.minimum_invocations_after_ic_update * state.length);
+  }
+}

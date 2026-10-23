@@ -22,7 +22,7 @@ export class SimulationEngine {
     const gc = new GcModel(realm.heap, opts.gc);
     const world = (): GcWorld => ({ realm, interpreter, loop });
     const observer: StepObserver = new GcObserver(recorder ?? limiter ?? { onCommand: () => undefined }, gc, world);
-    const interpreter = new IgnitionInterpreter(program, realm, observer);
+    const interpreter = new IgnitionInterpreter(program, realm, observer, opts.tiering);
     const loop = new NodeEventLoop(realm, interpreter, observer);
     if (opts.host === "test262") installTest262Harness(realm);
     recorder?.attach({ interpreter, realm, gc, host: () => loop.view(), warnings: () => loop.warnings });

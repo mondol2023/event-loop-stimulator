@@ -11,6 +11,7 @@ import * as ops from "@/core/runtime/spec/operators";
 import type { JSValue } from "@/core/runtime/values/JSValue";
 import { type Completion, isThrow, normal } from "../Completion";
 import { readRegister } from "../Frame";
+import type { BinaryOpcode, OperandSample } from "../tiering/TieringModel";
 import { type Handler, accumulatorValue, operand } from "./context";
 
 // Binary, unary and conversion opcodes. The abstract operations are in core/runtime/spec; here
@@ -34,6 +35,11 @@ const BINARY: Readonly<Record<string, Binary>> = {
 };
 
 const SMI_SUFFIX = "Smi";
+
+/** The tiering hook sees a Number's value and nothing else, so no heap reference leaves the interpreter. */
+function sample(value: JSValue): OperandSample {
+  return typeof value === "number" ? value : "other";
+}
 
 /** The operator of a binary opcode (`AddSmi` and `Add` are both `Add`). */
 function binaryOperator(opcode: Opcode): Binary | undefined {
@@ -83,7 +89,14 @@ export const arithHandler: Handler = (ctx, frame, instr) => {
       // The register forms read the left operand from a register, the Smi forms take it from the accumulator.
       const isSmi = instr.opcode.endsWith(SMI_SUFFIX);
       const left = isSmi ? right : (readRegister(frame, operand(instr, 0)) as JSValue);
-      return apply(operator(realm, left, isSmi ? operand(instr, 0) : right));
+      const rhs = isSmi ? operand(instr, 0) : right;
+      const result = operator(realm, left, rhs);
+      if (!isThrow(result)) {
+        // `binaryOperator` found an operator, so the opcode is one of the binary ones.
+        const opcode = instr.opcode as BinaryOpcode;
+        ctx.tiering.onBinaryOp({ functionId: frame.code.id, bytecodeOffset: instr.offset, opcode, left: sample(left), right: sample(rhs), result: sample(result.value) });
+      }
+      return apply(result);
     }
   }
 };

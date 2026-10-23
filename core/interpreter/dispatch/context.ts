@@ -9,6 +9,7 @@ import type { JSGeneratorObject, ResumeMode } from "@/core/runtime/objects/JSGen
 import { isTheHole } from "@/core/runtime/values/TheHole";
 import type { JSValue } from "@/core/runtime/values/JSValue";
 import type { Completion } from "../Completion";
+import type { TieringHooks } from "../tiering/TieringModel";
 import { type Frame, readRegister } from "../Frame";
 
 // What an opcode handler may use of the interpreter. A handler returns `undefined` to go on with
@@ -17,6 +18,8 @@ import { type Frame, readRegister } from "../Frame";
 
 export interface DispatchContext {
   readonly realm: Realm;
+  /** The Modeled tiering observer's hooks; write-only, so nothing a handler does may depend on them. */
+  readonly tiering: TieringHooks;
   /** The bytecode of any function in the program (a `CreateClosure` constant names one). */
   functionCode(id: FunctionId): BytecodeFunction;
   call(fn: JSFunction, receiver: JSValue, args: readonly JSValue[]): Completion;

@@ -6,7 +6,7 @@ import { type Handler, accumulatorValue } from "./context";
 // immediate and the constant-pool forms alike, so a jump only decides whether to take it.
 // `JumpLoop` is an unconditional back edge (its interrupt and OSR checks are not modeled).
 
-export const jumpHandler: Handler = (_ctx, frame, instr) => {
+export const jumpHandler: Handler = (ctx, frame, instr) => {
   const target = instr.jumpTarget;
   if (target === undefined) throw new Error(`${instr.opcode} has no resolved jump target`);
   const name = instr.opcode.replace(/Constant$/, "");
@@ -39,6 +39,10 @@ export const jumpHandler: Handler = (_ctx, frame, instr) => {
         throw new Error(`${instr.opcode} is not a jump this interpreter implements`);
     }
   };
-  if (taken()) frame.next = target;
+  if (!taken()) return undefined;
+  frame.next = target;
+  if (instr.opcode === "JumpLoop") {
+    ctx.tiering.onBackEdge({ functionId: frame.code.id, bytecodeLength: frame.code.array.length, bytecodeOffset: instr.offset, loopHeaderOffset: target });
+  }
   return undefined;
 };

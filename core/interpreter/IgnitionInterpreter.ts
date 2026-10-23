@@ -29,6 +29,7 @@ import { loadHandler } from "./dispatch/loads";
 import { propertyHandler } from "./dispatch/properties";
 import { Frame, writeRegister } from "./Frame";
 import { sourceRangeForPos } from "@/core/views/types";
+import { NO_TIERING, type TieringHooks } from "./tiering/TieringModel";
 
 // Ignition, V8's bytecode interpreter, over the BytecodeArrays the generator produced: the
 // same ones the bytecode pane prints. The register file is the Frame; every dispatch is
@@ -133,6 +134,8 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
   readonly realm: Realm;
   readonly #program: BytecodeProgram;
   readonly #observer: StepObserver;
+  /** Write-only: the model never feeds anything back into a run. */
+  readonly tiering: TieringHooks;
   /** Active frames, outermost first. */
   readonly #frames: Frame[] = [];
   /** Builtins on the stack; `below` is how many JS frames were under the builtin when it was called. */
@@ -143,10 +146,11 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
    */
   pendingMessage: JSMessageObject | undefined = undefined;
 
-  constructor(program: BytecodeProgram, realm: Realm, observer: StepObserver) {
+  constructor(program: BytecodeProgram, realm: Realm, observer: StepObserver, tiering: TieringHooks = NO_TIERING) {
     this.#program = program;
     this.realm = realm;
     this.#observer = observer;
+    this.tiering = tiering;
     realm.attach(this);
   }
 
@@ -193,7 +197,7 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
       return this.nativeFrame(fn, receiver, false, () => native(this.realm, receiver, args));
     }
     if (!fn.code) throw new Error("a function with neither bytecode nor a native behavior");
-    return this.#enter(new Frame(fn, fn.code, fn.code.strict ? receiver : this.#sloppyThis(receiver), args));
+    return this.#enter(new Frame(fn, fn.code, fn.code.strict ? receiver : this.#sloppyThis(receiver), args), true);
   }
 
   /** [[Construct]] of an ordinary function: OrdinaryCreateFromConstructor, then the body with the new object as `this`. */
@@ -204,7 +208,7 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
     const receiver = this.realm.newConstructedObject(fn, prototype instanceof JSObject ? prototype : this.realm.intrinsics.objectPrototype);
     const frame = new Frame(fn, code, receiver, args);
     frame.isConstruct = true;
-    const result = this.#enter(frame);
+    const result = this.#enter(frame, true);
     if (isThrow(result)) return result;
     return normal(result.value instanceof JSObject ? result.value : receiver);
   }
@@ -235,12 +239,14 @@ export class IgnitionInterpreter implements CallTarget, DispatchContext {
     generator.resumeMode = mode;
     const frame = new Frame(fn, code, generator.receiver, generator.parameters);
     writeRegister(frame, register, generator);
-    return this.#enter(frame);
+    return this.#enter(frame, false);
   }
 
-  #enter(frame: Frame): Completion {
+  /** `invoked` is false for a generator resume, which bypasses the entry trampoline V8 counts invocations in. */
+  #enter(frame: Frame, invoked: boolean): Completion {
     // The depth limit is the simulator's, never a RangeError (PROMPT §7.1).
     if (this.#frames.length >= CALL_DEPTH_LIMIT) throw new SimulationHalt({ kind: "limit", limit: "callDepth" });
+    if (invoked) this.tiering.onInvoke({ functionId: frame.code.id, bytecodeLength: frame.code.array.length });
     this.#frames.push(frame);
     try {
       return this.#run(frame);

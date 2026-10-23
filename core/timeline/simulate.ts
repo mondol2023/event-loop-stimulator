@@ -1,4 +1,5 @@
 import { CompilationManager, type Language } from "@/core/compile/CompilationManager";
+import type { TieringHooks } from "@/core/interpreter/tiering/TieringModel";
 import type { GcOptions } from "@/core/runtime/heap/GcModel";
 import type { Diagnostic } from "@/core/shared/diagnostics";
 import type { SimulationStop } from "@/core/shared/simulationHalt";
@@ -21,6 +22,8 @@ export type SimulationOptions = {
   readonly record?: boolean;
   /** The sizes of the modeled generations (Illustrative; they never change what a program prints). */
   readonly gc?: Partial<GcOptions>;
+  /** A write-only observer of the run (the Modeled tiering model); it never changes what the run does. */
+  readonly tiering?: TieringHooks;
 };
 
 export type SimulationResult = {

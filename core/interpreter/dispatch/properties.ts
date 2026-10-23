@@ -15,7 +15,7 @@ import { TheHole, type TheHoleValue } from "@/core/runtime/values/TheHole";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import { type Completion, isThrow } from "../Completion";
 import { type Frame, readRegister } from "../Frame";
-import { type Handler, accumulatorValue, operand } from "./context";
+import { type DispatchContext, type Handler, accumulatorValue, operand } from "./context";
 import { nameConstant } from "./loads";
 
 // Property access, literals and inline-cache feedback (src/ic/ic.cc, src/runtime/runtime-literals.cc,
@@ -29,10 +29,17 @@ function unsupported(reason: string): never {
   throw new SimulationHalt({ kind: "unsupported", reason });
 }
 
-/** Records the Map of `receiver` at the feedback slot named by operand `slotOperand` (builtin values have no Map here). */
-function recordMap(frame: Frame, instr: Instruction, slotOperand: number, receiver: JSValue): void {
+/** Records the Map of `receiver` at the feedback slot named by operand `slotOperand` (builtin values have no Map here), and reports a change of the slot's feedback. */
+function recordMap(ctx: DispatchContext, frame: Frame, instr: Instruction, slotOperand: number, receiver: JSValue): void {
   if (!(receiver instanceof JSObject)) return;
-  new InlineCache(frame.fn.feedbackCell.requireVector()).update(operand(instr, slotOperand), receiver.map);
+  const ic = new InlineCache(frame.fn.feedbackCell.requireVector());
+  const slot = operand(instr, slotOperand);
+  const from = ic.state(slot);
+  const mapsBefore = ic.maps(slot).length;
+  const to = ic.update(slot, receiver.map);
+  const mapCount = ic.maps(slot).length;
+  if (to === from && mapCount === mapsBefore) return;
+  ctx.tiering.onIcTransition({ functionId: frame.code.id, bytecodeOffset: instr.offset, slot, from, to, mapId: receiver.map.id, mapCount });
 }
 
 /** `NoSideEffectsToString` of a key in a "Cannot read properties" message: nothing here may run user code. */
@@ -185,7 +192,7 @@ export const propertyHandler: Handler = (ctx, frame, instr) => {
   switch (instr.opcode) {
     case "GetNamedProperty": {
       const receiver = readRegister(frame, operand(instr, 0)) as JSValue;
-      recordMap(frame, instr, 2, receiver);
+      recordMap(ctx, frame, instr, 2, receiver);
       const loaded = loadProperty(realm, receiver, nameConstant(frame, instr, 1));
       if (isThrow(loaded)) return loaded;
       frame.accumulator = loaded.value;
@@ -193,7 +200,7 @@ export const propertyHandler: Handler = (ctx, frame, instr) => {
     }
     case "GetKeyedProperty": {
       const receiver = readRegister(frame, operand(instr, 0)) as JSValue;
-      recordMap(frame, instr, 1, receiver);
+      recordMap(ctx, frame, instr, 1, receiver);
       const loaded = loadProperty(realm, receiver, accumulatorValue(frame));
       if (isThrow(loaded)) return loaded;
       frame.accumulator = loaded.value;
@@ -201,19 +208,19 @@ export const propertyHandler: Handler = (ctx, frame, instr) => {
     }
     case "SetNamedProperty": {
       const receiver = readRegister(frame, operand(instr, 0)) as JSValue;
-      recordMap(frame, instr, 2, receiver);
+      recordMap(ctx, frame, instr, 2, receiver);
       return storeProperty(realm, frame, receiver, nameConstant(frame, instr, 1), accumulatorValue(frame));
     }
     case "SetKeyedProperty": {
       const receiver = readRegister(frame, operand(instr, 0)) as JSValue;
-      recordMap(frame, instr, 2, receiver);
+      recordMap(ctx, frame, instr, 2, receiver);
       return storeProperty(realm, frame, receiver, readRegister(frame, operand(instr, 1)) as JSValue, accumulatorValue(frame));
     }
     case "DefineNamedOwnProperty": {
       // CreateDataProperty on a literal under construction: always an ordinary object.
       const literal = readRegister(frame, operand(instr, 0));
       if (!(literal instanceof JSObject)) throw new Error("DefineNamedOwnProperty on a value that is not an object");
-      recordMap(frame, instr, 2, literal);
+      recordMap(ctx, frame, instr, 2, literal);
       OrdinaryDefineOwnProperty(realm, literal, nameConstant(frame, instr, 1), { value: accumulatorValue(frame), ...DATA_PROPERTY });
       return undefined;
     }
@@ -234,7 +241,7 @@ export const propertyHandler: Handler = (ctx, frame, instr) => {
       const array = readRegister(frame, operand(instr, 0));
       const index = readRegister(frame, operand(instr, 1));
       if (!(array instanceof JSArray) || typeof index !== "number") throw new Error("StaInArrayLiteral without an array and a numeric index");
-      recordMap(frame, instr, 2, array);
+      recordMap(ctx, frame, instr, 2, array);
       array.putElement(realm.maps, index, accumulatorValue(frame));
       return undefined;
     }

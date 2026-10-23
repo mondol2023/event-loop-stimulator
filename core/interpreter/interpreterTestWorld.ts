@@ -6,6 +6,7 @@ import { type HostHooks, Realm } from "@/core/runtime/Realm";
 import type { Command } from "@/core/timeline/Command";
 import type { Completion } from "./Completion";
 import { IgnitionInterpreter, type StepObserver } from "./IgnitionInterpreter";
+import type { TieringHooks } from "./tiering/TieringModel";
 
 // Test-only scaffolding: compile a program with the real CompilationManager and run it on a realm
 // whose host just captures the console streams.
@@ -27,9 +28,9 @@ export function compileOrThrow(source: string): BytecodeProgram {
 /**
  * `setup` installs test-only globals on the realm before the script runs; `hooks` adds embedder
  * callbacks. The host is minimal: `queueMicrotask` is the only Node global, and the microtask queue is
- * drained once after the script (no Node loop; core/host/NodeEventLoop is the real host).
+ * drained once after the script (no Node loop; core/host/NodeEventLoop is the real host). `tiering` attaches an observer.
  */
-export function runSource(source: string, setup?: (realm: Realm) => void, hooks: Partial<HostHooks> = {}): Run {
+export function runSource(source: string, setup?: (realm: Realm) => void, hooks: Partial<HostHooks> = {}, tiering?: TieringHooks): Run {
   const program = compileOrThrow(source);
   let stdout = "";
   let stderr = "";
@@ -50,7 +51,7 @@ export function runSource(source: string, setup?: (realm: Realm) => void, hooks:
     configurable: true,
   });
   setup?.(realm);
-  const completion = new IgnitionInterpreter(program, realm, observer).runScript();
+  const completion = new IgnitionInterpreter(program, realm, observer, tiering).runScript();
   if (completion.type === "normal") realm.microtasks.drain(observer);
   return { program, completion, stdout, stderr, commands };
 }
