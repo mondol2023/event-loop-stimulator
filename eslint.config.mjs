@@ -25,7 +25,7 @@ const NEVER_EXECUTE = "Never execute code: user source is only parsed and interp
 const VM = { regex: "^(node:)?vm$", message: NEVER_EXECUTE };
 const CHILD_PROCESS = {
   regex: "^(node:)?child_process$",
-  message: `${NEVER_EXECUTE} Only scripts/conformance/ and tests/conformance/ may spawn real node.`,
+  message: `${NEVER_EXECUTE} Only scripts/conformance/ and tests/conformance/ may spawn real node or llvm-mc.`,
 };
 const NO_APP = { regex: layer("app"), message: "Nothing imports app/: it is routing only." };
 // Integration tests call Route Handlers directly (they are plain functions), so
@@ -155,8 +155,8 @@ const eslintConfig = defineConfig([
     }),
   },
   {
-    // The conformance harness is the only code that spawns real node, and only
-    // for repo-owned or generated programs (PROMPT.md §3.4). eval/vm stay banned.
+    // The conformance harness is the only code that spawns real node (or llvm-mc, on repo-generated
+    // asm text), and only for repo-owned or generated programs (PROMPT.md §3.4). eval/vm stay banned.
     files: ["scripts/conformance/**/*.{ts,mts,mjs}", "tests/conformance/**/*.{ts,mts,mjs}"],
     rules: restrict({ allowChildProcess: true }),
   },

@@ -182,6 +182,7 @@ describe("conformance exception (PROMPT.md §3.4: the only code that spawns real
   it.each([
     ['import { spawnSync } from "node:child_process";', "scripts/conformance/record.ts"],
     ['import { spawnSync } from "child_process";', "tests/conformance/runner.test.ts"],
+    ['import { spawnSync } from "node:child_process";', "scripts/conformance/asm-record.mts"],
     ['import { generate } from "../../tests/conformance/generator";', "scripts/conformance/record.ts"],
     ['export const cp = await import("node:child_process");', "scripts/conformance/record.ts"],
   ])("allows %s in %s", async (code, filePath) => {
