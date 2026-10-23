@@ -155,8 +155,7 @@ const eslintConfig = defineConfig([
     }),
   },
   {
-    // The conformance harness is the only code that spawns real node (or llvm-mc, on repo-generated
-    // asm text), and only for repo-owned or generated programs (PROMPT.md §3.4). eval/vm stay banned.
+    // Only the conformance harness spawns real node or llvm-mc, and only on repo-owned or generated input (PROMPT.md §3.4); eval/vm stay banned.
     files: ["scripts/conformance/**/*.{ts,mts,mjs}", "tests/conformance/**/*.{ts,mts,mjs}"],
     rules: restrict({ allowChildProcess: true }),
   },

@@ -39,15 +39,23 @@ function formOf(asm: string, bytes: readonly number[], branch: boolean): AsmForm
   return { key, source, bytes: hex };
 }
 
-export function collectAsmForms(): AsmForm[] {
+export type SkippedFixture = { readonly fixture: string; readonly reason: string };
+
+export function collectAsmForms(): { forms: AsmForm[]; skipped: SkippedFixture[] } {
   const manager = new CompilationManager();
   const forms = new Map<string, AsmForm>();
+  const skipped: SkippedFixture[] = [];
   for (const fixture of discoverFixtures(CONFORMANCE_ROOT)) {
-    const { program } = manager.compile(fixture.source, fixture.lang, { natives: true });
-    if (!program) continue; // a source the front end refuses has no code to encode
+    const { program, diagnostics } = manager.compile(fixture.source, fixture.lang, { natives: true });
+    if (!program) {
+      // A source the front end refuses has no code to encode; it is counted, never silently dropped.
+      skipped.push({ fixture: fixture.file, reason: diagnostics.map((d) => d.code).join(", ") || "no program" });
+      continue;
+    }
     for (const fn of program.functions) {
       const code = compileBaseline(fn);
-      if (!code.ok) continue;
+      // A compiler or encoder failure on accepted code must not shrink coverage quietly.
+      if (!code.ok) throw new Error(`baseline compile failed for ${fixture.file} function ${fn.id}: ${code.error.map((e) => e.message).join("; ")}`);
       for (const ins of code.value.instructions) {
         const form = formOf(ins.asm, ins.bytes, ins.instruction.operands[0]?.kind === "label");
         const prior = forms.get(form.key);
@@ -56,5 +64,5 @@ export function collectAsmForms(): AsmForm[] {
       }
     }
   }
-  return [...forms.values()].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return { forms: [...forms.values()].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)), skipped };
 }

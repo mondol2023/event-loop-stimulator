@@ -3,9 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { ASM_EXPECTED_FILE, collectAsmForms } from "./asm-forms.mts";
 
-// `npm run asm:record`: asks llvm-mc (AT&T syntax) to encode every distinct form the baseline compiler emits
-// and writes the answer to tests/conformance/asm/encodings.expected.json. llvm-mc only ever sees asm text this
-// repo generated (never user source); asm.test.ts compares against the file offline.
+// `npm run asm:record`: llvm-mc encodes every distinct form the baseline compiler emits (repo-generated asm text only, never user source); asm.test.ts checks the result offline.
 
 const LLVM_MC = process.env.LLVM_MC ?? "llvm-mc";
 // An explicit ELF triple keeps the output independent of the host OS.
@@ -22,7 +20,7 @@ if (version.error || version.status !== 0) {
 }
 const llvmVersion = /LLVM version ([\d.]+\S*)/.exec(version.stdout)?.[1] ?? "unknown";
 
-const forms = collectAsmForms();
+const { forms, skipped } = collectAsmForms();
 if (forms.length === 0) {
   console.error("Refusing to record: the baseline compiler produced no forms.");
   process.exit(1);
@@ -56,7 +54,7 @@ forms.forEach((form, i) => {
 
 mkdirSync(dirname(ASM_EXPECTED_FILE), { recursive: true });
 writeFileSync(ASM_EXPECTED_FILE, `${JSON.stringify({ llvm: llvmVersion, forms: recorded }, null, 2)}\n`);
-console.log(`Recorded ${forms.length} encoded forms from LLVM ${llvmVersion}.`);
+console.log(`Recorded ${forms.length} encoded forms from LLVM ${llvmVersion} (${skipped.length} refused fixtures skipped).`);
 // The file is written first so the diff is reviewable; a mismatch is a bug in the encoder, never a reason to edit it.
 if (mismatches.length > 0) {
   console.error(`The encoder disagrees with llvm-mc on ${mismatches.length} form(s):\n${mismatches.map((m) => `  - ${m}`).join("\n")}`);
