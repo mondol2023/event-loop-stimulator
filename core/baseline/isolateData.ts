@@ -1,5 +1,6 @@
 // r13-relative IsolateData slots, after V8's src/execution/isolate-data.h (BuiltinEntrySlotOffset, root_slot_offset).
 
+import { fnv1a32 } from "./illustrativePointers";
 import { mem, type Operand } from "./x64/Encoder";
 import { RegisterRoles } from "./x64/registers";
 
@@ -7,11 +8,7 @@ import { RegisterRoles } from "./x64/registers";
 const ILLUSTRATIVE_SLOTS = 2048;
 
 function illustrativeSlot(qualifiedName: string): number {
-  let hash = 0x811c9dc5; // FNV-1a 32-bit offset basis
-  for (let i = 0; i < qualifiedName.length; i++) {
-    hash = Math.imul(hash ^ qualifiedName.charCodeAt(i), 0x01000193) >>> 0;
-  }
-  return hash % ILLUSTRATIVE_SLOTS;
+  return fnv1a32(qualifiedName) % ILLUSTRATIVE_SLOTS;
 }
 
 /** `[r13 + IsolateData::BuiltinEntrySlotOffset(Builtin::k<name>)]`, the slot MacroAssembler::EntryFromBuiltinAsOperand reads. */

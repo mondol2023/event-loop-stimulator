@@ -34,6 +34,8 @@ export type BaselineInstruction = {
   readonly bytes: readonly number[];
   /** The bytecode this instruction belongs to, or FUNCTION_ENTRY_BYTECODE_OFFSET for the prologue. */
   readonly bytecodeOffset: number;
+  /** The bytecode this instruction belongs to; absent for the prologue. */
+  readonly bytecode?: BytecodeInstruction;
   readonly instruction: Instruction;
   readonly comment?: string;
 };
