@@ -8,6 +8,8 @@ import { stripTypes } from "@/core/frontend/strip-types";
 import { checkSourceLimits, validateSubset } from "@/core/frontend/subset/validator";
 import type { Diagnostic } from "@/core/shared/diagnostics";
 import { type AstViewOutput, astView } from "@/core/views/AstView";
+import { type AsmViewOutput, asmView } from "@/core/views/AsmView";
+import { type BinaryViewOutput, binaryView } from "@/core/views/BinaryView";
 import { type BytecodeViewOutput, bytecodeView } from "@/core/views/BytecodeView";
 
 // The compile pipeline in one place (PROMPT.md §7.2): BOM -> limits -> type strip -> parse ->
@@ -36,7 +38,12 @@ export type CompilationResult = {
   readonly ast?: Program;
   readonly scopes?: ScopeTree;
   readonly program?: BytecodeProgram;
-  readonly views?: { readonly ast: AstViewOutput; readonly bytecode: BytecodeViewOutput };
+  readonly views?: {
+    readonly ast: AstViewOutput;
+    readonly bytecode: BytecodeViewOutput;
+    readonly asm: AsmViewOutput;
+    readonly binary: BinaryViewOutput;
+  };
 };
 
 const BOM = 0xfeff;
@@ -90,7 +97,12 @@ export class CompilationManager {
         ast,
         scopes,
         program,
-        views: { ast: astView.emit(program, context), bytecode: bytecodeView.emit(program, context) },
+        views: {
+          ast: astView.emit(program, context),
+          bytecode: bytecodeView.emit(program, context),
+          asm: asmView.emit(program, context),
+          binary: binaryView.emit(program, context),
+        },
       };
     } catch (error) {
       if (error instanceof RangeError) return { diagnostics: [tooDeep(js)], hasBom, strippedJs: js };

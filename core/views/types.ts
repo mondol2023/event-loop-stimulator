@@ -5,8 +5,7 @@ import type { FunctionId } from "@/core/shared/ids";
 
 // What every code view shares (PROMPT.md §7.3): a view turns the compiled program into lines of
 // text, and each line says which bytecode it stands for so the UI can highlight the same thing in
-// the editor and in every other view. Only `ast` and `bytecode` exist so far; `asm` and `binary`
-// arrive with the machine-code phase.
+// the editor and in every other view.
 
 /** One instruction of one function. */
 export type BytecodePos = { readonly functionId: FunctionId; readonly bytecodeOffset: number };
