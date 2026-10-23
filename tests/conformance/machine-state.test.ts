@@ -12,13 +12,14 @@ import { simulate } from "@/core/timeline/simulate";
 const ROOT = dirname(fileURLToPath(import.meta.url));
 
 // The fixture has no numbers, so a small Smi program rides along to make the rax check bite.
-const SMI_PROGRAM = "let a = 21; let b = a + a; console.log(b, -a);";
+const SMI_PROGRAM = "let a = 21; let b = a + a; let n = -a; console.log(b, n); console.log(n);";
 
 it("nexttick-vs-promise: every JS tick has an asm line in range, and rax is the Smi accumulator << 1", () => {
   const fixture = discoverFixtures(ROOT).find((f) => f.kind === "program" && f.name === "nexttick-vs-promise");
   if (!fixture) throw new Error("fixture missing");
 
   let smiTicks = 0;
+  const raxBySmi = new Map<number, bigint>();
   for (const source of [fixture.source, SMI_PROGRAM]) {
     const program = new CompilationManager().compile(source, fixture.lang, { natives: false }).program;
     if (!program) throw new Error("program does not compile");
@@ -37,9 +38,13 @@ it("nexttick-vs-promise: every JS tick has an asm line in range, and rax is the 
       const accumulator = tick.callStack.at(-1)?.accumulator;
       if (accumulator?.kind === "smi") {
         smiTicks += 1;
+        raxBySmi.set(accumulator.value, state.registers.rax);
         expect(state.registers.rax).toBe(BigInt.asUintN(32, BigInt(accumulator.value) << 1n));
       }
     }
   }
   expect(smiTicks).toBeGreaterThan(0);
+  // Hard-coded words, so a wrong formula cannot agree with itself: 21 << 1, and -21 as a 32-bit two's complement.
+  expect(raxBySmi.get(21)).toBe(42n);
+  expect(raxBySmi.get(-21)).toBe(0xffff_ffd6n);
 });

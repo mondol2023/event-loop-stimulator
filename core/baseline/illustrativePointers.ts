@@ -42,5 +42,6 @@ export const contextPointer = (contextId: number): bigint => compressed(CONTEXT_
 /** A value the timeline has no identity for (a string, a HeapNumber, an internal): a pointer hashed from what it holds. */
 export const hashedPointer = (kind: string, content: string): bigint => compressed(HASHED_BASE + (fnv1a32(`${kind}:${content}`) & 0xf_ffff) * 8);
 
+// The timeline only reports kind "smi" within isSmi's 31-bit range (-2^30..2^30-1), so no value here needs a HeapNumber.
 /** A Smi in a 32-bit compressed register: `value << 1` (31-bit Smis, kSmiTag = 0). */
 export const smiWord = (value: number): bigint => BigInt.asUintN(32, BigInt(value) << 1n);
