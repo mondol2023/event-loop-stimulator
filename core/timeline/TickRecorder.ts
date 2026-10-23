@@ -1,6 +1,7 @@
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import type { HostView } from "@/core/host/NodeEventLoop";
 import type { IgnitionInterpreter, StepObserver } from "@/core/interpreter/IgnitionInterpreter";
+import type { TieringReadout, TierEvent } from "@/core/interpreter/tiering/TieringModel";
 import type { GcModel } from "@/core/runtime/heap/GcModel";
 import type { V8Map } from "@/core/runtime/objects/V8Map";
 import { mapMutationEpoch } from "@/core/runtime/objects/V8Map";
@@ -30,6 +31,8 @@ export interface TimelineWorld {
   host(): HostView;
   /** The fidelity warnings raised so far. */
   warnings(): readonly string[];
+  /** The Modeled tiering model's readout, when one is attached. */
+  readonly tiering?: TieringReadout;
 }
 
 type PhaseOfQueue = Record<"nextTick" | "microtask" | "timers" | "check", TickPhase>;
@@ -128,7 +131,7 @@ export class TickRecorder implements StepObserver {
     const context: NarrationContext = { program: this.#program, realm: world.realm, queued: log.slice(this.#logged) };
     this.#logged = log.length;
     const pos = c.kind === "dispatch" ? c.pos : null;
-    const draft = this.#draft(this.#ticks.length, this.#phaseFor(c), pos);
+    const draft = this.#draft(this.#ticks.length, this.#phaseFor(c), pos, world.tiering?.drainEvents() ?? []);
     const narration = narrate(c, previous, draft, context);
     const tick = reuse(previous, { ...draft, narration });
     this.#ticks.push(tick);
@@ -136,7 +139,7 @@ export class TickRecorder implements StepObserver {
   }
 
   /** The state right now, with the sub-objects of the previous tick shared where nothing changed. */
-  #draft(index: number, phase: TickPhase, pos: BytecodePos | null): TickDraft {
+  #draft(index: number, phase: TickPhase, pos: BytecodePos | null, tierEvents: readonly TierEvent[] = []): TickDraft {
     const world = this.#world;
     if (!world) throw new Error("the TickRecorder was not attached to a run");
     const { realm, interpreter } = world;
@@ -152,6 +155,8 @@ export class TickRecorder implements StepObserver {
     };
     const changed = previousMaps ? changedMap(previousMaps, maps) : undefined;
     if (changed !== undefined) v8.changedMapId = changed;
+    if (world.tiering) v8.tiers = world.tiering.tiers();
+    if (tierEvents.length > 0) v8.tierEvents = [...tierEvents];
     const warnings: FidelityWarning[] = world.warnings().map((message) => ({ kind: "nondeterminism", message }));
     return {
       index,

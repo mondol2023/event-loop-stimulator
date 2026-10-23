@@ -1,3 +1,4 @@
+import type { ModeledTiers, TierEvent } from "@/core/interpreter/tiering/TieringModel";
 import type { ElementsKind } from "@/core/runtime/objects/ElementsKind";
 import type { FieldLocation, InstanceType, MapFamily, Representation } from "@/core/runtime/objects/V8Map";
 import type { FunctionId, MapId, ObjectId, TaskId } from "@/core/shared/ids";
@@ -7,7 +8,7 @@ import type { GcEvent, LoopPhase, TaskRef } from "./Command";
 // One step of a run, as the learner scrubs through it (PROMPT.md §7.5). A Tick is a plain,
 // deeply readonly value with no class instances, so it serializes and compares structurally.
 // Phase 3's Tick leaves out `machine`, `cache`, `bus` and `alu` (Phases 4 and 7, Illustrative) and
-// `v8.tiers` (Phase 4's TieringModel); each later phase adds its field.
+// each later phase adds its field. `v8.tiers` and `v8.tierEvents` (Phase 4, Modeled) appear only when a TieringModel is attached.
 
 export type { GcEvent, LoopPhase, TaskRef };
 
@@ -93,6 +94,10 @@ export type V8Snapshot = {
   feedback: FeedbackSnapshot[];
   elementsKinds: Record<ObjectId, ElementsKind>;
   heap: { young: HeapRegion; old: HeapRegion; lastGc?: GcEvent };
+  /** Modeled: each function's tier. Absent when no TieringModel is attached. */
+  tiers?: ModeledTiers;
+  /** Modeled: the tier-ups and deopts this step caused (D2). Absent when there are none. */
+  tierEvents?: TierEvent[];
 };
 
 export type TickDraft = {

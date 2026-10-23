@@ -1,5 +1,6 @@
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import type { Opcode } from "@/core/bytecode/bytecodes";
+import { DEOPTIMIZE_REASON_MESSAGES, TIERING_FLAGS, type Tier, type TierEvent } from "@/core/interpreter/tiering/TieringModel";
 import type { ElementsKind } from "@/core/runtime/objects/ElementsKind";
 import { JSArray } from "@/core/runtime/objects/JSArray";
 import { JSObject } from "@/core/runtime/objects/JSObject";
@@ -171,6 +172,7 @@ function changes(before: Tick | null, after: State, ctx: NarrationContext): stri
     out.push(...elementsKindSentences(before.v8.elementsKinds, after.v8.elementsKinds, ctx));
     out.push(...feedbackSentences(before.v8.feedback, after.v8.feedback));
   }
+  out.push(...tierEventSentences(after.v8.tierEvents ?? [], ctx));
   out.push(...queuedSentences(ctx.queued, after));
   if (before) {
     for (const line of after.console.slice(before.console.length)) out.push(consoleSentence(line));
@@ -178,6 +180,21 @@ function changes(before: Tick | null, after: State, ctx: NarrationContext): stri
   }
   return out;
 }
+
+/** Modeled: V8's tiering heuristics, so the wording is "would typically", never "did". */
+function tierEventSentences(events: readonly DeepReadonly<TierEvent>[], ctx: NarrationContext): string[] {
+  return events.map((e) => {
+    const name = `\`${functionLabel(ctx, e.functionId)}\``;
+    if (e.kind === "deopt") {
+      return `${name} would typically deoptimize from ${TIER_NAMES[e.from]} back to ${TIER_NAMES[e.to]} (${DEOPTIMIZE_REASON_MESSAGES[e.reason]}) (Modeled).`;
+    }
+    if (e.osr) return `${name} would typically tier up from ${TIER_NAMES[e.from]} to ${TIER_NAMES[e.to]} by on-stack replacement in a hot loop (Modeled).`;
+    const calls = e.to === "sparkplug" ? TIERING_FLAGS.invocation_count_for_feedback_allocation : e.to === "maglev" ? TIERING_FLAGS.invocation_count_for_maglev : TIERING_FLAGS.invocation_count_for_turbofan;
+    return `${name} would typically tier up to ${TIER_NAMES[e.to]} after ${calls} calls (Modeled).`;
+  });
+}
+
+const TIER_NAMES: Readonly<Record<Tier, string>> = { ignition: "Ignition", sparkplug: "Sparkplug", maglev: "Maglev", turbofan: "Turbofan" };
 
 function mapSentences(before: readonly DeepReadonly<MapSnapshot>[], after: readonly DeepReadonly<MapSnapshot>[]): string[] {
   const known = new Map(before.map((m) => [m.id, m]));

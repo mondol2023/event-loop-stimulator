@@ -2,6 +2,7 @@ import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import { DETACHED_HOST, NodeEventLoop } from "@/core/host/NodeEventLoop";
 import { installTest262Harness } from "@/core/host/test262Harness";
 import { IgnitionInterpreter, type StepObserver } from "@/core/interpreter/IgnitionInterpreter";
+import type { TieringHooks, TieringReadout } from "@/core/interpreter/tiering/TieringModel";
 import { GcModel } from "@/core/runtime/heap/GcModel";
 import { Realm } from "@/core/runtime/Realm";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
@@ -14,6 +15,11 @@ import { TickRecorder } from "./TickRecorder";
 // records its timeline. This is the only place a SimulationHalt is caught: a limit or an
 // unsupported behavior ends the run with what it printed so far (Decision D3).
 
+/** The model hands the timeline its readout through the same object it hands the interpreter its hooks. */
+function isTieringReadout(hooks: TieringHooks | undefined): hooks is TieringHooks & TieringReadout {
+  return hooks !== undefined && "tiers" in hooks && "drainEvents" in hooks;
+}
+
 export class SimulationEngine {
   run(program: BytecodeProgram, opts: SimulationOptions = {}): SimulationResult {
     const realm = new Realm(DETACHED_HOST);
@@ -25,7 +31,8 @@ export class SimulationEngine {
     const interpreter = new IgnitionInterpreter(program, realm, observer, opts.tiering);
     const loop = new NodeEventLoop(realm, interpreter, observer);
     if (opts.host === "test262") installTest262Harness(realm);
-    recorder?.attach({ interpreter, realm, gc, host: () => loop.view(), warnings: () => loop.warnings });
+    const tiering = isTieringReadout(opts.tiering) ? opts.tiering : undefined;
+    recorder?.attach({ interpreter, realm, gc, host: () => loop.view(), warnings: () => loop.warnings, ...(tiering ? { tiering } : {}) });
     const base = { diagnostics: [], ticks: recorder?.ticks ?? [] };
     const counted = (): number => recorder?.tickCount ?? limiter?.ticks ?? 0;
     try {
