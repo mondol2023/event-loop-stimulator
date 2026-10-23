@@ -75,13 +75,14 @@ describe("tier-up by invocation count", () => {
     expect(tierUps(model.drainEvents()).map((e) => e.to)).toEqual(["sparkplug", "maglev", "turbofan"]);
   });
 
-  it("counts bytes, so a longer function reaches the same count at the same call", () => {
+  it("counts bytes: a back edge charges its loop's length toward the same budget the calls spend", () => {
     const model = new TieringModel();
-    const longer = asFunctionId(2);
-    invoke(model, 7, longer, 500);
-    expect(tierOf(model, longer)).toBe("ignition");
-    invoke(model, 1, longer, 500);
-    expect(tierOf(model, longer)).toBe("sparkplug");
+    invoke(model, 4, F, 100);
+    expect(tierOf(model)).toBe("ignition");
+    // 4 calls spent 400 bytes; one back edge over a 400-byte loop spends 400 more, the 8 calls' worth.
+    model.onBackEdge({ functionId: F, bytecodeLength: 100, bytecodeOffset: 450, loopHeaderOffset: 50 });
+    expect(tierOf(model)).toBe("sparkplug");
+    expect(model.drainEvents()).toMatchObject([{ kind: "tier-up", to: "sparkplug", osr: true }]);
   });
 
   it("lists a function from its first invocation and tracks functions apart", () => {
@@ -177,6 +178,22 @@ describe("an IC change", () => {
     expect(tierOf(model)).toBe("maglev");
   });
 
+  it("does not reach Turbofan on the call after a re-Maglev that follows a Turbofan deopt", () => {
+    const model = new TieringModel();
+    invoke(model, 3000);
+    expect(tierOf(model)).toBe("turbofan");
+    model.onIcTransition(secondMap());
+    model.drainEvents();
+    invoke(model, 500);
+    expect(tierOf(model)).toBe("maglev");
+    invoke(model, 1);
+    expect(tierOf(model)).toBe("maglev");
+    invoke(model, 2598);
+    expect(tierOf(model)).toBe("maglev");
+    invoke(model, 1);
+    expect(tierOf(model)).toBe("turbofan");
+  });
+
   it("re-arms after a deopt, so the function is optimized again only 500 calls later", () => {
     const model = new TieringModel();
     inMaglev(model);
@@ -206,6 +223,18 @@ describe("binary-operation hints", () => {
     inMaglev(model);
     model.onBinaryOp(opSite({ left: 2 ** 30 - 1, right: 1, result: 2 ** 30 }));
     expect(deopts(model.drainEvents())).toMatchObject([{ reason: "kOverflow" }]);
+  });
+
+  it("deopts with kLostPrecision when Smi operands give a fraction and kMinusZero for -0", () => {
+    const model = new TieringModel();
+    model.onBinaryOp(opSite());
+    model.onBinaryOp(opSite({ bytecodeOffset: 50, opcode: "Mul", left: 0, right: 1, result: 0 }));
+    inMaglev(model);
+    model.onBinaryOp(opSite({ opcode: "Div", left: 1, right: 2, result: 0.5 }));
+    expect(deopts(model.drainEvents())).toMatchObject([{ reason: "kLostPrecision", bytecodeOffset: 30 }]);
+    inMaglev(model);
+    model.onBinaryOp(opSite({ bytecodeOffset: 50, opcode: "Mul", left: 0, right: -1, result: -0 }));
+    expect(deopts(model.drainEvents())).toMatchObject([{ reason: "kMinusZero", bytecodeOffset: 50 }]);
   });
 
   it("deopts with kNotANumber when a non-Number reaches a Number hint", () => {

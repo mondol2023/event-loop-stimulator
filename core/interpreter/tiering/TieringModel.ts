@@ -13,10 +13,14 @@ import type { FunctionId, MapId } from "@/core/shared/ids";
 //   happen (D2). Tier changes are never ticks, and the interpreter never reads the model.
 // - Budgets are in bytecode bytes, as V8's interrupt budget is (`invocation count × bytecode length`).
 //   An invocation charges the function's length; a back edge charges its loop's length.
-//   Each budget is re-armed for the next tier when the previous one fires, so the thresholds add up.
-// - An IC change re-arms the optimization budget to at least `minimum_invocations_after_ic_update` invocations.
-//   In optimized code it deopts with `kWrongMap`. A binary-op hint that widens deopts with
-//   `kNotASmi`, `kOverflow` or `kNotANumber`.
+//   The thresholds are absolute call counts (8, 400, 3000) on the budget spent since the first call; they do not add up.
+// - An IC change (and a deopt) re-arms the optimization budget to at least `minimum_invocations_after_ic_update` invocations.
+//   A Maglev tier-up also holds Turbofan back by the 3000 - 400 calls that separate them, so a re-Maglev after a deopt
+//   does not reach Turbofan on the next call.
+// - In optimized code an IC that gains a Map deopts with `kWrongMap`. A binary-op hint that widens deopts with
+//   `kNotASmi`, `kOverflow`, `kLostPrecision`, `kMinusZero` or `kNotANumber`.
+// - A site's first feedback (UNINITIALIZED to monomorphic, a binary-op's first hint) does not deopt, where V8 would
+//   soft-deopt with `kInsufficientTypeFeedback`. Unary Inc/Dec/Negate/BitwiseNot are not hooked.
 // - Every output value carries `truth: "modeled"`: V8's heuristics, not a recording of them.
 // - Proof of isolation: the conformance suite gives identical results with the model on (D5).
 
@@ -42,13 +46,15 @@ export const TIERING_FLAGS = {
 export const SPARKPLUG_AFTER: keyof typeof TIERING_FLAGS = "invocation_count_for_feedback_allocation";
 
 /** The `DeoptimizeReason` values the model raises (src/deoptimizer/deoptimize-reason.h). */
-export type DeoptimizeReason = "kWrongMap" | "kNotASmi" | "kOverflow" | "kNotANumber";
+export type DeoptimizeReason = "kWrongMap" | "kNotASmi" | "kOverflow" | "kLostPrecision" | "kMinusZero" | "kNotANumber";
 
 /** `DeoptimizeReasonToString`, verbatim from the same header, for the narration. */
 export const DEOPTIMIZE_REASON_MESSAGES: Readonly<Record<DeoptimizeReason, string>> = {
   kWrongMap: "wrong map",
   kNotASmi: "not a Smi",
   kOverflow: "overflow",
+  kLostPrecision: "lost precision",
+  kMinusZero: "minus zero",
   kNotANumber: "not a Number",
 };
 
@@ -198,6 +204,8 @@ type FunctionState = {
   loopBytes: number;
   /** Optimization waits until `profile` reaches this (`minimum_invocations_after_ic_update`). */
   gate: number;
+  /** Turbofan by budget waits until `profile` reaches this: a Maglev tier-up sets it 3000 - 400 invocations ahead. */
+  turbofanGate: number;
 };
 
 const FLAGS = TIERING_FLAGS;
@@ -214,11 +222,13 @@ function hintOf(site: BinaryOpSite): BinaryOperationHint {
   return isSmi(left) && isSmi(right) && isSmi(result) ? "kSignedSmall" : "kNumber";
 }
 
-/** Why optimized code would give up on a widened hint: a non-Number operand, a non-Smi operand, or a Smi operation that left the Smi range. */
+/** Why optimized code would give up on a widened hint: a non-Number operand, a non-Smi operand, or Smi operands whose result is no Smi (-0, a fraction, out of range). */
 function deoptReasonFor(widenedTo: BinaryOperationHint, site: BinaryOpSite): DeoptimizeReason {
   if (widenedTo === "kAny") return "kNotANumber";
-  const smiOperands = typeof site.left === "number" && typeof site.right === "number" && isSmi(site.left) && isSmi(site.right);
-  return smiOperands ? "kOverflow" : "kNotASmi";
+  const { left, right, result } = site;
+  if (typeof left !== "number" || typeof right !== "number" || !isSmi(left) || !isSmi(right)) return "kNotASmi";
+  if (Object.is(result, -0)) return "kMinusZero";
+  return typeof result === "number" && Number.isInteger(result) ? "kOverflow" : "kLostPrecision";
 }
 
 export class TieringModel implements TieringHooks, TieringReadout {
@@ -284,7 +294,7 @@ export class TieringModel implements TieringHooks, TieringReadout {
   #state(id: FunctionId, length: number): FunctionState {
     let state = this.#functions.get(id);
     if (!state) {
-      state = { tier: "ignition", hasBaseline: false, length: 1, invocations: 0, profile: 0, loopBytes: 0, gate: 0 };
+      state = { tier: "ignition", hasBaseline: false, length: 1, invocations: 0, profile: 0, loopBytes: 0, gate: 0, turbofanGate: 0 };
       this.#functions.set(id, state);
     }
     if (length > 0) state.length = length;
@@ -304,7 +314,7 @@ export class TieringModel implements TieringHooks, TieringReadout {
         }
         return;
       case "maglev":
-        if (profile >= Math.max(FLAGS.invocation_count_for_turbofan * length, state.gate)) this.#tierUp(id, state, "maglev", "turbofan", false);
+        if (profile >= Math.max(FLAGS.invocation_count_for_turbofan * length, state.gate, state.turbofanGate)) this.#tierUp(id, state, "maglev", "turbofan", false);
         return;
       case "turbofan":
         return;
@@ -314,6 +324,7 @@ export class TieringModel implements TieringHooks, TieringReadout {
   #tierUp(id: FunctionId, state: FunctionState, from: Exclude<Tier, "turbofan">, to: Exclude<Tier, "ignition">, osr: boolean): void {
     state.tier = to;
     if (to === "sparkplug") state.hasBaseline = true;
+    if (to === "maglev") state.turbofanGate = state.profile + (FLAGS.invocation_count_for_turbofan - FLAGS.invocation_count_for_maglev) * state.length;
     this.#events.push({ kind: "tier-up", truth: TIERING_TRUTH, functionId: id, from, to, osr });
   }
 
