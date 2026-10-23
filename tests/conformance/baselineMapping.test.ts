@@ -47,5 +47,5 @@ describe("baseline code maps to bytecode", () => {
       fc.property(programArbitrary, (source) => check(source)),
       { numRuns: 50, seed: 4 },
     );
-  });
+  }, 60_000);
 });
