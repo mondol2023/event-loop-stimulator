@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CompilationManager } from "@/core/compile/CompilationManager";
+import { positionsForSourceRange } from "./types";
 import { buildLineIndex, linesForPositions, positionsForLine } from "./lineIndex";
 
 // Copy of tests/conformance/fixtures/nexttick-vs-promise.cjs (core/ tests may not read files or import tests/).
@@ -26,30 +27,32 @@ Promise.resolve().then(() => console.log("promise 3"));
 console.log("sync 2");
 `;
 
-
 const r = new CompilationManager().compile(src, "js");
 if (!r.views || !r.program || r.strippedJs === undefined) throw new Error("not compiled");
+const program = r.program;
 const index = buildLineIndex(r.program, r.views, r.strippedJs);
 
 describe("LineIndex", () => {
-  it("round-trips every populated bytecode line", () => {
+  it.each(["ast", "bytecode", "asm", "binary"] as const)("round-trips every populated %s line", (pane) => {
     let populated = 0;
-    index.panes.bytecode.forEach((_, line) => {
-      const pos = positionsForLine(index, "bytecode", line);
+    index.panes[pane].forEach((_, line) => {
+      const pos = positionsForLine(index, pane, line);
       if (pos.length === 0) return;
       populated++;
-      expect(linesForPositions(index, "bytecode", pos)).toContain(line);
+      expect(linesForPositions(index, pane, pos)).toContain(line);
     });
     expect(populated).toBeGreaterThan(0);
   });
 
-  it("maps a console.log call position to its 0-based source line", () => {
-    const lines = r.strippedJs?.split("\n") ?? [];
-    const want = lines.findIndex((l) => l.includes('console.log("sync 2")'));
+  it("maps the console.log(\"sync 2\") call to its 0-based source line", () => {
+    const call = 'console.log("sync 2");';
+    const start = src.indexOf(call);
+    const want = src.split("\n").findIndex((l) => l.includes(call));
+    expect(start).toBeGreaterThan(0);
     expect(want).toBeGreaterThan(0);
-    const pos = positionsForLine(index, "source", want);
+    const pos = positionsForSourceRange(program, { start, end: start + call.length });
     expect(pos.length).toBeGreaterThan(0);
-    expect(linesForPositions(index, "source", pos)).toContain(want);
+    expect(linesForPositions(index, "source", pos)).toEqual([want]);
   });
 
   it("returns [] out of range", () => {

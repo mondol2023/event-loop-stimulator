@@ -26,8 +26,6 @@ Promise.resolve().then(() => console.log("promise 3"));
 console.log("sync 2");
 `;
 
-
-
 describe("jobBoundaries", () => {
   it("is [] for no ticks", () => {
     expect(jobBoundaries([])).toEqual([]);
