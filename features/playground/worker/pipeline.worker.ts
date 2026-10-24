@@ -1,5 +1,9 @@
-import { CompilationManager } from "@/core/compile/CompilationManager";
+import { handleRequest } from "./handleRequest";
+import { parseRequest } from "./protocol";
 
-// Spike body (Task 1): proves a module worker can bundle core/. Task 3 rewrites this.
-const result = new CompilationManager().compile("let x = 1 + 2; console.log(x);", "js");
-self.postMessage({ diagnostics: result.diagnostics.length });
+// The pipeline worker's entry. The client only sends schema-built messages, so an invalid one is a
+// bug, not an input: it is dropped without a reply.
+self.onmessage = (e: MessageEvent<unknown>) => {
+  const request = parseRequest(e.data);
+  if (request) handleRequest(request, (message) => self.postMessage(message));
+};
