@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isSmi } from "./Smi";
 import { taggedSmi } from "./tagging";
 
-describe("isSmi (31-bit, pointer compression)", () => {
+describe("isSmi (31-bit, illustrative range; ADR-039)", () => {
   it("rejects 2**30 and -0", () => {
     expect(isSmi(2 ** 30)).toBe(false);
     expect(isSmi(-0)).toBe(false);

@@ -6,7 +6,7 @@ import { JSHostObject } from "../objects/JSHostObject";
 import { JSObject } from "../objects/JSObject";
 import { JSPromise } from "../objects/JSPromise";
 
-// Instance sizes for the modeled heap, from V8's layouts with pointer compression (a tagged value
+// Instance sizes for the modeled heap, from V8's layouts, as an illustrative model (the pinned build has no pointer compression; ADR-039) (a tagged value
 // is 4 bytes, objects are 8-aligned). Illustrative: they decide when the modeled generations fill,
 // never what a program does.
 
