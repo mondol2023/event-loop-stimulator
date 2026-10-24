@@ -7,6 +7,7 @@ import { analyzeScopes } from "@/core/frontend/scope/ScopeAnalyzer";
 import { stripTypes } from "@/core/frontend/strip-types";
 import { checkSourceLimits, validateSubset } from "@/core/frontend/subset/validator";
 import type { Diagnostic } from "@/core/shared/diagnostics";
+import type { FunctionId } from "@/core/shared/ids";
 import { type AstViewOutput, astView } from "@/core/views/AstView";
 import { type AsmViewOutput, asmView } from "@/core/views/AsmView";
 import { type BinaryViewOutput, binaryView } from "@/core/views/BinaryView";
@@ -66,15 +67,18 @@ function safeView<T extends { readonly functions: readonly unknown[] }>(
   view: { emit(program: BytecodeProgram, context: { source: string; ast: Program }): T },
   program: BytecodeProgram,
   context: { source: string; ast: Program },
+  unavailable: (functions: readonly UnavailableFunction[]) => T,
 ): T {
   try {
     return view.emit(program, context);
   } catch (error) {
-    const reason = `E_TEMPLATE: ${error instanceof Error ? error.message : String(error)}`;
-    const functions = program.functions.map((fn) => ({ functionId: fn.id, name: fn.name, lines: [], unavailable: reason }));
-    return { functions } as unknown as T;
+    // A RangeError is the known template/nesting failure; anything else is a bug, so it is not labelled as one.
+    const reason = error instanceof RangeError ? `E_TEMPLATE: ${error.message}` : `E_INTERNAL: ${error instanceof Error ? error.message : String(error)}`;
+    return unavailable(program.functions.map((fn) => ({ functionId: fn.id, name: fn.name, lines: [], unavailable: reason })));
   }
 }
+
+type UnavailableFunction = { readonly functionId: FunctionId; readonly name: string; readonly lines: readonly never[]; readonly unavailable: string };
 
 export class CompilationManager {
   /** Never throws, whatever the string. */
@@ -123,10 +127,10 @@ export class CompilationManager {
           ast: astView.emit(program, context),
           bytecode: bytecodeView.emit(program, context),
           get asm() {
-            return memo.asm ?? (memo.asm = safeView(asmView, program, context));
+            return memo.asm ?? (memo.asm = safeView(asmView, program, context, (functions) => ({ functions })));
           },
           get binary() {
-            return memo.binary ?? (memo.binary = safeView(binaryView, program, context));
+            return memo.binary ?? (memo.binary = safeView(binaryView, program, context, (functions) => ({ functions })));
           },
         },
       };

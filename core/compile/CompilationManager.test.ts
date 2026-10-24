@@ -123,10 +123,29 @@ describe("lazy asm and binary views", () => {
         expect(view.functions.map((f) => f.functionId)).toEqual(program.functions.map((f) => f.id));
         expect(view.functions.every((f) => f.lines.length === 0 && f.unavailable?.startsWith("E_TEMPLATE"))).toBe(true);
       }
+      expect(program.functions.length).toBeGreaterThan(0);
+      // Memoised: a second access does not emit again.
       expect(result.views.asm).toBe(result.views.asm);
+      expect(result.views.binary).toBe(result.views.binary);
+      expect(asmSpy).toHaveBeenCalledTimes(1);
+      expect(binarySpy).toHaveBeenCalledTimes(1);
     } finally {
       asmSpy.mockRestore();
       binarySpy.mockRestore();
+    }
+  });
+
+  it("labels any other error E_INTERNAL, so a real bug is not reported as a template failure", () => {
+    const asmSpy = vi.spyOn(asmView, "emit").mockImplementation(() => {
+      throw new TypeError("boom");
+    });
+    try {
+      const result = new CompilationManager().compile("function f() { return 1; } f();", "js");
+      if (!result.program || !result.views) throw new Error("did not compile");
+      expect(result.program.functions.length).toBeGreaterThan(0);
+      expect(result.views.asm.functions.every((f) => f.lines.length === 0 && f.unavailable === "E_INTERNAL: boom")).toBe(true);
+    } finally {
+      asmSpy.mockRestore();
     }
   });
 });

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { TieringModel, type TierEvent } from "@/core/interpreter/tiering/TieringModel";
+import { asFunctionId } from "@/core/shared/ids";
 import { simulate } from "./simulate";
 
 const ticksOf = (source: string) => simulate(source, "js").ticks;
@@ -138,5 +140,47 @@ describe("narration", () => {
   it("gives every tick a non-empty narration", () => {
     const src = "async function f() { await 1; throw new Error('x'); }\nf().catch(() => {}); setTimeout(() => {}, 1);";
     for (const t of ticksOf(src)) expect(t.narration.length, `tick ${t.index}`).toBeGreaterThan(0);
+  });
+});
+
+describe("narrating tier events", () => {
+  const HOT = "function f(o) { return o.x + 1; }\nvar o = { x: 1 };\nfor (var k = 0; k < 600; k++) f(o);";
+
+  it("says after how many calls the function really tiered up: 501 for Maglev, since the first IC feedback held it back 500 calls", () => {
+    const { ticks } = simulate(HOT, "js", { record: true, tiering: new TieringModel() });
+    const text = ticks.map((t) => t.narration).join("\n");
+    expect(text).toContain("`f` would typically tier up to Sparkplug after 8 calls (Modeled).");
+    expect(text).toContain("`f` would typically tier up to Maglev after 501 calls (Modeled).");
+    expect(text).not.toContain("to Turbofan after");
+  });
+
+  const SMALL = "function f() { return 1; }\nf();";
+
+  it("attaches tier events pending when the run ends to the last tick, without adding a tick", () => {
+    const baseline = simulate(SMALL, "js", { record: true, tiering: new TieringModel() });
+    const drains = baseline.ticks.length + 1; // one drain per tick, then the one when the run ends
+    class LateEvents extends TieringModel {
+      #drained = 0;
+      override drainEvents(): readonly TierEvent[] {
+        if (++this.#drained === drains) for (let i = 0; i < 8; i++) this.onInvoke({ functionId: asFunctionId(7), bytecodeLength: 10 });
+        return super.drainEvents();
+      }
+    }
+    const late = simulate(SMALL, "js", { record: true, tiering: new LateEvents() });
+    expect(late.ticks.length).toBe(baseline.ticks.length);
+    expect(late.tickCount).toBe(baseline.tickCount);
+    const last = late.ticks.at(-1);
+    expect(last?.phase).toBe("exit");
+    expect(last?.v8.tierEvents?.at(-1)).toMatchObject({ kind: "tier-up", functionId: 7, to: "sparkplug", invocations: 8 });
+    expect(last?.narration).toContain("would typically tier up to Sparkplug after 8 calls (Modeled).");
+    expect(last?.v8.tiers?.byFunction[asFunctionId(7)]).toBe("sparkplug");
+    expect(late.ticks.slice(0, -1)).toEqual(baseline.ticks.slice(0, -1));
+  });
+
+  it("leaves the last tick alone when no events are pending", () => {
+    const a = simulate(SMALL, "js", { record: true, tiering: new TieringModel() });
+    const b = simulate(SMALL, "js", { record: true, tiering: new TieringModel() });
+    expect(a.ticks.at(-1)).toEqual(b.ticks.at(-1));
+    expect(a.ticks.at(-1)?.v8.tierEvents).toBeUndefined();
   });
 });

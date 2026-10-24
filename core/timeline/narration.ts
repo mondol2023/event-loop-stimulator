@@ -1,6 +1,6 @@
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import type { Opcode } from "@/core/bytecode/bytecodes";
-import { DEOPTIMIZE_REASON_MESSAGES, TIERING_FLAGS, type Tier, type TierEvent } from "@/core/interpreter/tiering/TieringModel";
+import { DEOPTIMIZE_REASON_MESSAGES, type Tier, type TierEvent } from "@/core/interpreter/tiering/TieringModel";
 import type { ElementsKind } from "@/core/runtime/objects/ElementsKind";
 import { JSArray } from "@/core/runtime/objects/JSArray";
 import { JSObject } from "@/core/runtime/objects/JSObject";
@@ -182,15 +182,14 @@ function changes(before: Tick | null, after: State, ctx: NarrationContext): stri
 }
 
 /** Modeled: V8's tiering heuristics, so the wording is "would typically", never "did". */
-function tierEventSentences(events: readonly DeepReadonly<TierEvent>[], ctx: NarrationContext): string[] {
+export function tierEventSentences(events: readonly DeepReadonly<TierEvent>[], ctx: NarrationContext): string[] {
   return events.map((e) => {
     const name = `\`${functionLabel(ctx, e.functionId)}\``;
     if (e.kind === "deopt") {
       return `${name} would typically deoptimize from ${TIER_NAMES[e.from]} back to ${TIER_NAMES[e.to]} (${DEOPTIMIZE_REASON_MESSAGES[e.reason]}) (Modeled).`;
     }
     if (e.osr) return `${name} would typically tier up from ${TIER_NAMES[e.from]} to ${TIER_NAMES[e.to]} by on-stack replacement in a hot loop (Modeled).`;
-    const calls = e.to === "sparkplug" ? TIERING_FLAGS.invocation_count_for_feedback_allocation : e.to === "maglev" ? TIERING_FLAGS.invocation_count_for_maglev : TIERING_FLAGS.invocation_count_for_turbofan;
-    return `${name} would typically tier up to ${TIER_NAMES[e.to]} after ${calls} calls (Modeled).`;
+    return `${name} would typically tier up to ${TIER_NAMES[e.to]} after ${e.invocations} calls (Modeled).`;
   });
 }
 

@@ -22,7 +22,10 @@ export type MachineState = {
   readonly asmLine: number;
   /** rax and rsi hold 32-bit compressed words, rbp and rsp 64-bit stack addresses. */
   readonly registers: Readonly<Record<Extract<RegisterName, "rax" | "rsi" | "rbp" | "rsp">, bigint>>;
-  /** The condition codes of the comparison a Test* bytecode makes; `null` anywhere else, or when an operand is not in the snapshot. */
+  /**
+   * The condition codes the `cmp` at `asmLine` sets once it has run (the state is the one on entry, so it has not run yet).
+   * `null` unless that instruction is a `cmp`, or when an operand is not in the snapshot.
+   */
   readonly flags: MachineFlags | null;
 };
 
@@ -66,22 +69,12 @@ function compareFlags(a: bigint, b: bigint): MachineFlags {
   return { zf: result === 0n, sf: (result >> 31n) === 1n, cf: a < b, of: diff !== signed(result) };
 }
 
-// Only these templates compare directly or hand rax and a register to a builtin: the word on the left of the comparison.
-const REGISTER_TESTS: ReadonlySet<string> = new Set([
-  "TestEqual",
-  "TestEqualStrict",
-  "TestLessThan",
-  "TestGreaterThan",
-  "TestLessThanOrEqual",
-  "TestGreaterThanOrEqual",
-  "TestReferenceEqual",
-]);
-
 function testFlags(opcode: string, operand: number | undefined, frame: Frame, rax: bigint): MachineFlags | null {
   // TestNull and TestUndefined are `cmp rax, [r13 + root slot]`.
   if (opcode === "TestNull") return compareFlags(rax, oddballPointer("null"));
   if (opcode === "TestUndefined") return compareFlags(rax, oddballPointer("undefined"));
-  if (!REGISTER_TESTS.has(opcode) || operand === undefined) return null;
+  // TestReferenceEqual is `cmp [rbp + register], rax`. The other Test* comparisons call a builtin, and the code shown for them has no cmp.
+  if (opcode !== "TestReferenceEqual" || operand === undefined) return null;
   // The snapshot holds the locals only: r0 is local(0), r1 is local(0) - 1, and so on.
   const lhs = frame.registers[local(0) - operand];
   return lhs ? compareFlags(taggedWord(lhs), rax) : null;
@@ -100,7 +93,7 @@ export function machineStateAt(tick: Tick, baseline: BaselineCode): MachineState
 
   const site = baseline.instructions[asmLine]?.bytecode;
   const rax = taggedWord(frame.accumulator);
-  const flags = site?.opcode.startsWith("Test") && site.offset === pos.bytecodeOffset
+  const flags = baseline.instructions[asmLine]?.instruction.mnemonic === "cmp" && site?.offset === pos.bytecodeOffset
     ? testFlags(site.opcode, typeof site.operands[0] === "number" ? site.operands[0] : undefined, frame, rax)
     : null;
   const { rbp, rsp } = framePointers(callStack, depth);

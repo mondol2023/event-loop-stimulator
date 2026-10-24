@@ -82,6 +82,9 @@ describe("the tiering model never changes a run", () => {
         // Narration is excluded from the identical-ticks comparison because tier events add Modeled sentences; check it here instead:
         // no-model narration never has them, a tick without tier events reads the same, and a tick with them says "would typically".
         expect(plain.ticks.some((t) => t.narration.includes("would typically"))).toBe(false);
+        // Neither branch below may be vacuous.
+        expect(tiered.ticks.some((t) => t.v8.tierEvents === undefined)).toBe(true);
+        expect(tiered.ticks.some((t) => t.v8.tierEvents !== undefined)).toBe(true);
         tiered.ticks.forEach((t, i) => {
           if (t.v8.tierEvents === undefined) expect(t.narration, `tick ${i}`).toBe(plain.ticks[i]?.narration);
           else expect(t.narration, `tick ${i}`).toContain("would typically");

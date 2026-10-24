@@ -153,6 +153,8 @@ export type TierUpEvent = {
   readonly to: Exclude<Tier, "ignition">;
   /** On-stack replacement from a back edge, rather than a tier-up at the next call. */
   readonly osr: boolean;
+  /** The function's calls so far when the tier-up happened: the threshold, or later when an IC change or a Turbofan hold-back delayed it. */
+  readonly invocations: number;
 };
 
 export type DeoptEvent = {
@@ -301,7 +303,7 @@ export class TieringModel implements TieringHooks, TieringReadout {
     return state;
   }
 
-  /** `TieringManager::OnInterruptTick`: the next tier is due once the budget the earlier tiers add up to is spent. */
+  /** `TieringManager::OnInterruptTick`: the next tier is due once the budget spent since the first call reaches its own absolute threshold (8, 400, 3000 calls; they do not add up). */
   #tierUpByBudget(id: FunctionId, state: FunctionState, osr: boolean): void {
     const { length, profile } = state;
     switch (state.tier) {
@@ -325,7 +327,7 @@ export class TieringModel implements TieringHooks, TieringReadout {
     state.tier = to;
     if (to === "sparkplug") state.hasBaseline = true;
     if (to === "maglev") state.turbofanGate = state.profile + (FLAGS.invocation_count_for_turbofan - FLAGS.invocation_count_for_maglev) * state.length;
-    this.#events.push({ kind: "tier-up", truth: TIERING_TRUTH, functionId: id, from, to, osr });
+    this.#events.push({ kind: "tier-up", truth: TIERING_TRUTH, functionId: id, from, to, osr, invocations: state.invocations });
   }
 
   /** Optimized code gives up its speculation and the function falls back to baseline code. */

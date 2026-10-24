@@ -12,7 +12,7 @@ import { LIMITS } from "@/core/shared/limits";
 import { SimulationHalt } from "@/core/shared/simulationHalt";
 import { sourceRangeForPos, type BytecodePos } from "@/core/views/types";
 import type { Command, LoopPhase } from "./Command";
-import { narrate, type NarrationContext } from "./narration";
+import { narrate, tierEventSentences, type NarrationContext } from "./narration";
 import { ContextIds, snapshotElementsKinds, snapshotFeedback, snapshotFrame, snapshotMap } from "./snapshots";
 import type { ConsoleLine, DeepReadonly, FidelityWarning, MapSnapshot, Tick, TickDraft, TickPhase, V8Snapshot } from "./Tick";
 import { TickBoundary } from "./tickBoundary";
@@ -81,6 +81,21 @@ export class TickRecorder implements StepObserver {
     if (!this.#boundary.isTick(c)) return;
     if (this.#ticks.length >= LIMITS.ticks) throw new SimulationHalt({ kind: "limit", limit: "ticks" });
     this.#record(c);
+  }
+
+  /**
+   * Called when the run ends. Tier events raised after the last tick (a run that stopped at a limit, or hooks that fired after the final
+   * dispatch) have no tick of their own (D2), so they are attached to the last one rather than dropped. No events: nothing changes.
+   */
+  finish(): void {
+    const world = this.#world;
+    const last = this.#ticks.at(-1);
+    if (!world?.tiering || !last) return;
+    const events = world.tiering.drainEvents();
+    if (events.length === 0) return;
+    const context: NarrationContext = { program: this.#program, realm: world.realm, queued: [] };
+    const v8 = { ...last.v8, tiers: world.tiering.tiers(), tierEvents: [...(last.v8.tierEvents ?? []), ...events] };
+    this.#ticks[this.#ticks.length - 1] = { ...last, v8, narration: [last.narration, ...tierEventSentences(events, context)].join(" ") };
   }
 
   /** The bookkeeping that is not a tick: which task is running and which loop phase the loop is in. */

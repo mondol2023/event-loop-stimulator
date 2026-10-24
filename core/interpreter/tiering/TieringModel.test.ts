@@ -206,6 +206,18 @@ describe("an IC change", () => {
   });
 });
 
+describe("the call count on a tier-up", () => {
+  it("is the threshold when nothing delays the tier-up, and the real count when a re-Maglev does", () => {
+    const model = new TieringModel();
+    invoke(model, 3000);
+    expect(tierUps(model.drainEvents()).map((e) => e.invocations)).toEqual([8, 400, 3000]);
+    model.onIcTransition(secondMap());
+    model.drainEvents();
+    invoke(model, 500);
+    expect(tierUps(model.drainEvents()).map((e) => [e.to, e.invocations])).toEqual([["maglev", 3500]]);
+  });
+});
+
 describe("binary-operation hints", () => {
   it("deopts Maglev code with kNotASmi when a non-Smi Number widens a SignedSmall hint", () => {
     const model = new TieringModel();

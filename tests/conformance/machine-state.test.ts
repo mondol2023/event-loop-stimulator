@@ -48,3 +48,38 @@ it("nexttick-vs-promise: every JS tick has an asm line in range, and rax is the 
   expect(raxBySmi.get(21)).toBe(42n);
   expect(raxBySmi.get(-21)).toBe(0xffff_ffd6n);
 });
+
+// The condition codes are the ones the `cmp` shown at asmLine sets; a comparison that calls a builtin has no cmp in its code.
+// Ticks fall on statement starts, so no real tick sits on a Test* bytecode: the tick is moved onto one, with a chosen accumulator.
+it("flags are projected only where the shown instruction is a cmp, and equal that cmp's flags", () => {
+  const source = "let u; let n = null; const a = u === undefined; const b = n === null; const d = 1 < 2; console.log(a, b, d);";
+  const program = new CompilationManager().compile(source, "js", { natives: false }).program;
+  if (!program) throw new Error("program does not compile");
+  const fn = program.functions[0];
+  const baseline = fn && compileBaseline(fn);
+  if (!fn || !baseline?.ok) throw new Error("no baseline code");
+  const base = simulate(source, "js").ticks.find((t) => t.callStack.at(-1)?.functionId === fn.id && t.pos);
+  const frame = base?.callStack.at(-1);
+  if (!base || !frame) throw new Error("no tick in the top-level function");
+
+  const stateOn = (opcode: string, accumulator: typeof frame.accumulator) => {
+    const line = baseline.value.instructions.find((i) => i.bytecode?.opcode === opcode);
+    if (!line?.bytecode) throw new Error(`no ${opcode} in the program`);
+    const tick = { ...base, pos: { functionId: fn.id, bytecodeOffset: line.bytecode.offset }, callStack: [{ ...frame, accumulator }] };
+    const state = machineStateAt(tick, baseline.value);
+    if (!state) throw new Error("no state");
+    return { state, shown: baseline.value.instructions[state.asmLine] };
+  };
+
+  const undef = stateOn("TestUndefined", { kind: "oddball", name: "undefined" });
+  expect(undef.shown?.instruction.mnemonic).toBe("cmp");
+  expect(undef.state.flags).toEqual({ zf: true, sf: false, cf: false, of: false });
+  const notNull = stateOn("TestNull", { kind: "smi", value: 1, tagged: "1" });
+  expect(notNull.shown?.instruction.mnemonic).toBe("cmp");
+  expect(notNull.state.flags?.zf).toBe(false);
+
+  // TestLessThan loads rdx and calls a builtin: the shown code has no cmp, so there are no flags to show.
+  const less = stateOn("TestLessThan", { kind: "smi", value: 2, tagged: "2" });
+  expect(less.shown?.instruction.mnemonic).not.toBe("cmp");
+  expect(less.state.flags).toBeNull();
+});

@@ -37,9 +37,11 @@ export class SimulationEngine {
     const counted = (): number => recorder?.tickCount ?? limiter?.ticks ?? 0;
     try {
       const { exitCode } = loop.run();
+      recorder?.finish();
       return { ...base, stdout: loop.stdout, stderr: loop.stderr, exitCode, warnings: [...loop.warnings], tickCount: counted() };
     } catch (e) {
       if (!(e instanceof SimulationHalt)) throw e;
+      recorder?.finish();
       return {
         ...base,
         stdout: loop.stdout,
