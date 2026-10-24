@@ -14,6 +14,10 @@ export type AsmForm = {
   readonly source: string;
   /** The encoder's bytes, lowercase hex without separators. */
   readonly bytes: string;
+  /** Filler bytes `source` places around a branch (0 for anything else): the instruction is the rest of the assembled text. */
+  readonly fill: number;
+  /** Whether the instruction comes before its filler (a forward branch) or after it (a backward one). */
+  readonly instructionFirst: boolean;
 };
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -29,14 +33,14 @@ function signedLe(bytes: readonly number[]): number {
 
 function formOf(asm: string, bytes: readonly number[], branch: boolean): AsmForm {
   const hex = bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
-  if (!branch) return { key: asm, source: asm, bytes: hex };
+  if (!branch) return { key: asm, source: asm, bytes: hex, fill: 0, instructionFirst: true };
   // rel8 forms are two bytes (opcode + disp8); every other branch ends in a disp32.
   const disp = signedLe(bytes.slice(bytes.length === 2 ? 1 : -4));
   const op = asm.slice(0, asm.lastIndexOf(" "));
   const key = `${op} rel${disp >= 0 ? "+" : ""}${disp}`;
   // llvm-mc relaxes to the same width for the same distance, so a label `disp` bytes away reproduces the form.
   const source = disp >= 0 ? `${op} 1f\n.fill ${disp},1,0x90\n1:` : `1:\n.fill ${-disp - bytes.length},1,0x90\n${op} 1b`;
-  return { key, source, bytes: hex };
+  return { key, source, bytes: hex, fill: disp >= 0 ? disp : -disp - bytes.length, instructionFirst: disp >= 0 };
 }
 
 export type SkippedFixture = { readonly fixture: string; readonly reason: string };

@@ -9,7 +9,7 @@ import { loadContext } from "./contexts";
 
 const ACC = RegisterRoles.accumulator;
 
-// V8's x64 Smi tagging under pointer compression: the 31-bit value shifted past the tag bit.
+// Illustrative Smi tagging (a compressed-pointer build's 31-bit value shifted past the tag bit); the pinned Node build tags 32-bit Smis as value << 32.
 export const smi = (value: number): number => value * 2;
 // TaggedIndex::FromIntptr: the value shifted past the tag bit, with the tag set (IndexAsTagged, UintAsTagged).
 export const taggedIndex = (value: number): number => value * 2 + 1;

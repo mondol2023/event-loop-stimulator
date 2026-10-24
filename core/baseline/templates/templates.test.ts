@@ -49,7 +49,7 @@ describe("template contract", () => {
     put(prologue({ registerCount: fn.registerCount, frameSize: fn.frameSize, bytecodeArray: 0x1234_5679n }));
     for (const bytecode of fn.array.instructions) {
       encoder.bind(labels.at(bytecode.offset));
-      // Return is still a stub; the epilogue stands in so its tail-call form is covered too.
+      // Return is the epilogue template; it is spelled out here only so the tail-call form is covered explicitly.
       put(bytecode.opcode === "Return" ? epilogue({ bytecode, fn }) : TEMPLATES[bytecode.opcode]({ bytecode, fn, labels }));
     }
 

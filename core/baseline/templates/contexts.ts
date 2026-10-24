@@ -7,6 +7,7 @@ import { BaselineFrame, registerOperand } from "../frame";
 import { rootSlot } from "../isolateData";
 import { asm, bind, callBuiltin, numericOperand, type Emit, type Template, type TemplateInput } from "../Template";
 
+// Illustrative compressed-pointer scheme: it does NOT match the pinned Node build (24.19.0, V8 13.6), which has pointer compression off and stores 32-bit Smis as value<<32 in a 64-bit word, so %IsSmi(2**30) is true there.
 // Illustrative Context layout with 8-byte slots (V8 compresses them to 4): map, length, then scope_info and previous.
 const CONTEXT_ELEMENTS_OFFSET = 16;
 const CONTEXT_PREVIOUS_OFFSET = CONTEXT_ELEMENTS_OFFSET + 8; // Context::kPreviousOffset

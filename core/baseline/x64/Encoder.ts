@@ -106,7 +106,7 @@ function encodeForm(form: Form, operands: readonly Operand[], relDisp: bigint): 
   }
   form.operands.forEach((pattern, i) => {
     const op = operands[i];
-    if (op?.kind === "imm") tail.push(...le(op.value, pattern === "imm8" ? 1 : pattern === "imm16" ? 2 : pattern === "imm32" ? 4 : 8));
+    if (op?.kind === "imm") tail.push(...le(op.value, pattern === "imm8" || pattern === "imm8b" ? 1 : pattern === "imm16" ? 2 : pattern === "imm32" ? 4 : 8));
     if (pattern === "rel8") tail.push(...le(relDisp, 1));
     if (pattern === "rel32") tail.push(...le(relDisp, 4));
   });

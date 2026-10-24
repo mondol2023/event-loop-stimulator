@@ -31,6 +31,8 @@ export type OperandPattern =
   | "al"
   | "r8b"
   | "imm8"
+  // A byte immediate of an instruction that does not sign-extend it (TEST r/m8, imm8): -128..255 all fit one byte.
+  | "imm8b"
   | "imm16"
   | "imm32"
   | "imm64"
@@ -59,6 +61,9 @@ const UINT64_MAX = 2n ** 64n - 1n;
 
 export function fitsInt8(v: bigint): boolean {
   return v >= INT8_MIN && v <= INT8_MAX;
+}
+export function fitsByte(v: bigint): boolean {
+  return v >= INT8_MIN && v <= 255n;
 }
 export function fitsInt32(v: bigint): boolean {
   return v >= INT32_MIN && v <= INT32_MAX;
@@ -94,6 +99,8 @@ export const FORMS: readonly Form[] = [
   { mnemonic: "cmp", operands: ["rax", "imm32"], rexW: true, opcode: [0x3d] },
   { mnemonic: "cmp", operands: ["rm64", "imm32"], rexW: true, opcode: [0x81], modrm: { reg: { ext: 7 }, rm: 0 } },
   { mnemonic: "test", operands: ["rm64", "r64"], rexW: true, opcode: [0x85], modrm: { reg: 1, rm: 0 } },
+  // REX.W A9 id (Intel SDM, TEST RAX, imm32): the short accumulator form, one byte shorter than F7 /0 (the assembler picks it for rax).
+  { mnemonic: "test", operands: ["rax", "imm32"], rexW: true, opcode: [0xa9] },
   // REX.W F7 /0 id (Intel SDM, TEST), the Smi-tag test of MacroAssembler::JumpIfSmi.
   { mnemonic: "test", operands: ["rm64", "imm32"], rexW: true, opcode: [0xf7], modrm: { reg: { ext: 0 }, rm: 0 } },
   // FF /6 (Intel SDM, PUSH r/m64), for CallRuntime pushing FunctionOperand straight from the frame.
@@ -107,8 +114,8 @@ export const FORMS: readonly Form[] = [
   // 8A /r (Intel SDM, MOV r8, r/m8), BaselineAssembler::LoadWord8Field.
   { mnemonic: "movb", operands: ["r8b", "m8"], rexW: false, opcode: [0x8a], modrm: { reg: 0, rm: 1 } },
   // A8 ib and F6 /0 ib (Intel SDM, TEST AL/r/m8, imm8), MacroAssembler::CheckSmi and BaselineAssembler::TestAndBranch.
-  { mnemonic: "testb", operands: ["al", "imm8"], rexW: false, opcode: [0xa8] },
-  { mnemonic: "testb", operands: ["r8b", "imm8"], rexW: false, opcode: [0xf6], modrm: { reg: { ext: 0 }, rm: 0 } },
+  { mnemonic: "testb", operands: ["al", "imm8b"], rexW: false, opcode: [0xa8] },
+  { mnemonic: "testb", operands: ["r8b", "imm8b"], rexW: false, opcode: [0xf6], modrm: { reg: { ext: 0 }, rm: 0 } },
   // 6A ib and 68 id (Intel SDM, PUSH imm8/imm32, sign-extended), MacroAssembler::Push(Immediate) for Smi and int32 builtin arguments.
   { mnemonic: "push", operands: ["imm8"], rexW: false, opcode: [0x6a] },
   { mnemonic: "push", operands: ["imm32"], rexW: false, opcode: [0x68] },
@@ -148,6 +155,8 @@ export function operandMatches(pattern: OperandPattern, op: Operand): boolean {
       return op.kind === "reg" || (op.kind === "mem" && isMemValid(op));
     case "imm8":
       return op.kind === "imm" && fitsInt8(op.value);
+    case "imm8b":
+      return op.kind === "imm" && fitsByte(op.value);
     case "imm16":
       return op.kind === "imm" && fitsInt16(op.value);
     case "imm32":

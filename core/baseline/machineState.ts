@@ -6,6 +6,8 @@ import { contextPointer, hashedPointer, objectPointer, oddballPointer, smiWord }
 import { FUNCTION_ENTRY_BYTECODE_OFFSET, type BaselineCode } from "./Template";
 import type { RegisterName } from "./x64/registers";
 
+// Illustrative compressed-pointer scheme: it does NOT match the pinned Node build (24.19.0, V8 13.6), which has pointer compression off and stores 32-bit Smis as value<<32 in a 64-bit word, so %IsSmi(2**30) is true there.
+// Every register word here (rax = value << 1, r14 = cage base) is that scheme, so none of it is a reading of a real Node process.
 // D1: the machine state of a tick is derived from the tick and the function's baseline code, never stored on the Tick.
 // A tick is reported before its bytecode executes, so the state is the one on entry to that bytecode's first instruction.
 

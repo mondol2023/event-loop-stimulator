@@ -42,6 +42,8 @@ export const contextPointer = (contextId: number): bigint => compressed(CONTEXT_
 /** A value the timeline has no identity for (a string, a HeapNumber, an internal): a pointer hashed from what it holds. */
 export const hashedPointer = (kind: string, content: string): bigint => compressed(HASHED_BASE + (fnv1a32(`${kind}:${content}`) & 0xf_ffff) * 8);
 
+// Illustrative compressed-pointer scheme: it does NOT match the pinned Node build (24.19.0, V8 13.6), which has pointer compression off and stores 32-bit Smis as value<<32 in a 64-bit word, so %IsSmi(2**30) is true there.
+// The model keeps 31-bit Smis (value << 1) and a cage base in r14 so the panes stay small; it is a teaching scheme, not Node's layout.
 // The timeline only reports kind "smi" within isSmi's 31-bit range (-2^30..2^30-1), so no value here needs a HeapNumber.
 /** A Smi in a 32-bit compressed register: `value << 1` (31-bit Smis, kSmiTag = 0). */
 export const smiWord = (value: number): bigint => BigInt.asUintN(32, BigInt(value) << 1n);

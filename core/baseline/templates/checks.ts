@@ -13,7 +13,8 @@ export const ACC = RegisterRoles.accumulator;
 export const SCRATCH = "r8";
 
 const HEAP_OBJECT_TAG = 1;
-// Illustrative non-compressed layout (Node builds without pointer compression): Map::instance_type (u16) and Map::bit_field (u8).
+// Illustrative compressed-pointer scheme: it does NOT match the pinned Node build (24.19.0, V8 13.6), which has pointer compression off and stores 32-bit Smis as value<<32 in a 64-bit word, so %IsSmi(2**30) is true there.
+// The Map field offsets below are illustrative too: Map::instance_type (u16) and Map::bit_field (u8).
 const MAP_INSTANCE_TYPE_OFFSET = 12;
 const MAP_BIT_FIELD_OFFSET = 14;
 

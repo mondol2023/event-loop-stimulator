@@ -90,6 +90,7 @@ export class CompilationManager {
 
       const program = generated.value;
       const context = { source: js, ast };
+      const memo: { asm?: AsmViewOutput; binary?: BinaryViewOutput } = {};
       return {
         diagnostics: [],
         hasBom,
@@ -97,11 +98,17 @@ export class CompilationManager {
         ast,
         scopes,
         program,
+        // The asm and binary views run the baseline code generator (about half of compile() time on a large
+        // program) and simulate() never reads them, so they are computed on first access and then kept.
         views: {
           ast: astView.emit(program, context),
           bytecode: bytecodeView.emit(program, context),
-          asm: asmView.emit(program, context),
-          binary: binaryView.emit(program, context),
+          get asm() {
+            return memo.asm ?? (memo.asm = asmView.emit(program, context));
+          },
+          get binary() {
+            return memo.binary ?? (memo.binary = binaryView.emit(program, context));
+          },
         },
       };
     } catch (error) {

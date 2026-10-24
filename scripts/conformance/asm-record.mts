@@ -4,10 +4,17 @@ import { dirname } from "node:path";
 import { ASM_EXPECTED_FILE, collectAsmForms } from "./asm-forms.mts";
 
 // `npm run asm:record`: llvm-mc encodes every distinct form the baseline compiler emits (repo-generated asm text only, never user source); asm.test.ts checks the result offline.
+//
+// Why `-filetype=obj` and not `--show-encoding`: for a branch to a label, --show-encoding prints a fixup placeholder
+// ("[0xeb,A]") and only the rel8 shape, never the final bytes or the rel32 form. An object file holds the resolved,
+// relaxed bytes, so each form is assembled alone into an ELF object and its .text section is read back. A branch form is
+// assembled with `.fill` padding that places the target `disp` bytes away; the padding is cut off to leave the branch.
+// NOTE: written without llvm-mc installed; it has never run against a real llvm-mc. The first `npm run asm:record` on a
+// machine with LLVM is its test (if the ELF parse or a form's text is wrong it fails loudly rather than record).
 
 const LLVM_MC = process.env.LLVM_MC ?? "llvm-mc";
 // An explicit ELF triple keeps the output independent of the host OS.
-const ARGS = ["--show-encoding", "-triple=x86_64-unknown-linux-gnu"];
+const ARGS = ["-filetype=obj", "-triple=x86_64-unknown-linux-gnu", "-o", "-"];
 
 const version = spawnSync(LLVM_MC, ["--version"], { encoding: "utf8" });
 if (version.error || version.status !== 0) {
@@ -26,21 +33,42 @@ if (forms.length === 0) {
   process.exit(1);
 }
 
-const run = spawnSync(LLVM_MC, ARGS, { input: forms.map((f) => f.source).join("\n") + "\n", encoding: "utf8" });
-if (run.error || run.status !== 0) {
-  console.error(`llvm-mc failed (exit ${run.status ?? "none"}):\n${run.error?.message ?? run.stderr}`);
-  process.exit(1);
+/** The bytes of the `.text` section of a little-endian ELF64 object (e_shoff, e_shentsize, e_shnum, e_shstrndx, then the section headers). */
+function textSection(elf: Buffer): Buffer {
+  if (elf.length < 64 || elf.readUInt32BE(0) !== 0x7f454c46 || elf[4] !== 2 || elf[5] !== 1) throw new Error("llvm-mc did not produce a little-endian ELF64 object");
+  const shoff = Number(elf.readBigUInt64LE(0x28));
+  const shentsize = elf.readUInt16LE(0x3a);
+  const shnum = elf.readUInt16LE(0x3c);
+  const shstrndx = elf.readUInt16LE(0x3e);
+  const header = (i: number) => {
+    const at = shoff + i * shentsize;
+    return { name: elf.readUInt32LE(at), offset: Number(elf.readBigUInt64LE(at + 0x18)), size: Number(elf.readBigUInt64LE(at + 0x20)) };
+  };
+  const strtab = header(shstrndx);
+  for (let i = 0; i < shnum; i++) {
+    const h = header(i);
+    const start = strtab.offset + h.name;
+    if (elf.toString("latin1", start, elf.indexOf(0, start)) === ".text") return elf.subarray(h.offset, h.offset + h.size);
+  }
+  throw new Error("the object has no .text section");
 }
 
-// Each form assembles to exactly one instruction line, in input order; .fill and label lines carry no encoding.
-const encodings = [...run.stdout.matchAll(/# encoding: \[([^\]]*)\]/g)].map((m) =>
-  (m[1] ?? "")
-    .split(",")
-    .map((b) => b.trim().replace(/^0x/, "").padStart(2, "0"))
-    .join(""),
-);
-if (encodings.length !== forms.length) {
-  console.error(`llvm-mc returned ${encodings.length} encodings for ${forms.length} forms; refusing to record.`);
+function encode(source: string): string {
+  const run = spawnSync(LLVM_MC, ARGS, { input: `${source}\n`, encoding: "buffer" });
+  if (run.error || run.status !== 0) throw new Error(`llvm-mc failed on "${source.replaceAll("\n", " ; ")}" (exit ${run.status ?? "none"}): ${run.error?.message ?? run.stderr.toString("utf8")}`);
+  return textSection(run.stdout).toString("hex");
+}
+
+const encodings: string[] = [];
+try {
+  for (const form of forms) {
+    const text = encode(form.source);
+    const take = text.length - form.fill * 2;
+    if (take <= 0) throw new Error(`"${form.key}" assembled to ${text.length / 2} bytes, no more than its ${form.fill} filler bytes`);
+    encodings.push(form.instructionFirst ? text.slice(0, take) : text.slice(text.length - take));
+  }
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
 
