@@ -158,11 +158,11 @@ describe("narrating tier events", () => {
 
   it("attaches tier events pending when the run ends to the last tick, without adding a tick", () => {
     const baseline = simulate(SMALL, "js", { record: true, tiering: new TieringModel() });
-    const drains = baseline.ticks.length + 1; // one drain per tick, then the one when the run ends
+    // Inject the pending events only when drainEvents is called from TickRecorder.finish (the call stack names it), so the test does not
+    // depend on how many ticks the run has or how many times the recorder drains per tick.
     class LateEvents extends TieringModel {
-      #drained = 0;
       override drainEvents(): readonly TierEvent[] {
-        if (++this.#drained === drains) for (let i = 0; i < 8; i++) this.onInvoke({ functionId: asFunctionId(7), bytecodeLength: 10 });
+        if (/finish/.test(new Error().stack ?? "")) for (let i = 0; i < 8; i++) this.onInvoke({ functionId: asFunctionId(7), bytecodeLength: 10 });
         return super.drainEvents();
       }
     }
@@ -173,6 +173,7 @@ describe("narrating tier events", () => {
     expect(last?.phase).toBe("exit");
     expect(last?.v8.tierEvents?.at(-1)).toMatchObject({ kind: "tier-up", functionId: 7, to: "sparkplug", invocations: 8 });
     expect(last?.narration).toContain("would typically tier up to Sparkplug after 8 calls (Modeled).");
+    expect(last?.narration).not.toMatch(/^ |  /);
     expect(last?.v8.tiers?.byFunction[asFunctionId(7)]).toBe("sparkplug");
     expect(late.ticks.slice(0, -1)).toEqual(baseline.ticks.slice(0, -1));
   });

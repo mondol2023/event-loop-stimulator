@@ -54,6 +54,7 @@ export class TickRecorder implements StepObserver {
   #logged = 0;
   /** The state before the first tick, so the first tick's narration can say what the realm's setup left behind. */
   #previous: Tick | undefined;
+  #finished = false;
 
   constructor(program: BytecodeProgram) {
     this.#program = program;
@@ -86,8 +87,11 @@ export class TickRecorder implements StepObserver {
   /**
    * Called when the run ends. Tier events raised after the last tick (a run that stopped at a limit, or hooks that fired after the final
    * dispatch) have no tick of their own (D2), so they are attached to the last one rather than dropped. No events: nothing changes.
+   * With no ticks recorded there is nothing to attach them to, so pending events are dropped. A second call is a no-op.
    */
   finish(): void {
+    if (this.#finished) return;
+    this.#finished = true;
     const world = this.#world;
     const last = this.#ticks.at(-1);
     if (!world?.tiering || !last) return;
@@ -95,7 +99,7 @@ export class TickRecorder implements StepObserver {
     if (events.length === 0) return;
     const context: NarrationContext = { program: this.#program, realm: world.realm, queued: [] };
     const v8 = { ...last.v8, tiers: world.tiering.tiers(), tierEvents: [...(last.v8.tierEvents ?? []), ...events] };
-    this.#ticks[this.#ticks.length - 1] = { ...last, v8, narration: [last.narration, ...tierEventSentences(events, context)].join(" ") };
+    this.#ticks[this.#ticks.length - 1] = { ...last, v8, narration: [last.narration, ...tierEventSentences(events, context)].filter((s) => s !== "").join(" ") };
   }
 
   /** The bookkeeping that is not a tick: which task is running and which loop phase the loop is in. */

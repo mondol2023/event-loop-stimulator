@@ -10,8 +10,8 @@ import { formatInstruction } from "./x64/syntax";
 
 // Sparkplug's BaselineCompiler::GenerateCode: prologue, then one template per bytecode in order, assembled in two passes.
 
-/** An assembler failure, or a template that threw (a bug in core, surfaced as data so compile() never throws). */
-export type BaselineError = { readonly code: EncodeError["code"] | "E_TEMPLATE"; readonly message: string };
+/** An assembler failure; E_TEMPLATE for a RangeError (a stack overflow in deep code); E_INTERNAL for any other throw (a bug in core, surfaced as data so compile() never throws). */
+export type BaselineError = { readonly code: EncodeError["code"] | "E_TEMPLATE" | "E_INTERNAL"; readonly message: string };
 
 // The asm and binary views both need the code of the same function.
 const cache = new WeakMap<BytecodeFunction, Result<BaselineCode, BaselineError[]>>();
@@ -23,7 +23,7 @@ export function compileBaseline(fn: BytecodeFunction): Result<BaselineCode, Base
   try {
     result = generate(fn);
   } catch (error) {
-    result = err([{ code: "E_TEMPLATE", message: error instanceof Error ? error.message : String(error) }]);
+    result = err([{ code: error instanceof RangeError ? "E_TEMPLATE" : "E_INTERNAL", message: error instanceof Error ? error.message : String(error) }]);
   }
   cache.set(fn, result);
   return result;

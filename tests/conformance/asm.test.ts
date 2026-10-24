@@ -5,7 +5,7 @@ import { ASM_EXPECTED_FILE, collectAsmForms } from "../../scripts/conformance/as
 
 // Every x64 form the baseline compiler emits equals what llvm-mc encoded (`npm run asm:record`), checked offline; until the first record it is an it.todo plus a tripwire.
 
-const ExpectedSchema = z.object({ llvm: z.string(), forms: z.record(z.string(), z.string()) }).strict();
+const ExpectedSchema = z.object({ llvm: z.string(), assembler: z.object({ tool: z.enum(["llvm-mc", "clang"]), version: z.string() }).strict().optional(), forms: z.record(z.string(), z.string()) }).strict();
 
 const { forms, skipped } = collectAsmForms();
 const SHOWN = 10;
