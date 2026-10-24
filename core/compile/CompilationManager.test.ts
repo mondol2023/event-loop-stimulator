@@ -1,5 +1,7 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { asmView } from "@/core/views/AsmView";
+import { binaryView } from "@/core/views/BinaryView";
 import { CompilationManager } from "./CompilationManager";
 
 const manager = new CompilationManager();
@@ -102,5 +104,29 @@ describe("CompilationManager.compile", () => {
       }),
       { numRuns: 1000 },
     );
+  });
+});
+
+describe("lazy asm and binary views", () => {
+  it("never throw: a view that fails (a stack overflow in deep code) reports every function as unavailable, and keeps the answer", () => {
+    const asmSpy = vi.spyOn(asmView, "emit").mockImplementation(() => {
+      throw new RangeError("Maximum call stack size exceeded");
+    });
+    const binarySpy = vi.spyOn(binaryView, "emit").mockImplementation(() => {
+      throw new RangeError("Maximum call stack size exceeded");
+    });
+    try {
+      const result = new CompilationManager().compile("function f() { return 1; } f();", "js");
+      const program = result.program;
+      if (!program || !result.views) throw new Error("did not compile");
+      for (const view of [result.views.asm, result.views.binary]) {
+        expect(view.functions.map((f) => f.functionId)).toEqual(program.functions.map((f) => f.id));
+        expect(view.functions.every((f) => f.lines.length === 0 && f.unavailable?.startsWith("E_TEMPLATE"))).toBe(true);
+      }
+      expect(result.views.asm).toBe(result.views.asm);
+    } finally {
+      asmSpy.mockRestore();
+      binarySpy.mockRestore();
+    }
   });
 });

@@ -57,6 +57,25 @@ function tooDeep(source: string): Diagnostic {
   };
 }
 
+/**
+ * Runs a lazily computed code view without ever throwing (compile() promises "never throws", and a getter runs after
+ * its try/catch has gone). A failure, such as a stack overflow in deep code, is reported the way the views already
+ * report a baseline failure: every function listed, with no lines and the reason in `unavailable`.
+ */
+function safeView<T extends { readonly functions: readonly unknown[] }>(
+  view: { emit(program: BytecodeProgram, context: { source: string; ast: Program }): T },
+  program: BytecodeProgram,
+  context: { source: string; ast: Program },
+): T {
+  try {
+    return view.emit(program, context);
+  } catch (error) {
+    const reason = `E_TEMPLATE: ${error instanceof Error ? error.message : String(error)}`;
+    const functions = program.functions.map((fn) => ({ functionId: fn.id, name: fn.name, lines: [], unavailable: reason }));
+    return { functions } as unknown as T;
+  }
+}
+
 export class CompilationManager {
   /** Never throws, whatever the string. */
   compile(source: string, lang: Language, opts: CompileOptions = {}): CompilationResult {
@@ -104,10 +123,10 @@ export class CompilationManager {
           ast: astView.emit(program, context),
           bytecode: bytecodeView.emit(program, context),
           get asm() {
-            return memo.asm ?? (memo.asm = asmView.emit(program, context));
+            return memo.asm ?? (memo.asm = safeView(asmView, program, context));
           },
           get binary() {
-            return memo.binary ?? (memo.binary = binaryView.emit(program, context));
+            return memo.binary ?? (memo.binary = safeView(binaryView, program, context));
           },
         },
       };
