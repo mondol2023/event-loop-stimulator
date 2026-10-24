@@ -76,7 +76,18 @@ Nothing imports `app/` (integration tests may import `app/api/**` handlers, [ADR
 
 ## Runtime boundaries
 
-- **Browser.** The UI renders. Compile and simulate run in a Web Worker (`features/playground/worker/`), with Zod-validated messages.
+- **Browser.** The UI renders; compile and simulate run in a Web Worker (see Phase 5 below).
+
+## Phase 5: client worker and store
+
+```
+editor → PipelineClient (400 ms, jobId) → pipeline.worker (compile → run)
+       → compiled / simulated → store (+ timeline holder) → hooks → components
+```
+
+- `PipelineClient` debounces edits by 400 ms, tags each job with a `jobId` and terminates the worker when a newer job supersedes one in flight (ADR-042).
+- The worker validates requests with a `.strict()` schema, runs the same `compile` and `simulate` as the tests, and posts `compiled` then `simulated` (ADR-041, ADR-045). The timeline crosses as a serialized string (ADR-040).
+- One Zustand store per `PlaygroundProvider`. The `TimelineStore` sits in a per-store `WeakMap` holder and the state carries only `timelineVersion` (ADR-046). Hooks select DTOs (ADR-043) and read ticks from the holder. The playback clock is presentation only (ADR-044).
 - **Server.** Requests pass four layers, each of which can only reject:
   1. `proxy.ts`: mints the CSP nonce and `x-request-id`, sets the security headers, and redirects `/dashboard` and `/admin` visitors who have no session cookie. This is optimistic (no database, no unsealing) and is never the security boundary.
   2. DAL (`server/auth/dal.ts`): the real authorization point. `getCurrentUser()` re-reads the user on every request and returns null unless the account is active and the cookie's `sessionVersion` matches. `authorize(permission)` yields 401/403 and audits `rbac.denied`.

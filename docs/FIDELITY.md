@@ -19,6 +19,7 @@ Every pane and view carries one of these as a quiet badge with a one-sentence to
 |---|---|---|
 | Console output text (incl. `util.inspect` formatting of arrays/objects/strings/numbers) | **Exact** | Spec interpreter + our `inspect` reimplementation; differential tests vs pinned Node |
 | Order of sync code, nextTicks, microtasks, timers, immediates | **Exact** | Spec job semantics + Node loop model; differential tests |
+| What the client worker changes | **Exact layer unchanged** | The worker runs the same `simulate` pipeline as the server-side tests (Task 3's stdout test proves it), and the timeline is serialized and revived unchanged (ADR-040). Playback speed only chooses which tick is shown (ADR-044) |
 | Uncaught exception / unhandled rejection output, and the exit code | **Exact** after documented normalization (file path → `main.cjs`) | V8 message templates; differential tests |
 | Variable values, object key order, number→string conversion | **Exact** | Spec operations; differential tests |
 | AST and scope analysis (hoisting, TDZ, closures) | **Exact** with respect to ESTree and spec scoping | Parser + scope unit tests |

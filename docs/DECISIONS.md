@@ -240,3 +240,61 @@ It allows pure npm packages.
 - **V8's `SyntaxError` text is not reproduced.** A syntax error is our own `E_SYNTAX` diagnostic with a range and a hint, not V8's stderr. This is a recorded gap in `FIDELITY.md`.
 
 **Consequence.** The simulator in Phase 3 must provide the harness builtins before the test262 `todo` can be turned on. UI code that maps a tick to source must handle a missing range.
+
+## ADR-040: The timeline crosses the worker boundary as the serialized string (Phase 5, D1)
+
+**Context.** The simulator runs in a Web Worker and the main thread needs the `TimelineStore`. ADR-030 already defines a serialized form with a shape check.
+
+**Decision.** The worker posts `TimelineStore.serialize()` and the main thread calls `TimelineStore.deserialize`. Zod validates the message envelope only, with `timeline: z.string().max(TIMELINE_MAX_CHARS)` and `TIMELINE_MAX_CHARS = 20 * 1024 * 1024`. The tick contents are validated by `checkShape`, because a deep Zod parse of 5,000 ticks would cost more than the run.
+
+**Consequence.** One copy of the timeline per run, and the same validation as ADR-030.
+
+**Bundling (Task 1 spike; recorded here because D1 is the first decision about the worker boundary).** Path 1 shipped: Turbopack bundles `new Worker(new URL("<relative path>/pipeline.worker.ts", import.meta.url), { type: "module" })` from a client component, so `scripts/build-worker.mts`, `package.json`, `.gitignore` and `check-build.mts` did not change. Turbopack emits a small loader chunk (`turbopack-worker-*.js`, about 0.6 KB gz) that `importScripts()`s the worker chunks. In the spike's production build the worker payload was about 126.6 KB gz: `2phfj52684es1.js` (core pipeline and `@babel/parser`, 470,026 B raw, 122,171 B gz) and `turbopack-3yuz58scq3xoi.js` (runtime, 3,836 B gz). In the Task 10 build the worker entry was `turbopack-worker-2ru9m5gbh1na6.js` (558 B gz), which loads `2nu10niigy9y6.js` (612,921 B raw, 167 KB gz). Chunk names are content hashes and change per build; never hardcode them. The worker is fetched only when `new Worker` runs, so it is outside first-load JS. First-load JS for `/playground` measured about 232 KB gz in Task 10 against the 250 KB budget (175 KB at the spike). `check-build` scans `.next/static`, which includes the worker chunk, and passed. The CSP is unchanged (`worker-src 'self' blob:`).
+
+## ADR-041: Two responses per job, `compiled` then `simulated` (Phase 5, D2)
+
+**Context.** Compile is fast and simulate can be slow. The panes should fill before the run ends.
+
+**Decision.** The worker posts `compiled` and later `simulated`. Applying a new job's `compiled` clears the old timeline in the same `setState` (timeline holder emptied, `timelineVersion` bumped, playback reset to index 0 and length 0).
+
+**Consequence.** Old ticks never pair with the new line index, and subscribers see one notification for the swap.
+
+## ADR-042: A superseded in-flight job terminates the worker (Phase 5, D3)
+
+**Context.** A worker cannot be interrupted mid-simulation, and a long run would block the next job.
+
+**Decision.** When a job is dispatched while another is running, `PipelineClient` calls `worker.terminate()` and spawns a fresh worker. The `jobId` check still guards every message.
+
+**Consequence.** An old result can never arrive, at the cost of re-creating the worker.
+
+## ADR-043: The main thread gets DTOs only (Phase 5, D4)
+
+**Context.** Compiled programs hold heap graphs and closures that should not cross the boundary.
+
+**Decision.** The `compiled` message carries `diagnostics`, `strippedJs`, the four materialized views, a `LineIndex`, `baselines: BaselineCode[]` (indexed by `FunctionId`), the boundaries and the run summary.
+
+**Consequence.** Components read plain data, and the simulator never runs on the main thread.
+
+## ADR-044: Playback rate is a presentation constant (Phase 5, D5)
+
+**Context.** The learner needs a stepping speed that is readable and safe in a backgrounded tab.
+
+**Decision.** 1x is 4 ticks/s (`BASE_TICKS_PER_SECOND = 4`), with speeds 0.25, 0.5, 1, 2, 4 and 8. Each frame's delta is clamped to `MAX_FRAME_DELTA_MS = 250`, and playback stops at the last tick. The owner may change the base rate; it is one constant.
+
+**Consequence.** Speed never affects the timeline, only which tick is shown.
+
+## ADR-045: The worker attaches a TieringModel; natives and test262 stay unreachable (Phase 5, D6)
+
+**Context.** The asm and tier panes need tier data from the run (ADR-037). The worker must not widen the surface that ADR-026 and ADR-031 closed.
+
+**Decision.** The worker attaches a `TieringModel`. The request schema is `.strict()` with no `natives` or `host` key, so `natives: true` and `host: "test262"` are rejected, as are non-positive or fractional `jobId`s and unknown `lang`s.
+
+**Consequence.** Client runs are always the user-program host.
+
+## ADR-046: One store per PlaygroundProvider (Phase 5, D7)
+
+**Context.** A module singleton would leak state between tests and between future embeds.
+
+**Decision.** Each `PlaygroundProvider` creates its own Zustand store. The timeline lives in a `WeakMap<PlaygroundStore, TimelineStore>` holder, outside React and Zustand state (the spec's "module ref", scoped per store). Store state carries only `timelineVersion`, which bumps on each swap so that selectors re-run.
+
+**Consequence.** Tests and embeds are isolated, and the store never diffs or clones a large timeline.
