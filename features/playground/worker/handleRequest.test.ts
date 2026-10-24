@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CompilationManager } from "@/core/compile/CompilationManager";
+import { SIMULATION_LIMITS } from "@/core/shared/simulationHalt";
 import { SimulationEngine } from "@/core/timeline/SimulationEngine";
 import { TimelineStore } from "@/core/timeline/TimelineStore";
 import { handleRequest } from "./handleRequest";
@@ -88,7 +90,7 @@ describe("handleRequest", () => {
   it("every response passes parseResponse and survives structuredClone unchanged", () => {
     for (const response of [...run(fixtureSource), ...run("Math.random()")]) {
       expect(parseResponse(response)).toEqual(response);
-      expect(structuredClone(response)).toEqual(response);
+      expect(structuredClone(response)).toStrictEqual(response);
     }
   });
 
@@ -112,6 +114,19 @@ describe("handleRequest", () => {
     expect(last.jobId).toBe(7);
     expect(JSON.stringify(posted.at(-1))).not.toContain("secretMarker");
     expect(parseResponse(last)).toEqual(last);
+  });
+
+  it("posts failed when core returns neither diagnostics nor a program", () => {
+    vi.spyOn(CompilationManager.prototype, "compile").mockReturnValue({ diagnostics: [], hasBom: false });
+    const posted = run("let a = 1;");
+    expect(posted).toHaveLength(1);
+    expect(posted[0]).toMatchObject({ type: "failed", jobId: 7 });
+  });
+
+  it("posts failed instead of an oversized timeline", () => {
+    vi.spyOn(TimelineStore.prototype, "serialize").mockReturnValue("x".repeat(TIMELINE_MAX_CHARS + 1));
+    const posted = run("let a = 1;");
+    expect(posted.map((r) => r.type)).toEqual(["compiled", "failed"]);
   });
 
   it("truncates the failure message to 500 characters", () => {
@@ -138,6 +153,15 @@ describe("parseResponse", () => {
 
   it("accepts a valid simulated response", () => {
     expect(parseResponse(simulated)).toEqual(simulated);
+  });
+
+  it.each(SIMULATION_LIMITS)("round-trips the %s stop limit", (limit) => {
+    const response = { ...simulated, stop: { kind: "limit", limit } };
+    expect(parseResponse(response)).toEqual(response);
+  });
+
+  it("rejects an unknown stop limit", () => {
+    expect(parseResponse({ ...simulated, stop: { kind: "limit", limit: "memory" } })).toBeNull();
   });
 
   it("rejects an extra key (strict)", () => {

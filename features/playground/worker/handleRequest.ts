@@ -34,16 +34,13 @@ export function handleRequest(request: PipelineRequest, post: (response: Pipelin
   try {
     const compiled = new CompilationManager().compile(source, lang);
     const { program, views, strippedJs } = compiled;
-    if (compiled.diagnostics.length > 0 || !program || !views || strippedJs === undefined) {
-      post({
-        type: "compiled",
-        jobId,
-        diagnostics: compiled.diagnostics,
-        strippedJs: strippedJs ?? null,
-        views: null,
-        lineIndex: null,
-        baselines: null,
-      });
+    if (compiled.diagnostics.length > 0) {
+      post({ type: "compiled", jobId, diagnostics: compiled.diagnostics, strippedJs: strippedJs ?? null, views: null, lineIndex: null, baselines: null });
+      return;
+    }
+    if (!program || !views || strippedJs === undefined) {
+      // Core promises a program whenever there are no diagnostics; anything else is a bug, not a result.
+      post({ type: "failed", jobId, message: "The compiler returned no program." });
       return;
     }
 

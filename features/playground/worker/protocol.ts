@@ -1,7 +1,7 @@
 import type { BaselineCode } from "@/core/baseline/Template";
 import type { Diagnostic } from "@/core/shared/diagnostics";
 import { DIAGNOSTIC_CODES } from "@/core/shared/diagnostics";
-import type { SimulationStop } from "@/core/shared/simulationHalt";
+import { SIMULATION_LIMITS, type SimulationStop } from "@/core/shared/simulationHalt";
 import { z } from "@/core/shared/zod";
 import type { AsmViewOutput } from "@/core/views/AsmView";
 import type { AstViewOutput } from "@/core/views/AstView";
@@ -111,7 +111,7 @@ const DiagnosticSchema = z
   .strict();
 
 const StopSchema = z.union([
-  z.object({ kind: z.literal("limit"), limit: z.enum(["ticks", "callDepth", "heapObjects", "virtualTime", "work", "output", "strings"]) }).strict(),
+  z.object({ kind: z.literal("limit"), limit: z.enum(SIMULATION_LIMITS) }).strict(),
   z.object({ kind: z.literal("unsupported"), reason: z.string() }).strict(),
 ]);
 
