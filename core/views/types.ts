@@ -38,7 +38,7 @@ type Attribution = { readonly position: number; readonly pos: BytecodePos };
 const indexes = new WeakMap<BytecodeProgram, readonly Attribution[]>();
 
 /** Every instruction with the source position it is attributed to, sorted by that position. */
-function attributions(program: BytecodeProgram): readonly Attribution[] {
+export function sourceAttributions(program: BytecodeProgram): readonly Attribution[] {
   const cached = indexes.get(program);
   if (cached) return cached;
   const list: Attribution[] = [];
@@ -61,7 +61,7 @@ function attributions(program: BytecodeProgram): readonly Attribution[] {
 
 /** Every instruction attributed to a source position inside `range`, ordered by function then offset. */
 export function positionsForSourceRange(program: BytecodeProgram, range: SourceRange): BytecodePos[] {
-  const list = attributions(program);
+  const list = sourceAttributions(program);
   let low = 0;
   let high = list.length;
   while (low < high) {
