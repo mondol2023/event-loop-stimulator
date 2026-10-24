@@ -57,7 +57,10 @@ export function createPipelineClient(deps: Deps): PipelineClient {
 
   function fail(message: string): void {
     const jobId = latestJobId;
+    const wasInFlight = inFlight;
     dropWorker();
+    // An idle worker's late error must not flip the finished job's good result to failed.
+    if (!wasInFlight) return;
     deps.onEvent({ kind: "failed", jobId, message });
   }
 
@@ -92,11 +95,16 @@ export function createPipelineClient(deps: Deps): PipelineClient {
       timer = null;
     }
     if (inFlight) dropWorker();
-    worker ??= createWorker();
     latestJobId += 1;
     inFlight = true;
     deps.onEvent({ kind: "started", jobId: latestJobId });
-    worker.postMessage({ type: "run", jobId: latestJobId, source, lang });
+    try {
+      worker ??= createWorker();
+      worker.postMessage({ type: "run", jobId: latestJobId, source, lang });
+    } catch (error) {
+      // A throwing factory or post must still end the job, or status would stay "simulating" forever.
+      fail(error instanceof Error ? error.message : "The pipeline worker could not be started.");
+    }
   }
 
   return {

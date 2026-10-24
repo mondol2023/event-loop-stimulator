@@ -233,6 +233,49 @@ describe("PipelineClient crash handling", () => {
   });
 });
 
+describe("PipelineClient failure edges", () => {
+  it("emits failed when the worker factory throws", () => {
+    const events: PipelineEvent[] = [];
+    const client = createPipelineClient({
+      createWorker: () => {
+        throw new Error("no workers here");
+      },
+      onEvent: (e) => events.push(e),
+      setTimer: () => 0,
+      clearTimer: () => undefined,
+    });
+    client.request("a", "js");
+    client.flush();
+    expect(events).toEqual([
+      { kind: "started", jobId: 1 },
+      { kind: "failed", jobId: 1, message: "no workers here" },
+    ]);
+  });
+
+  it("emits failed when postMessage throws", () => {
+    const { events, client, inst } = setup((w) => {
+      w.postMessage = () => {
+        throw new Error("clone failed");
+      };
+    });
+    client.request("a", "js");
+    client.flush();
+    expect(events.at(-1)).toEqual({ kind: "failed", jobId: 1, message: "clone failed" });
+    expect(inst(0).terminated).toBe(true);
+  });
+
+  it("does not fail a finished job when an idle worker errors", () => {
+    const { events, client, inst } = setup();
+    client.request("a", "js");
+    client.flush();
+    inst(0).emit(simulated(1));
+    const before = events.length;
+    inst(0).crash();
+    expect(events).toHaveLength(before);
+    expect(inst(0).terminated).toBe(true);
+  });
+});
+
 describe("PipelineClient dispose", () => {
   it("terminates the worker and cancels a pending debounce", () => {
     const { timers, fake, client, inst } = setup();
