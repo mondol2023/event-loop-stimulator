@@ -195,3 +195,13 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* Reduced motion: no transition or CSS animation runs at all (Motion's own animations follow MotionConfig reducedMotion="user"). Unlayered, so it wins over utilities. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

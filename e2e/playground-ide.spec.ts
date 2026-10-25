@@ -11,7 +11,7 @@ import {
   status,
   test,
   tickReadout,
-  waitForReady,
+  waitForRunAfterEdit,
 } from "./helpers/playground";
 
 const FIXTURES = join(process.cwd(), "tests", "conformance", "fixtures");
@@ -95,12 +95,12 @@ test("hovering a line in any pane outlines the matching source line", async ({ p
   }
 });
 
-test("the nondeterministic example says so on its badge, on the scrubber and in the narration", async ({ page }) => {
+test("the nondeterministic example says so on its badge, in the scrubber marker's tooltip and on the chips", async ({ page }) => {
   await openPlayground(page);
   await loadExample(page, /setTimeout 0 vs setImmediate/);
 
-  const chip = "Order not guaranteed in real Node";
-  await expect(page.getByText(chip, { exact: true })).toBeVisible();
+  const phrase = "Order not guaranteed in real Node";
+  await expect(page.getByText(phrase, { exact: true })).toBeVisible();
   await expect(page.getByText(/^Matches Node/)).toBeVisible();
 
   const length = Number(((await page.getByText(/^Tick \d+ \/ \d+$/).textContent()) ?? "").split("/")[1]);
@@ -108,11 +108,24 @@ test("the nondeterministic example says so on its badge, on the scrubber and in 
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(tickReadout(page, length, length)).toBeVisible({ timeout: 30_000 });
 
-  await expect(page.locator('[data-marker="warning"]').first()).toBeAttached();
-  await expect(page.getByRole("img", { name: new RegExp(chip) }).first()).toBeAttached();
-  // The warning shows on the timeline's marker; jumping to it puts the words in the narration.
-  const markerLabel = (await page.locator('[data-marker="warning"]').first().getAttribute("aria-label")) ?? "";
-  expect(markerLabel).toContain(chip);
+  // The scrubber has a warning marker, and hovering it shows the warning's words in its tooltip.
+  const marker = page.locator('[data-marker="warning"]').first();
+  await expect(marker).toBeAttached();
+  await marker.hover();
+  await expect(page.getByRole("tooltip").filter({ hasText: phrase }).first()).toBeVisible();
+
+  // Stepping from the start, the warning reaches the run panel: a pending timer or immediate chip is flagged.
+  await focusPage(page);
+  await page.keyboard.press("Home");
+  const flagged = page.getByTestId("warning-chip");
+  let tick = 1;
+  while ((await flagged.count()) === 0 && tick < length) {
+    await page.keyboard.press("ArrowRight");
+    tick += 1;
+    await expect(tickReadout(page, tick, length)).toBeVisible();
+  }
+  await expect(flagged.first(), `a chip is flagged by tick ${tick}`).toBeVisible();
+  await expect(flagged.first()).toContainText("Order not guaranteed");
 });
 
 test("playing at 8x to the end shifts nothing: cumulative layout shift stays under 0.01", async ({ page }) => {
@@ -142,7 +155,7 @@ test("opening and using every overlay and view raises no CSP message", async ({ 
 
   // Switching the language to TypeScript gives the palette something to strip.
   await page.getByRole("radio", { name: "TS" }).click();
-  await waitForReady(page);
+  await waitForRunAfterEdit(page);
 
   // The palette, then the stripped JS dialog from it.
   await page.keyboard.press("ControlOrMeta+K");
@@ -187,6 +200,10 @@ test("with reduced motion, no animation runs while stepping", async ({ page }) =
   for (let tick = 2; tick <= 11; tick++) {
     await page.keyboard.press("ArrowRight");
     await expect(tickReadout(page, tick, NEXTTICK_TICKS)).toBeVisible();
-    await expect.poll(() => page.evaluate(() => document.getAnimations().length), { message: `running animations at tick ${tick}` }).toBe(0);
+    // Two frames for the step to render and start whatever it animates, then one sample. No polling: a poll would
+    // pass as soon as a finite animation (a 150 ms fade) ended, whether or not reduced motion had stopped it.
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const running = await page.evaluate(() => document.getAnimations().map((a) => `${a.constructor.name} ${a.playState} ${(a.effect as KeyframeEffect | null)?.target?.tagName ?? "?"}`));
+    expect(running, `running animations at tick ${tick}`).toEqual([]);
   }
 });

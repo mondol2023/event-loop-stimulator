@@ -1,7 +1,7 @@
 "use client";
 
 import { TriangleAlert } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { type PointerEvent, type ReactNode, useState } from "react";
 import { cn } from "cn";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -45,6 +45,8 @@ export function roleOf(kind: TaskRef["kind"]): ChipRole {
 const FADE_IN = { duration: 0.22, ease: [0.22, 1, 0.36, 1] } as const;
 const FADE_OUT = { duration: 0.15, ease: [0.22, 1, 0.36, 1] } as const;
 const MOVE = { type: "spring", stiffness: 500, damping: 32 } as const;
+// Reduced motion: MotionConfig drops transform and layout animations but keeps opacity fades, so those are made instant here.
+const INSTANT = { duration: 0 } as const;
 
 export type ChipShellProps = {
   testId: string;
@@ -63,6 +65,7 @@ export type ChipShellProps = {
 /** One chip: label in mono, role in text, and its origin in a tooltip reachable by hover, focus and tap. */
 export function ChipShell({ testId, layoutId, role, label, detail, tooltip, isNext = false, warned = false }: ChipShellProps) {
   const client = useIsClient();
+  const reduce = useReducedMotion() === true;
   // Radix opens on hover and focus and ignores touch, and its trigger closes the tooltip on every click. A tap
   // therefore owns a second flag that Radix never touches; the tooltip shows while either is set.
   const [hover, setHover] = useState(false);
@@ -102,7 +105,7 @@ export function ChipShell({ testId, layoutId, role, label, detail, tooltip, isNe
       <Tooltip open={hover || tapped} onOpenChange={setHover}>
         <TooltipTrigger asChild>
           {client ? (
-            <motion.li {...common} layoutId={layoutId} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { opacity: FADE_IN, layout: MOVE } }} exit={{ opacity: 0, transition: { opacity: FADE_OUT } }} transition={{ layout: MOVE }}>
+            <motion.li {...common} layoutId={layoutId} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { opacity: reduce ? INSTANT : FADE_IN, layout: MOVE } }} exit={{ opacity: 0, transition: { opacity: reduce ? INSTANT : FADE_OUT } }} transition={{ layout: MOVE }}>
               {content}
             </motion.li>
           ) : (

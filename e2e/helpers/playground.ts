@@ -47,17 +47,22 @@ export async function openPlayground(page: Page): Promise<void> {
 }
 
 /**
- * Loads an example through the Examples menu and waits for its run. An edit is compiled after a 400 ms
- * debounce, so "Ready" can still be the previous program's: when the source changes, the status leaves
- * "Ready" first; the wait for that is skipped only when choosing the example changes nothing.
+ * Waits for the run that an edit just caused. The status leaves "Ready" once the 400 ms debounce fires, so a
+ * bare wait for "Ready" can return on the previous program's run; the leave is skipped only when the edit
+ * changed nothing.
  */
-export async function loadExample(page: Page, title: string | RegExp): Promise<void> {
-  await page.getByRole("button", { name: "Examples" }).click();
-  await page.getByRole("menuitem", { name: title }).click();
+export async function waitForRunAfterEdit(page: Page): Promise<void> {
   await page
     .waitForFunction(() => document.querySelector("[data-testid=status]")?.textContent !== "Ready", null, { polling: "raf", timeout: 3_000 })
     .catch(() => undefined);
   await waitForReady(page);
+}
+
+/** Loads an example through the Examples menu and waits for its run (see waitForRunAfterEdit). */
+export async function loadExample(page: Page, title: string | RegExp): Promise<void> {
+  await page.getByRole("button", { name: "Examples" }).click();
+  await page.getByRole("menuitem", { name: title }).click();
+  await waitForRunAfterEdit(page);
 }
 
 /** Moves focus to the page body so the global playback shortcuts apply (they leave editors and widgets alone). */

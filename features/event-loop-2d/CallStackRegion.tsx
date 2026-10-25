@@ -1,7 +1,7 @@
 "use client";
 
 import { Layers } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallStack } from "@/features/playground/hooks/useTickSelectors";
 import { EmptyState, RegionFrame } from "./RegionFrame";
 import { useIsClient } from "./useIsClient";
@@ -9,8 +9,10 @@ import { useIsClient } from "./useIsClient";
 // A frame drops in with a spring and no overshoot, and leaves with a fade-up (docs/design/playground-shape.md 10.7).
 // The outer li fades and is moved by the layout animation; the inner box owns the transform, so the two never fight.
 const SPRING = { type: "spring", stiffness: 500, damping: 32 } as const;
+// Reduced motion: MotionConfig drops transform and layout animations but keeps opacity fades, so those are made instant here.
+const INSTANT = { duration: 0 } as const;
 const LEAVE = { duration: 0.15, ease: [0.22, 1, 0.36, 1] } as const;
-// min-h-8 is the empty state's height too, so a frame arriving or leaving does not move the regions below it.
+// min-h-8 is the empty state's height too, so the first frame arriving or the last leaving (0 and 1 frames) does not move the regions below it.
 const FRAME_CLASS = "flex min-h-8 items-center rounded-md border border-border border-l-4 border-l-primary bg-card px-3 py-1 text-sm text-card-foreground";
 
 function FrameName({ name }: { name: string }) {
@@ -25,6 +27,7 @@ function FrameName({ name }: { name: string }) {
 export function CallStackRegion() {
   const stack = useCallStack();
   const client = useIsClient();
+  const reduce = useReducedMotion() === true;
   // The stack grows at its end; the view is upside down so the newest frame is first.
   const frames = stack.map((frame, depth) => ({ frame, key: `${depth}:${frame.functionId}` })).reverse();
   return (
@@ -40,8 +43,8 @@ export function CallStackRegion() {
                   key={key}
                   layout="position"
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, transition: { opacity: SPRING, layout: SPRING } }}
-                  exit={{ opacity: 0, transition: { opacity: LEAVE } }}
+                  animate={{ opacity: 1, transition: { opacity: reduce ? INSTANT : SPRING, layout: SPRING } }}
+                  exit={{ opacity: 0, transition: { opacity: reduce ? INSTANT : LEAVE } }}
                   transition={{ layout: SPRING }}
                 >
                   <motion.div
