@@ -2,7 +2,7 @@
 
 import { BookOpen } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,12 +55,13 @@ function useChooseExample(): { choose(example: Example): void; pending: Example 
 
 export function ExamplesMenu() {
   const { choose, pending, title, confirm, cancel } = useChooseExample();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   return (
     <>
       {/* Non-modal, so closing the menu to open the confirmation never leaves the page inert. */}
       <DropdownMenu.Root modal={false}>
         <DropdownMenu.Trigger asChild>
-          <Button type="button" variant="outline" size="sm">
+          <Button ref={triggerRef} type="button" variant="outline" size="sm">
             <BookOpen aria-hidden="true" />
             Examples
           </Button>
@@ -88,7 +89,13 @@ export function ExamplesMenu() {
       </DropdownMenu.Root>
 
       <AlertDialog open={pending !== null} onOpenChange={(open) => !open && cancel()}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          // The menu item that opened this has unmounted, so Radix has nowhere to return focus to.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            triggerRef.current?.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>{`Replace your code with '${title}'?`}</AlertDialogTitle>
             <AlertDialogDescription>Your current code is not one of the examples, so it will be lost.</AlertDialogDescription>

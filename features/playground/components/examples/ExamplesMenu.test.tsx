@@ -69,6 +69,8 @@ describe("ExamplesMenu", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     expect(store.getState().editor.source).toBe("console.log('mine');");
+    // The menu item that opened the dialog is gone, so focus returns to the Examples button.
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: /examples/i })));
   });
 
   it("replaces edited code with the example on Confirm, including its language", async () => {

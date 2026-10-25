@@ -1,12 +1,18 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { Language } from "@/core/compile/CompilationManager";
 import { useShortcuts } from "../keyboard/useShortcuts";
 import { createPlaybackClock } from "../playback/PlaybackClock";
-import type { WorkerLike } from "../worker/PipelineClient";
+import type { PipelineClient, WorkerLike } from "../worker/PipelineClient";
 import { PlaygroundStoreContext } from "./PlaygroundContext";
 import { createPlaygroundStore, type PlaybackSpeed } from "./playgroundStore";
+
+type PipelineClientModule = typeof import("../worker/PipelineClient");
+
+// The client module is imported on demand, not at the top: it carries the Zod message parsers, which would
+// otherwise sit in the first-load JS (D6 budget).
+const importPipelineClient = (): Promise<PipelineClientModule> => import("../worker/PipelineClient");
 
 // Same-origin module worker from a repo file, never a blob; the literal URL is what the bundler rewrites.
 function createPipelineWorker(): WorkerLike {
@@ -33,11 +39,14 @@ export function PlaygroundProvider({
   initialSource,
   initialLang,
   initialSpeed,
+  loadClient = importPipelineClient,
   children,
 }: {
   initialSource?: string;
   initialLang?: Language;
   initialSpeed?: PlaybackSpeed;
+  /** Loads the pipeline client module; tests replace it to exercise a failed load. */
+  loadClient?: () => Promise<PipelineClientModule>;
   children: ReactNode;
 }) {
   const [store] = useState(() =>
@@ -50,16 +59,31 @@ export function PlaygroundProvider({
 
   useShortcuts(store);
 
+  // Read through a ref, so a caller passing a new function each render does not restart the pipeline.
+  const loadClientRef = useRef(loadClient);
+  useEffect(() => {
+    loadClientRef.current = loadClient;
+  });
+
   // Created in an effect and fully disposed on cleanup, so React StrictMode's double effect leaves one live worker.
-  // The client module is imported here, not at the top: it carries the Zod message parsers, which would
-  // otherwise sit in the first-load JS (D6 budget). The effect runs after hydration, so only the first compile waits for it.
+  // The effect runs after hydration, so only the first compile waits for the client module.
   useEffect(() => {
     let disposed = false;
-    // Assigned step by step, so a throw part-way through setup still tears down what was already made.
-    const teardowns: (() => void)[] = [];
-    const setup = ({ createPipelineClient }: typeof import("../worker/PipelineClient")): void => {
+    let loading = false;
+    // Whatever has been made so far, so cleanup and a throw part-way through setup both dispose exactly that.
+    let client: PipelineClient | null = null;
+    let clock: { dispose(): void } | null = null;
+
+    const request = (): void => {
+      // No client yet: the first load failed or is still under way. An edit retries a failed load.
+      if (!client) return load();
+      const { source, lang } = store.getState().editor;
+      client.request(source, lang);
+    };
+
+    const setup = ({ createPipelineClient }: PipelineClientModule): void => {
       if (disposed) return;
-      const client = createPipelineClient({
+      client = createPipelineClient({
         createWorker: createPipelineWorker,
         onEvent: (e) => store.getState().applyPipelineEvent(e),
         setTimer: (fn, ms) => window.setTimeout(fn, ms),
@@ -67,32 +91,40 @@ export function PlaygroundProvider({
         // The store outlives the client (Fast Refresh re-runs this effect), and it ignores any job older than its own.
         initialJobId: store.getState().compile.jobId,
       });
-      teardowns.push(() => client.dispose());
-      const clock = createPlaybackClock({
+      clock = createPlaybackClock({
         store,
         requestFrame: (cb) => window.requestAnimationFrame(cb),
         cancelFrame: (h) => window.cancelAnimationFrame(h),
       });
-      teardowns.push(() => clock.dispose());
-      const request = (): void => {
-        const { source, lang } = store.getState().editor;
-        client.request(source, lang);
-      };
-      teardowns.push(store.subscribe((s) => s.editor.source, request));
-      teardowns.push(store.subscribe((s) => s.editor.lang, request));
       request();
       client.flush();
     };
+
     // The catch is only for the module failing to load; a bug in setup must surface, not read as a load failure.
-    void import("../worker/PipelineClient").then(
-      (module) => setup(module),
-      () => {
-        if (!disposed) store.getState().applyPipelineEvent({ kind: "failed", jobId: store.getState().compile.jobId, message: "The compile pipeline could not be loaded." });
-      },
-    );
+    function load(): void {
+      if (client || loading || disposed) return;
+      loading = true;
+      loadClientRef.current().then(
+        (module) => {
+          loading = false;
+          setup(module);
+        },
+        () => {
+          loading = false;
+          if (!disposed) store.getState().applyPipelineEvent({ kind: "failed", jobId: store.getState().compile.jobId, message: "The compile pipeline could not be loaded." });
+        },
+      );
+    }
+
+    const unsubSource = store.subscribe((s) => s.editor.source, request);
+    const unsubLang = store.subscribe((s) => s.editor.lang, request);
+    load();
     return () => {
       disposed = true;
-      for (const teardown of teardowns.splice(0).reverse()) teardown();
+      unsubSource();
+      unsubLang();
+      clock?.dispose();
+      client?.dispose();
     };
   }, [store]);
 

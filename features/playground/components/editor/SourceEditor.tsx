@@ -16,6 +16,7 @@ export type SourceEditorHandle = { focusRange(range: SourceRange): void };
 // Typing over a selection lets Chromium copy the replaced text's computed style (a syntax color, italics) onto the
 // new text as an inline style attribute. The nonce CSP blocks and reports that attribute (D1), so the replacement is
 // done here and the browser never edits the DOM itself. Composition (IME) input is left to the browser.
+// This bypasses EditorView.inputHandler; revisit it if closeBrackets or autocompletion are added.
 const replaceSelectionOnType = EditorView.domEventHandlers({
   beforeinput(event, view) {
     // A non-cancelable event cannot be stopped, so replacing here too would insert twice.

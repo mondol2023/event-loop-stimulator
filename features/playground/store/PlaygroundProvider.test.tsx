@@ -24,14 +24,14 @@ class FakeWorker {
   }
 }
 
-function mount() {
+function mount(loadClient?: () => Promise<typeof import("../worker/PipelineClient")>) {
   const captured: { store?: PlaygroundStore } = {};
   function Probe() {
     captured.store = usePlaygroundStore();
     return null;
   }
   const view = render(
-    <PlaygroundProvider initialSource="console.log(1)">
+    <PlaygroundProvider initialSource="console.log(1)" {...(loadClient ? { loadClient } : {})}>
       <Probe />
     </PlaygroundProvider>,
   );
@@ -77,5 +77,23 @@ describe("PlaygroundProvider pipeline client", () => {
     await settle();
     expect(created.reduce((n, w) => n + w.posts, 0)).toBe(posts);
     expect(created.every((w) => w.terminated || w.posts === 0)).toBe(true);
+  });
+
+  it("reports a failed load, then retries on the next edit", async () => {
+    let attempts = 0;
+    const loadClient = (): Promise<typeof import("../worker/PipelineClient")> => {
+      attempts += 1;
+      return attempts === 1 ? Promise.reject(new Error("chunk failed")) : import("../worker/PipelineClient");
+    };
+    const { captured } = mount(loadClient);
+    await settle();
+    expect(captured.store?.getState().compile.status).toBe("failed");
+    expect(created).toHaveLength(0);
+
+    act(() => captured.store?.getState().setSource("console.log(2)"));
+    await settle();
+    expect(attempts).toBe(2);
+    expect(created).toHaveLength(1);
+    expect(captured.store?.getState().compile.status).toBe("compiling");
   });
 });
