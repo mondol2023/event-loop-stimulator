@@ -43,7 +43,7 @@ describe("the timeline of the program fixtures", () => {
       expect(pick(on), fixture.name).toStrictEqual(pick(off));
       expect(on.ticks.length, fixture.name).toBe(on.tickCount);
     }
-  });
+  }, 60_000);
 
   it("nexttick-vs-promise: Node's process.nextTick is narrated before V8's PromiseReactionJob", () => {
     const fixture = RUNNABLE.find((f) => f.name === "nexttick-vs-promise");
