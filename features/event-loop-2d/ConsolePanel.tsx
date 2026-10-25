@@ -50,6 +50,8 @@ export function ConsolePanel() {
           data-testid="console"
           // The log can outgrow its box, so keyboard users need to scroll it.
           tabIndex={0}
+          // A bare <pre> has no role, and axe refuses a name on a roleless element once it is empty (the first tick).
+          role="group"
           aria-label="Console output"
           className="max-h-60 min-h-12 flex-1 overflow-auto rounded-md border border-border bg-card p-3 font-mono text-sm break-words whitespace-pre-wrap text-card-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >

@@ -198,6 +198,13 @@ describe("ConsolePanel", () => {
     expect(screen.getByText("Exact")).toBeTruthy();
   });
 
+  it("names the console output as a group, so an empty log still has an accessible name", () => {
+    const store = readyStore("nexttick-vs-promise");
+    seek(store, 0);
+    render(inStore(store, <ConsolePanel />));
+    expect(screen.getByRole("group", { name: "Console output" })).toBe(screen.getByTestId("console"));
+  });
+
   it("marks stderr lines with a label and the error style, as text only", () => {
     const store = readyStore("console-error-warn");
     seek(store, store.getState().playback.length - 1);
