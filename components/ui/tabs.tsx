@@ -38,6 +38,10 @@ const tabsListVariants = cva(
   }
 )
 
+// Radix's roving-focus group renders style="outline:none", which the nonce CSP blocks in SSR output;
+// an undefined value overrides it, and the class keeps the look.
+const NO_INLINE_OUTLINE: React.CSSProperties = { outline: undefined }
+
 function TabsList({
   className,
   variant = "default",
@@ -48,7 +52,8 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       data-variant={variant}
-      className={cn(tabsListVariants({ variant }), className)}
+      style={NO_INLINE_OUTLINE}
+      className={cn("outline-none", tabsListVariants({ variant }), className)}
       {...props}
     />
   )

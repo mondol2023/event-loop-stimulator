@@ -1,22 +1,31 @@
+import { MotionConfig } from "motion/react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { NonceProvider } from "@/features/playground/components/csp/useNonce";
-import { PipelineSmoke } from "@/features/playground/components/PipelineSmoke";
+import { PlaygroundShell } from "@/features/playground/components/PlaygroundShell";
+import { EXAMPLES } from "@/features/playground/examples";
+import { PreferencesProvider } from "@/features/preferences/PreferencesProvider";
 import { PlaygroundProvider } from "@/features/playground/store/PlaygroundProvider";
 
 // CSP is style-src 'self' 'nonce-...' (ADR-012): any SSR style attribute is blocked in the browser.
-// Task 8 retargets this to PlaygroundShell's server output.
+// The tree below mirrors app/playground/page.tsx (an async page cannot be rendered by renderToString).
 const SSR_STYLE_ATTRIBUTE = /\sstyle="/;
 const UNNONCED_STYLE_ELEMENT = /<style(?![^>]*\snonce=)/;
 
+const EXAMPLE = EXAMPLES.find((e) => e.id === "nexttick-vs-promise");
+
 function shippedTree(probe?: React.ReactNode) {
   return (
-    <NonceProvider nonce="test-nonce">
-      <PlaygroundProvider>
-        <PipelineSmoke />
-        {probe}
-      </PlaygroundProvider>
-    </NonceProvider>
+    <PreferencesProvider initial={{ theme: "dark", mode: "self-study", themeExplicit: false }}>
+      <NonceProvider nonce="test-nonce">
+        <PlaygroundProvider {...(EXAMPLE ? { initialSource: EXAMPLE.source, initialLang: EXAMPLE.lang } : {})}>
+          <MotionConfig reducedMotion="user">
+            <PlaygroundShell />
+          </MotionConfig>
+          {probe}
+        </PlaygroundProvider>
+      </NonceProvider>
+    </PreferencesProvider>
   );
 }
 

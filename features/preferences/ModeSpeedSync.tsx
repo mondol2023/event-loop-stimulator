@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePlaygroundStore } from "@/features/playground/store/PlaygroundContext";
-import { modeDefaults } from "./prefs";
+import { modeDefaults } from "./modes";
 import { usePreferences } from "./usePreferences";
 
 // Must be mounted inside PlaygroundProvider (Task 8 mounts it); PreferencesProvider lives in the root layout, outside it.

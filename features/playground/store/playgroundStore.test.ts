@@ -212,3 +212,10 @@ describe("playback", () => {
     expect(store.getState().playback.index).toBe(run.simulated.tickCount - 1);
   });
 });
+
+describe("initial options", () => {
+  it("starts at the given playback speed, and at 1x without one", () => {
+    expect(createPlaygroundStore({ speed: 2 }).getState().playback.speed).toBe(2);
+    expect(createPlaygroundStore().getState().playback.speed).toBe(1);
+  });
+});

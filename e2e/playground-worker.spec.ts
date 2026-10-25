@@ -17,24 +17,33 @@ test("the worker runs a program and a newer edit supersedes an older one", async
   page.on("pageerror", (e) => problems.push(String(e)));
 
   await page.goto("/playground");
-  const editor = page.getByLabel("Source");
+  const editor = page.getByRole("textbox", { name: "Source code" });
   const status = page.getByTestId("status");
   const output = page.getByTestId("console");
+  // The editor is CodeMirror: select all, then insert text as one input event.
+  const setSource = async (text: string): Promise<void> => {
+    await editor.click();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.insertText(text);
+  };
 
-  await editor.fill(source);
-  await expect(status).toHaveText("ready", { timeout: 30_000 });
+  // Type something else first, so the recorded program below arrives through an edit, not as the page's own default.
+  await setSource('console.log("warm up");');
+  await expect(output).toHaveText("warm up\n", { timeout: 30_000 });
+  await setSource(source);
+  await expect(status).toHaveText("Ready", { timeout: 30_000 });
   await expect(output).toHaveText(stdout);
 
   // An edit after the first program was dispatched: only the second program's output may survive.
   // The engine bounds a run to well under a second, so whether the worker is still busy when the
   // second edit's debounce fires is a race; the terminate path itself is covered deterministically in
   // PipelineClient.test.ts. This checks the end state either way.
-  await editor.fill('for (let i = 0; i < 1000000; i++) {}\nconsole.log("first");');
+  await setSource('for (let i = 0; i < 1000000; i++) {}\nconsole.log("first");');
   // rAF polling, so the short in-flight window is not missed between two 100 ms polls.
-  await page.waitForFunction(() => document.querySelector("[data-testid=status]")?.textContent !== "ready", null, { polling: "raf", timeout: 10_000 });
-  await editor.fill('console.log("second");');
+  await page.waitForFunction(() => document.querySelector("[data-testid=status]")?.textContent !== "Ready", null, { polling: "raf", timeout: 10_000 });
+  await setSource('console.log("second");');
   await expect(output).toHaveText("second\n", { timeout: 30_000 });
-  await expect(status).toHaveText("ready");
+  await expect(status).toHaveText("Ready");
 
   expect(problems).toEqual([]);
 });

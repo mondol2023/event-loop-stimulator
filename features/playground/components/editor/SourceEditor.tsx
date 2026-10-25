@@ -3,7 +3,7 @@
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
 import { bracketMatching } from "@codemirror/language";
-import { keymap } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import { type Ref, useEffect, useImperativeHandle, useMemo } from "react";
 import { useStore } from "zustand";
 import type { SourceRange } from "@/core/shared/diagnostics";
@@ -13,7 +13,20 @@ import { diagnosticsExtension, diagnosticsSpec } from "./diagnosticsExtension";
 
 export type SourceEditorHandle = { focusRange(range: SourceRange): void };
 
-const BASE = [history(), bracketMatching(), keymap.of([...defaultKeymap, ...historyKeymap]), diagnosticsExtension];
+// Typing over a selection lets Chromium copy the replaced text's computed style (a syntax color, italics) onto the
+// new text as an inline style attribute. The nonce CSP blocks and reports that attribute (D1), so the replacement is
+// done here and the browser never edits the DOM itself. Composition (IME) input is left to the browser.
+const replaceSelectionOnType = EditorView.domEventHandlers({
+  beforeinput(event, view) {
+    if (event.inputType !== "insertText" || event.isComposing || event.data === null) return false;
+    if (view.state.selection.ranges.every((range) => range.empty)) return false;
+    event.preventDefault();
+    view.dispatch(view.state.replaceSelection(event.data), { userEvent: "input.type", scrollIntoView: true });
+    return true;
+  },
+});
+
+const BASE = [history(), bracketMatching(), keymap.of([...defaultKeymap, ...historyKeymap]), diagnosticsExtension, replaceSelectionOnType];
 
 /** The editable source: store text in, store text out, with the program's current and hovered lines outlined. */
 export function SourceEditor({ ref }: { ref?: Ref<SourceEditorHandle> }) {

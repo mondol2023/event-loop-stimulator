@@ -56,7 +56,7 @@ const EMPTY_PLAYBACK = { index: 0, isPlaying: false, length: 0 } as const;
 
 const clamp = (n: number, min: number, max: number): number => Math.min(Math.max(n, min), max);
 
-export function createPlaygroundStore(initial: { source?: string; lang?: Language } = {}): PlaygroundStore {
+export function createPlaygroundStore(initial: { source?: string; lang?: Language; speed?: PlaybackSpeed } = {}): PlaygroundStore {
   const store: PlaygroundStore = createStore<PlaygroundState>()(
     subscribeWithSelector((set, get) => {
       /** Moves the cursor within the timeline; a no-op while there is nothing to move through. */
@@ -176,7 +176,7 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
           warnings: [],
           stop: null,
         },
-        playback: { ...EMPTY_PLAYBACK, speed: 1 },
+        playback: { ...EMPTY_PLAYBACK, speed: initial.speed ?? 1 },
         hover: { pane: null, line: null },
 
         setSource: (source) => set((s) => ({ editor: { ...s.editor, source } })),

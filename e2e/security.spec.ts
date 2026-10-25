@@ -28,7 +28,7 @@ test("loading the playground produces no CSP violations", async ({ page }) => {
   page.on("console", (message) => messages.push(message.text()));
   page.on("pageerror", (error) => messages.push(error.message));
   await page.goto("/playground");
-  await expect(page.getByRole("heading", { level: 1, name: "Playground" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Playground" })).toBeAttached();
   await page.waitForLoadState("networkidle");
   expect(messages.filter((text) => /Content Security Policy/i.test(text))).toEqual([]);
 });

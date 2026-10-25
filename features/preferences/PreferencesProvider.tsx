@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useMemo, useState, type ReactNode } from "react";
-import { PREFS_COOKIES, type Prefs, type Theme, type UsageMode } from "./prefs";
+import { PREFS_COOKIES, type Prefs, type Theme, type UsageMode } from "./modes";
 
 export type PreferencesValue = {
   theme: Theme;

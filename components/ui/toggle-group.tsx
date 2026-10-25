@@ -7,6 +7,8 @@ import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui"
 
 import { toggleVariants } from "@/components/ui/toggle"
 
+const NO_INLINE_OUTLINE: React.CSSProperties = { outline: undefined }
+
 const ToggleGroupContext = React.createContext<
   VariantProps<typeof toggleVariants> & {
     spacing?: number
@@ -39,8 +41,11 @@ function ToggleGroup({
       data-size={size}
       data-spacing={spacing}
       data-orientation={orientation}
+      // Radix's roving-focus group renders style="outline:none", which the nonce CSP blocks in SSR output;
+      // an undefined value overrides it, and the class below keeps the look.
+      style={NO_INLINE_OUTLINE}
       className={cn(
-        "group/toggle-group flex w-fit flex-row items-center data-[spacing=0]:gap-0 data-[spacing=1]:gap-1 data-[spacing=2]:gap-2 data-[spacing=3]:gap-3 data-[spacing=4]:gap-4 rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
+        "outline-none group/toggle-group flex w-fit flex-row items-center data-[spacing=0]:gap-0 data-[spacing=1]:gap-1 data-[spacing=2]:gap-2 data-[spacing=3]:gap-3 data-[spacing=4]:gap-4 rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
         className
       )}
       {...props}
