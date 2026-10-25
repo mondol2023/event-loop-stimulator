@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Check, FlaskConical, Gauge, PencilLine, type LucideIcon } from "lucide-react";
 import { cn } from "cn";
 import { TRUTH_TOOLTIPS, type TruthLevel } from "@/core/shared/fidelity";
@@ -37,12 +38,15 @@ function specFor(level: TruthBadgeLevel): BadgeSpec {
 // Own provider so the badge works standalone (tests) and inside the app.
 export function TruthBadge({ level }: { level: TruthBadgeLevel }) {
   const { label, tooltip, Icon, dashed } = specFor(level);
+  // Radix ignores touch pointers, so a tap toggles the tooltip by hand.
+  const [open, setOpen] = useState(false);
   return (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>
           <button
             type="button"
+            onClick={() => setOpen((o) => !o)}
             aria-label={`${label}: ${tooltip}`}
             className={cn(
               "inline-flex min-h-6 items-center gap-1 rounded-md border px-1.5 text-xs text-muted-foreground",
