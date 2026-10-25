@@ -171,7 +171,10 @@ export function PlaygroundShell() {
       <PaletteLauncher
         onShowHardware={() => {
           // The Hardware tab is not offered below md, so selecting it there would show a panel with no tab.
-          if (window.matchMedia("(min-width: 768px)").matches) setBottomTab("hardware");
+          if (window.matchMedia("(min-width: 768px)").matches) {
+            setBottomTab("hardware");
+            setCollapsed(false);
+          }
         }}
       />
       <CoachMarksLazy />

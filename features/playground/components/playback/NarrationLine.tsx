@@ -1,5 +1,6 @@
 "use client";
 
+import { redactConsoleText, useConsoleHidden } from "../../hooks/useConsoleHidden";
 import { useNarration } from "../../hooks/useTickSelectors";
 
 /**
@@ -7,7 +8,10 @@ import { useNarration } from "../../hooks/useTickSelectors";
  * scrolls inside, so stepping through ticks never moves the layout under the pointer.
  */
 export function NarrationLine() {
+  // Predict-first: the narration must not quote output the console is still hiding.
+  const { hidden } = useConsoleHidden();
   const narration = useNarration();
+  const shown = hidden ? redactConsoleText(narration) : narration;
   return (
     // tabIndex: keyboard users must be able to scroll an overflowing region.
     <div
@@ -17,7 +21,7 @@ export function NarrationLine() {
       tabIndex={0}
       className="h-10 overflow-y-auto rounded-sm text-sm leading-5 text-panel-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
-      {narration}
+      {shown}
     </div>
   );
 }

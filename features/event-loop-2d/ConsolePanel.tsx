@@ -1,13 +1,10 @@
 "use client";
 
 import { SquareTerminal } from "lucide-react";
-import { useContext, useEffect, useRef, useState } from "react";
-import { useStore } from "zustand";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { modeDefaults } from "@/features/preferences/modes";
-import { PreferencesContext } from "@/features/preferences/PreferencesProvider";
-import { usePlaygroundStore } from "@/features/playground/store/PlaygroundContext";
 import { TruthBadge } from "@/features/playground/components/TruthBadge";
+import { useConsoleHidden } from "@/features/playground/hooks/useConsoleHidden";
 import { useConsole } from "@/features/playground/hooks/useTickSelectors";
 
 /**
@@ -16,14 +13,7 @@ import { useConsole } from "@/features/playground/hooks/useTickSelectors";
  */
 export function ConsolePanel() {
   const lines = useConsole();
-  const store = usePlaygroundStore();
-  const jobId = useStore(store, (s) => s.compile.jobId);
-  const atEnd = useStore(store, (s) => s.playback.length > 0 && s.playback.index === s.playback.length - 1);
-  // Without a provider (tests, embeds) the console is plain self-study.
-  const predictFirst = modeDefaults(useContext(PreferencesContext)?.mode ?? "self-study").predictFirst;
-  // The job that was revealed, so a new compile hides the output again without an effect.
-  const [revealedJob, setRevealedJob] = useState<number | null>(null);
-  const hidden = predictFirst && revealedJob !== jobId && !atEnd;
+  const { hidden, reveal } = useConsoleHidden();
   // Reveal unmounts its own button, so focus moves to the console it uncovered.
   const preRef = useRef<HTMLPreElement>(null);
   const focusOnReveal = useRef(false);
@@ -47,7 +37,7 @@ export function ConsolePanel() {
           <p className="text-sm text-muted-foreground">Predict the output, then reveal</p>
           <Button type="button" variant="outline" size="sm" onClick={() => {
               focusOnReveal.current = true;
-              setRevealedJob(jobId);
+              reveal();
             }}>
             Reveal
           </Button>
