@@ -1,8 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { PlaygroundStoreContext } from "@/features/playground/store/PlaygroundContext";
-import { PREFS_COOKIES, modeDefaults, type Prefs, type Theme, type UsageMode } from "./prefs";
+import { createContext, useCallback, useMemo, useState, type ReactNode } from "react";
+import { PREFS_COOKIES, type Prefs, type Theme, type UsageMode } from "./prefs";
 
 export type PreferencesValue = {
   theme: Theme;
@@ -28,8 +27,6 @@ export function PreferencesProvider({ initial, children }: { initial: Prefs; chi
   const [theme, setThemeState] = useState<Theme>(initial.theme);
   const [mode, setModeState] = useState<UsageMode>(initial.mode);
   const [themeExplicit, setThemeExplicit] = useState(initial.themeExplicit);
-  // Optional: preferences also live outside a playground, where there is no speed to reset.
-  const store = useContext(PlaygroundStoreContext);
 
   const setTheme = useCallback(
     (next: Theme) => {
@@ -49,9 +46,8 @@ export function PreferencesProvider({ initial, children }: { initial: Prefs; chi
       setModeState(next);
       setThemeState(nextTheme);
       applyClasses(nextTheme, next);
-      store?.getState().setSpeed(modeDefaults(next).speed);
     },
-    [store, theme, themeExplicit],
+    [theme, themeExplicit],
   );
 
   const value = useMemo(() => ({ theme, mode, setTheme, setMode }), [theme, mode, setTheme, setMode]);

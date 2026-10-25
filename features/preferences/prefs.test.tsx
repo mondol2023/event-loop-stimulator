@@ -2,7 +2,6 @@
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { createElement } from "react";
 import { PREFS_COOKIES, modeDefaults, parsePrefs } from "./prefs";
 import { PreferencesProvider } from "./PreferencesProvider";
 import { usePreferences } from "./usePreferences";
@@ -36,8 +35,9 @@ describe("usePreferences", () => {
     document.cookie = "sl_theme=; max-age=0; path=/";
     document.cookie = "sl_mode=; max-age=0; path=/";
   });
-  const wrapper = ({ children }: { children: ReactNode }) =>
-    createElement(PreferencesProvider, { initial: { theme: "dark", mode: "self-study", themeExplicit: false }, children });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <PreferencesProvider initial={{ theme: "dark", mode: "self-study", themeExplicit: false }}>{children}</PreferencesProvider>
+  );
 
   it("setTheme writes the cookie and toggles html.dark", () => {
     document.documentElement.classList.add("dark");
