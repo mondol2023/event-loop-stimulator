@@ -1,13 +1,14 @@
 "use client";
 
 import { Circle, CircleDot, SkipForward, Timer } from "lucide-react";
-import { type ReactNode, useId } from "react";
+import { type ReactNode, useId, useMemo } from "react";
 import { useFidelityWarnings, useQueues } from "@/features/playground/hooks/useTickSelectors";
 import { CallStackRegion } from "./CallStackRegion";
 import { ConsolePanel } from "./ConsolePanel";
 import { HostApisRegion } from "./HostApisRegion";
 import { PhaseRing } from "./PhaseRing";
 import { QueueRegion } from "./QueueRegion";
+import { ordersAtRisk } from "./warnings";
 
 // The view reads no tick itself: each connected region below subscribes to exactly the slice it draws,
 // so a seek re-renders only the regions whose data changed (the console, for one, is untouched by a queue change).
@@ -22,16 +23,23 @@ function NextTickRegion() {
   return <QueueRegion testId="region-nexttick" title="nextTick queue" owner="Node/libuv" tasks={nextTick} tone="nextTick" icon={Circle} />;
 }
 
+/** The chips a live nondeterminism warning puts in doubt: stable while the pending timers, immediates and warnings are. */
+function useAtRisk() {
+  const { timers, immediates } = useQueues();
+  const warnings = useFidelityWarnings();
+  return useMemo(() => ordersAtRisk(timers, immediates, warnings), [timers, immediates, warnings]);
+}
+
 function TimersRegion() {
   const { timers } = useQueues();
-  const warnings = useFidelityWarnings();
-  return <QueueRegion testId="region-timers" title="Timers queue" owner="Node/libuv" tasks={timers} tone="macrotask" icon={Timer} warnings={warnings} />;
+  const atRisk = useAtRisk();
+  return <QueueRegion testId="region-timers" title="Timers queue" owner="Node/libuv" tasks={timers} tone="macrotask" icon={Timer} atRisk={atRisk} />;
 }
 
 function CheckRegion() {
   const { immediates } = useQueues();
-  const warnings = useFidelityWarnings();
-  return <QueueRegion testId="region-check" title="Check queue (setImmediate)" owner="Node/libuv" tasks={immediates} tone="macrotask" icon={SkipForward} warnings={warnings} />;
+  const atRisk = useAtRisk();
+  return <QueueRegion testId="region-check" title="Check queue (setImmediate)" owner="Node/libuv" tasks={immediates} tone="macrotask" icon={SkipForward} atRisk={atRisk} />;
 }
 
 function HostRegion() {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
-import { MotionConfig } from "motion/react";
+import { NonceMotionConfig } from "@/features/playground/components/csp/NonceMotionConfig";
 import { NonceProvider } from "@/features/playground/components/csp/useNonce";
 import { PlaygroundShell } from "@/features/playground/components/PlaygroundShell";
 import { EXAMPLES } from "@/features/playground/examples";
@@ -26,9 +26,9 @@ export default async function PlaygroundPage() {
         initialSpeed={modeDefaults(prefs.mode).speed}
         {...(example ? { initialSource: example.source, initialLang: example.lang } : {})}
       >
-        <MotionConfig reducedMotion="user">
+        <NonceMotionConfig>
           <PlaygroundShell />
-        </MotionConfig>
+        </NonceMotionConfig>
       </PlaygroundProvider>
     </NonceProvider>
   );

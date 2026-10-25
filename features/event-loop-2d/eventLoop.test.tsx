@@ -1,16 +1,19 @@
 // @vitest-environment jsdom
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MotionGlobalConfig } from "motion/react";
 import { Profiler, type ReactElement } from "react";
 import { renderToString } from "react-dom/server";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { TaskRef } from "@/core/timeline/Tick";
+import { NonceMotionConfig } from "@/features/playground/components/csp/NonceMotionConfig";
+import { NonceProvider } from "@/features/playground/components/csp/useNonce";
 import { PlaygroundStoreContext } from "@/features/playground/store/PlaygroundContext";
 import { createPlaygroundStore, type PlaygroundStore } from "@/features/playground/store/playgroundStore";
 import { getTimeline } from "@/features/playground/store/timelineHolder";
 import { fixtureRun, runSource } from "@/features/playground/test/fixtureTimeline";
+import { CallStackRegion } from "./CallStackRegion";
 import { ConsolePanel } from "./ConsolePanel";
 import { EventLoopView } from "./EventLoopView";
 import { QueueRegion } from "./QueueRegion";
@@ -22,7 +25,11 @@ beforeAll(() => {
 afterAll(() => {
   MotionGlobalConfig.skipAnimations = false;
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 function readyStore(name: string): PlaygroundStore {
   const { compiled, simulated } = fixtureRun(name);
@@ -247,6 +254,19 @@ describe("nondeterminism warnings on chips", () => {
     expect(screen.queryByText("Order not guaranteed")).toBeNull();
   });
 
+  it("stops flagging once the race is over: the immediate has run, so the lone timer is unflagged", () => {
+    const store = readyStore("timeout-vs-immediate-main");
+    const timeline = getTimeline(store);
+    if (!timeline) throw new Error("no timeline");
+    // Tick 6: the warning is still carried, the immediate is gone, and one timer remains pending.
+    expect(timeline.at(6).warnings.length).toBeGreaterThan(0);
+    expect(timeline.at(6).immediateQueue).toHaveLength(0);
+    expect(timeline.at(6).timerQueue).toHaveLength(1);
+    seek(store, 6);
+    render(inStore(store, <EventLoopView />));
+    expect(screen.queryByText("Order not guaranteed")).toBeNull();
+  });
+
   it("does not flag nextTick or microtask chips", () => {
     const store = readyStore("timeout-vs-immediate-main");
     const timeline = getTimeline(store);
@@ -267,6 +287,100 @@ describe("host APIs", () => {
     const host = region("region-host");
     expect(within(host).getByText("timeout · due 1 ms")).toBeTruthy();
     expect(within(host).getByText("immediate")).toBeTruthy();
+  });
+});
+
+describe("tooltips on touch", () => {
+  it("opens a chip's origin on a tap and closes it on the next", () => {
+    // Radix measures the tooltip's arrow with ResizeObserver, which jsdom lacks.
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe(): void {}
+        unobserve(): void {}
+        disconnect(): void {}
+      },
+    );
+    const tasks: TaskRef[] = [{ id: 1 as TaskRef["id"], kind: "timeout", label: "setTimeout(f, 0)", origin: "setTimeout" }];
+    render(<QueueRegion testId="region-timers" title="Timers" owner="Node/libuv" tasks={tasks} tone="macrotask" />);
+    const chip = screen.getByTestId("task-chip");
+
+    // A touch is pointerdown, pointerup, then click; Radix's trigger closes the tooltip on that click.
+    fireEvent.pointerDown(chip, { pointerType: "touch" });
+    fireEvent.click(chip);
+    expect(screen.getByRole("tooltip").textContent).toContain("queued by setTimeout");
+
+    fireEvent.pointerDown(chip, { pointerType: "touch" });
+    fireEvent.click(chip);
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+});
+
+describe("CSP nonce on Motion's injected style (D1)", () => {
+  /** jsdom measures every box as 0 by 0, so PopChild would return early; give the exiting frame a size. */
+  function giveBoxesASize(): void {
+    const real = window.getComputedStyle.bind(window);
+    vi.spyOn(window, "getComputedStyle").mockImplementation((el: Element, pseudo?: string | null) => {
+      const style = real(el, pseudo);
+      return new Proxy(style, {
+        get(target, key) {
+          if (key === "height") return "20px";
+          if (key === "width") return "100px";
+          const value: unknown = Reflect.get(target, key);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+    });
+  }
+
+  /** The style elements a frame's exit adds to document.head. */
+  function stylesAddedByAnExit(nonce: string | undefined): HTMLStyleElement[] {
+    const source = "function inner() { console.log(1); }\nfunction outer() { inner(); }\nouter();\n";
+    const store = createPlaygroundStore();
+    for (const response of runSource(source, 1)) store.getState().applyPipelineEvent({ kind: "response", response });
+    const timeline = getTimeline(store);
+    if (!timeline) throw new Error("no timeline");
+    let deepest = 0;
+    for (let i = 0; i < timeline.length; i++) if (timeline.at(i).callStack.length > timeline.at(deepest).callStack.length) deepest = i;
+    seek(store, deepest);
+    render(
+      inStore(
+        store,
+        <NonceProvider nonce={nonce}>
+          <NonceMotionConfig>
+            <CallStackRegion />
+          </NonceMotionConfig>
+        </NonceProvider>,
+      ),
+    );
+    giveBoxesASize();
+    const before = new Set(document.head.querySelectorAll("style"));
+    const shallower = Array.from({ length: timeline.length }, (_, i) => i).find((i) => i > deepest && timeline.at(i).callStack.length < timeline.at(deepest).callStack.length);
+    if (shallower === undefined) throw new Error("no tick after the deepest one pops a frame");
+    seek(store, shallower);
+    return Array.from(document.head.querySelectorAll("style")).filter((el) => !before.has(el));
+  }
+
+  it("gives the style that popLayout injects for an exiting frame the page's nonce", () => {
+    MotionGlobalConfig.skipAnimations = false;
+    try {
+      const added = stylesAddedByAnExit("test-nonce");
+      expect(added.length, "the exit injected a style element").toBeGreaterThan(0);
+      expect(added.every((el) => el.nonce === "test-nonce")).toBe(true);
+    } finally {
+      MotionGlobalConfig.skipAnimations = true;
+    }
+  });
+
+  it("injects it without a nonce when the config carries none (the check can fail)", () => {
+    MotionGlobalConfig.skipAnimations = false;
+    try {
+      const added = stylesAddedByAnExit(undefined);
+      expect(added.length).toBeGreaterThan(0);
+      expect(added.some((el) => !el.nonce)).toBe(true);
+    } finally {
+      MotionGlobalConfig.skipAnimations = true;
+    }
   });
 });
 

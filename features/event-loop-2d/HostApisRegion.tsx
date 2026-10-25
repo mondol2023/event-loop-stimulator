@@ -12,7 +12,7 @@ function detailOf(entry: HostEntry): string {
   return entry.refed ? base : `${base} · unref'd`;
 }
 
-/** Timers and immediates that Node has handed to libuv and not yet queued, each with its kind and virtual due time as text. */
+/** The pending timers and immediates Node has handed to libuv, each with its kind and virtual due time as text. The same timers also sit in the Timers and Check queues. */
 export const HostApisRegion = memo(function HostApisRegion({ hosts }: { hosts: readonly HostEntry[] }) {
   const shown = hosts.slice(0, MAX_CHIPS);
   const hidden = hosts.length - shown.length;

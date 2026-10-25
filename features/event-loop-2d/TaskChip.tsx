@@ -2,7 +2,7 @@
 
 import { TriangleAlert } from "lucide-react";
 import { motion } from "motion/react";
-import { type ReactNode, useState } from "react";
+import { type PointerEvent, type ReactNode, useState } from "react";
 import { cn } from "cn";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { TaskRef } from "@/core/timeline/Tick";
@@ -63,8 +63,10 @@ export type ChipShellProps = {
 /** One chip: label in mono, role in text, and its origin in a tooltip reachable by hover, focus and tap. */
 export function ChipShell({ testId, layoutId, role, label, detail, tooltip, isNext = false, warned = false }: ChipShellProps) {
   const client = useIsClient();
-  // Radix ignores touch pointers, so a tap toggles the tooltip by hand.
-  const [open, setOpen] = useState(false);
+  // Radix opens on hover and focus and ignores touch, and its trigger closes the tooltip on every click. A tap
+  // therefore owns a second flag that Radix never touches; the tooltip shows while either is set.
+  const [hover, setHover] = useState(false);
+  const [tapped, setTapped] = useState(false);
   const className = cn(
     "flex min-h-8 max-w-full items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-xs text-card-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
     ROLE_CLASS[role],
@@ -90,11 +92,14 @@ export function ChipShell({ testId, layoutId, role, label, detail, tooltip, isNe
     tabIndex: 0,
     "aria-description": tooltip,
     className,
-    onClick: () => setOpen((o) => !o),
+    onPointerDown: (e: PointerEvent) => {
+      if (e.pointerType === "touch") setTapped((t) => !t);
+    },
+    onBlur: () => setTapped(false),
   } as const;
   return (
     <TooltipProvider>
-      <Tooltip open={open} onOpenChange={setOpen}>
+      <Tooltip open={hover || tapped} onOpenChange={setHover}>
         <TooltipTrigger asChild>
           {client ? (
             <motion.li {...common} layoutId={layoutId} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { opacity: FADE_IN, layout: MOVE } }} exit={{ opacity: 0, transition: { opacity: FADE_OUT } }} transition={{ layout: MOVE }}>
@@ -104,7 +109,7 @@ export function ChipShell({ testId, layoutId, role, label, detail, tooltip, isNe
             <li {...common}>{content}</li>
           )}
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent onEscapeKeyDown={() => setTapped(false)} onPointerDownOutside={() => setTapped(false)}>
           <span className="font-mono">{label}</span>
           <span>{tooltip}</span>
         </TooltipContent>
