@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { type Diagnostic, lineColumn } from "@/core/shared/diagnostics";
 import { docsHref } from "../../diagnostics/docsHref";

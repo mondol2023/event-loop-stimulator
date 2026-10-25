@@ -56,7 +56,10 @@ export function useCodeView({ pane, doc, label, readOnly, headers = NO_HEADERS, 
       if (!el) return;
       let frame = 0;
       let pointer: { x: number; y: number } | null = null;
-      let lastLine: number | null = null;
+      // Only this pane's own hover is cleared: another pane may own it by now, or a recompile may have reset it.
+      const clearOwnHover = (): void => {
+        if (store.getState().hover.pane === pane) store.getState().clearHover();
+      };
 
       const created = new EditorView({
         parent: el,
@@ -78,8 +81,14 @@ export function useCodeView({ pane, doc, label, readOnly, headers = NO_HEADERS, 
             }),
             EditorView.domEventHandlers({
               mousemove(event, v) {
-                // Over a function heading there is no line to report.
-                if (event.target instanceof Element && event.target.closest(".cm-sl-fn-header")) return false;
+                // Over a function heading there is no line to report, so the previous line's hover ends.
+                if (event.target instanceof Element && event.target.closest(".cm-sl-fn-header")) {
+                  cancelAnimationFrame(frame);
+                  frame = 0;
+                  pointer = null;
+                  clearOwnHover();
+                  return false;
+                }
                 pointer = { x: event.clientX, y: event.clientY };
                 if (frame !== 0) return false;
                 frame = requestAnimationFrame(() => {
@@ -89,8 +98,9 @@ export function useCodeView({ pane, doc, label, readOnly, headers = NO_HEADERS, 
                   const pos = at ? v.posAtCoords(at) : null;
                   if (pos === null) return;
                   const line = v.state.doc.lineAt(pos).number - 1;
-                  if (line === lastLine) return;
-                  lastLine = line;
+                  // Compared with the store, not a local copy: a recompile resets the store's hover under us.
+                  const { hover } = store.getState();
+                  if (hover.pane === pane && hover.line === line) return;
                   store.getState().setHover(pane, line);
                 });
                 return false;
@@ -99,8 +109,7 @@ export function useCodeView({ pane, doc, label, readOnly, headers = NO_HEADERS, 
                 cancelAnimationFrame(frame);
                 frame = 0;
                 pointer = null;
-                lastLine = null;
-                store.getState().clearHover();
+                clearOwnHover();
                 return false;
               },
             }),
@@ -110,6 +119,8 @@ export function useCodeView({ pane, doc, label, readOnly, headers = NO_HEADERS, 
       setView(created);
       return () => {
         cancelAnimationFrame(frame);
+        // A destroyed pane receives no mouseleave, which would leave its last line outlined elsewhere.
+        clearOwnHover();
         created.destroy();
         setView(null);
       };

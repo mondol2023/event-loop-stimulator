@@ -11,9 +11,21 @@ export type PaneDocOptions = { readonly asmSyntax?: "att" | "intel"; readonly by
 /** A function's heading, shown above document line `line` (0-based; `line === lines.length` means after the last line). */
 export type PaneHeader = { readonly line: number; readonly text: string };
 
+// A raw literal ("a\<newline>b") can hold a line break; CodeMirror splits lines on CR, LF, U+2028 and U+2029, which would shift every later line.
+const LINE_BREAKS = new Set([10, 13, 0x2028, 0x2029]);
+const oneLine = (text: string): string =>
+  Array.from(text, (ch) => {
+    const code = ch.charCodeAt(0);
+    return LINE_BREAKS.has(code) ? `\\u${code.toString(16).padStart(4, "0")}` : ch;
+  }).join("");
+
 const hex = (n: number, width: number): string => n.toString(16).padStart(width, "0");
 
 export function paneLines(views: ClientViews, pane: PaneName, opts: PaneDocOptions = {}): string[] {
+  return rawLines(views, pane, opts).map(oneLine);
+}
+
+function rawLines(views: ClientViews, pane: PaneName, opts: PaneDocOptions): string[] {
   switch (pane) {
     case "ast":
       return views.ast.lines.map((l) => `${"  ".repeat(l.depth)}${l.text}`);
