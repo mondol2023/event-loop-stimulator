@@ -66,6 +66,31 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
 
       function failWith(jobId: number, message: string): void {
         const { compile, playback } = get();
+        // Before this job's `compiled` arrived, the views, diagnostics and timeline still belong to the
+        // previous source; leaving them navigable under the new text would show a different program.
+        if (compile.status === "compiling") {
+          setTimeline(store, null);
+          set((s) => ({
+            editor: { ...s.editor, diagnostics: [] },
+            compile: {
+              ...compile,
+              jobId,
+              status: "failed",
+              message,
+              strippedJs: null,
+              views: null,
+              lineIndex: null,
+              baselines: null,
+              boundaries: [],
+              timelineVersion: compile.timelineVersion + 1,
+              exitCode: null,
+              warnings: [],
+              stop: null,
+            },
+            playback: { ...s.playback, ...EMPTY_PLAYBACK },
+          }));
+          return;
+        }
         set({ compile: { ...compile, jobId, status: "failed", message }, playback: { ...playback, isPlaying: false } });
       }
 
@@ -183,7 +208,9 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
         play: () => {
           const { playback } = get();
           if (playback.length === 0) return;
-          set({ playback: { ...playback, isPlaying: true } });
+          // Playing from the last tick restarts, since the clock would otherwise stop on its first frame.
+          const index = playback.index >= playback.length - 1 ? 0 : playback.index;
+          set({ playback: { ...playback, index, isPlaying: true } });
         },
         pause: () => set((s) => ({ playback: { ...s.playback, isPlaying: false } })),
         togglePlay: () => {

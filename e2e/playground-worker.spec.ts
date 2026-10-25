@@ -25,8 +25,13 @@ test("the worker runs a program and a newer edit supersedes an older one", async
   await expect(status).toHaveText("ready", { timeout: 30_000 });
   await expect(output).toHaveText(stdout);
 
-  // Two edits back to back: only the second program's output may survive.
-  await editor.fill('console.log("first");');
+  // An edit after the first program was dispatched: only the second program's output may survive.
+  // The engine bounds a run to well under a second, so whether the worker is still busy when the
+  // second edit's debounce fires is a race; the terminate path itself is covered deterministically in
+  // PipelineClient.test.ts. This checks the end state either way.
+  await editor.fill('for (let i = 0; i < 1000000; i++) {}\nconsole.log("first");');
+  // rAF polling, so the short in-flight window is not missed between two 100 ms polls.
+  await page.waitForFunction(() => document.querySelector("[data-testid=status]")?.textContent !== "ready", null, { polling: "raf", timeout: 10_000 });
   await editor.fill('console.log("second");');
   await expect(output).toHaveText("second\n", { timeout: 30_000 });
   await expect(status).toHaveText("ready");

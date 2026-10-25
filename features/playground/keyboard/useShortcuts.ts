@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { PlaygroundStore } from "../store/playgroundStore";
-import { isEditableTarget, type ShortcutAction, shortcutFor } from "./shortcuts";
+import { isActivatableTarget, isEditableTarget, type ShortcutAction, shortcutFor } from "./shortcuts";
 
 function dispatch(store: PlaygroundStore, action: ShortcutAction): void {
   const s = store.getState();
@@ -36,7 +36,9 @@ export function useShortcuts(store: PlaygroundStore): void {
         ctrlKey: e.ctrlKey,
         metaKey: e.metaKey,
         altKey: e.altKey,
+        repeat: e.repeat,
         editable: isEditableTarget(e.target),
+        activatable: isActivatableTarget(e.target),
       });
       if (!action) return;
       e.preventDefault();

@@ -73,6 +73,30 @@ describe("pipeline events", () => {
     }
   });
 
+  it("drops the previous run's data when a job fails before it compiled", () => {
+    const store = readyStore();
+    store.getState().applyPipelineEvent({ kind: "started", jobId: 2 });
+    expect(getTimeline(store)).not.toBeNull();
+    const versionBefore = store.getState().compile.timelineVersion;
+    store.getState().applyPipelineEvent({ kind: "failed", jobId: 2, message: "worker crashed" });
+    const state = store.getState();
+    expect(state.compile).toMatchObject({ status: "failed", jobId: 2, views: null, lineIndex: null, baselines: null, strippedJs: null, boundaries: [] });
+    expect(state.compile.timelineVersion).toBe(versionBefore + 1);
+    expect(state.editor.diagnostics).toEqual([]);
+    expect(getTimeline(store)).toBeNull();
+    expect(state.playback).toMatchObject({ length: 0, index: 0, isPlaying: false });
+  });
+
+  it("keeps this job's own views when the simulation fails after it compiled", () => {
+    const store = createPlaygroundStore();
+    store.getState().applyPipelineEvent({ kind: "started", jobId: 1 });
+    store.getState().applyPipelineEvent({ kind: "response", response: run.compiled });
+    store.getState().applyPipelineEvent({ kind: "response", response: { type: "failed", jobId: 1, message: "boom" } });
+    expect(store.getState().compile.status).toBe("failed");
+    expect(store.getState().compile.views).not.toBeNull();
+    expect(store.getState().compile.lineIndex).not.toBeNull();
+  });
+
   it("fails on a corrupt timeline and keeps the holder empty", () => {
     const store = createPlaygroundStore();
     store.getState().applyPipelineEvent({ kind: "response", response: run.compiled });
@@ -131,6 +155,21 @@ describe("playback", () => {
     jumpBoundary(-1);
     expect(store.getState().playback).toEqual(before);
     expect(store.getState().playback.isPlaying).toBe(false);
+  });
+
+  it("restarts from the first tick when played at the last one", () => {
+    const store = readyStore();
+    store.getState().seek(10_000);
+    expect(store.getState().playback.index).toBe(run.simulated.tickCount - 1);
+    store.getState().play();
+    expect(store.getState().playback).toMatchObject({ index: 0, isPlaying: true });
+  });
+
+  it("plays on from the current tick otherwise", () => {
+    const store = readyStore();
+    store.getState().seek(3);
+    store.getState().play();
+    expect(store.getState().playback).toMatchObject({ index: 3, isPlaying: true });
   });
 
   it("steps by a delta, clamped", () => {

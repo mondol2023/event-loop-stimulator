@@ -3,7 +3,7 @@ import { cleanup, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { createPlaygroundStore } from "../store/playgroundStore";
 import { fixtureRun } from "../test/fixtureTimeline";
-import { isEditableTarget, type ShortcutAction, shortcutFor } from "./shortcuts";
+import { isActivatableTarget, isEditableTarget, type ShortcutAction, shortcutFor } from "./shortcuts";
 import { useShortcuts } from "./useShortcuts";
 
 afterEach(() => {
@@ -11,7 +11,7 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-const plain = { shiftKey: false, ctrlKey: false, metaKey: false, altKey: false, editable: false };
+const plain = { shiftKey: false, ctrlKey: false, metaKey: false, altKey: false, repeat: false, editable: false, activatable: false };
 const KEYS = [" ", "ArrowLeft", "ArrowRight", "Home", "End"];
 
 describe("shortcutFor", () => {
@@ -33,6 +33,17 @@ describe("shortcutFor", () => {
 
   it("returns null for every key while the target is editable", () => {
     for (const key of KEYS) expect(shortcutFor({ ...plain, key, editable: true })).toBeNull();
+  });
+
+  it("ignores a held Space but lets a held arrow keep stepping", () => {
+    expect(shortcutFor({ ...plain, key: " ", repeat: true })).toBeNull();
+    expect(shortcutFor({ ...plain, key: "ArrowRight", repeat: true })).toBe("step-forward");
+  });
+
+  it("leaves Space to an activatable target but keeps the other keys", () => {
+    expect(shortcutFor({ ...plain, key: " ", activatable: true })).toBeNull();
+    expect(shortcutFor({ ...plain, key: "ArrowLeft", activatable: true })).toBe("step-back");
+    expect(shortcutFor({ ...plain, key: "End", activatable: true })).toBe("last");
   });
 
   it("returns null when Ctrl, Meta or Alt is held", () => {
@@ -60,6 +71,29 @@ describe("isEditableTarget", () => {
     expect(isEditableTarget(null)).toBe(false);
     expect(isEditableTarget(window)).toBe(false);
     expect(isEditableTarget(document)).toBe(false);
+  });
+
+  it("is true for widgets that use the arrow keys themselves", () => {
+    for (const role of ["slider", "tab", "listbox", "menuitem"]) {
+      const el = document.createElement("div");
+      el.setAttribute("role", role);
+      expect(isEditableTarget(el)).toBe(true);
+    }
+  });
+});
+
+describe("isActivatableTarget", () => {
+  it("is true for a button, a link with href and a role=button, false for plain content", () => {
+    expect(isActivatableTarget(document.createElement("button"))).toBe(true);
+    const link = document.createElement("a");
+    link.setAttribute("href", "/x");
+    expect(isActivatableTarget(link)).toBe(true);
+    const div = document.createElement("div");
+    div.setAttribute("role", "button");
+    expect(isActivatableTarget(div)).toBe(true);
+    expect(isActivatableTarget(document.createElement("div"))).toBe(false);
+    expect(isActivatableTarget(document.createElement("a"))).toBe(false);
+    expect(isActivatableTarget(window)).toBe(false);
   });
 });
 
@@ -93,6 +127,32 @@ describe("useShortcuts", () => {
 
     view.unmount();
     press(document.body, { key: " " });
+    expect(store.getState().playback.isPlaying).toBe(true);
+  });
+
+  it("leaves Space and held keys alone on a focused button and a slider", () => {
+    const store = setup();
+    renderHook(() => useShortcuts(store));
+    const button = document.createElement("button");
+    const slider = document.createElement("div");
+    slider.setAttribute("role", "slider");
+    document.body.append(button, slider);
+
+    const onButton = press(button, { key: " " });
+    expect(onButton.defaultPrevented).toBe(false);
+    expect(store.getState().playback.isPlaying).toBe(false);
+
+    const onSlider = press(slider, { key: "ArrowRight" });
+    expect(onSlider.defaultPrevented).toBe(false);
+    expect(store.getState().playback.index).toBe(0);
+
+    press(button, { key: "ArrowRight" });
+    expect(store.getState().playback.index).toBe(1);
+
+    press(document.body, { key: " " });
+    expect(store.getState().playback.isPlaying).toBe(true);
+    const held = press(document.body, { key: " ", repeat: true });
+    expect(held.defaultPrevented).toBe(false);
     expect(store.getState().playback.isPlaying).toBe(true);
   });
 

@@ -50,6 +50,8 @@ export function PlaygroundProvider({
       onEvent: (e) => store.getState().applyPipelineEvent(e),
       setTimer: (fn, ms) => window.setTimeout(fn, ms),
       clearTimer: (h) => window.clearTimeout(h as number),
+      // The store outlives the client (Fast Refresh re-runs this effect), and it ignores any job older than its own.
+      initialJobId: store.getState().compile.jobId,
     });
     const clock = createPlaybackClock({
       store,

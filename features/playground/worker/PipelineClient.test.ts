@@ -103,6 +103,24 @@ describe("PipelineClient debounce", () => {
   });
 });
 
+describe("PipelineClient job numbering", () => {
+  it("continues from initialJobId, so a recreated client never reuses a number the store has seen", () => {
+    const fake = createFakeWorker();
+    const events: PipelineEvent[] = [];
+    const client = createPipelineClient({
+      createWorker: fake.factory,
+      onEvent: (e) => events.push(e),
+      setTimer: () => 0,
+      clearTimer: () => undefined,
+      initialJobId: 12,
+    });
+    client.request("a", "js");
+    client.flush();
+    expect(events).toEqual([{ kind: "started", jobId: 13 }]);
+    expect(fake.instances[0]?.posted[0]?.jobId).toBe(13);
+  });
+});
+
 describe("PipelineClient stale drop", () => {
   it("never forwards a response for a superseded job from either worker", () => {
     const { fake, events, client, inst } = setup();

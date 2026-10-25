@@ -30,6 +30,8 @@ type Deps = {
   setTimer: (fn: () => void, ms: number) => unknown;
   clearTimer: (h: unknown) => void;
   debounceMs?: number;
+  /** The highest job number already seen by whoever consumes the events, so a recreated client keeps counting upward. */
+  initialJobId?: number;
 };
 
 const DEFAULT_DEBOUNCE_MS = 400;
@@ -39,7 +41,7 @@ export function createPipelineClient(deps: Deps): PipelineClient {
   let worker: WorkerLike | null = null;
   let timer: unknown = null;
   let pending: { source: string; lang: Language } | null = null;
-  let latestJobId = 0;
+  let latestJobId = deps.initialJobId ?? 0;
   // True from dispatch until the job's last response, so a busy worker is replaced, not queued behind.
   let inFlight = false;
   let disposed = false;
