@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "@playwright/test";
+// The helper `test` marks the coach marks as seen: their overlay would otherwise cover the editor this spec clicks.
+import { expect, test } from "./helpers/playground";
 
 const FIXTURES = join(process.cwd(), "tests", "conformance", "fixtures");
 const source = readFileSync(join(FIXTURES, "nexttick-vs-promise.cjs"), "utf8");

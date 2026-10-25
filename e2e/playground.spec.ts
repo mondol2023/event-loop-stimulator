@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+// The helper `test` marks the coach marks as seen: their overlay can otherwise cover the editor these specs click.
+import { expect, test } from "./helpers/playground";
 
 test("playground renders the IDE: editor, code panes and run panel", async ({ page }) => {
   await page.goto("/playground");
