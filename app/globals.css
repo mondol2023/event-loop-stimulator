@@ -179,6 +179,10 @@
   html.dark {
     color-scheme: dark;
   }
+  /* Classroom mode: a larger root size scales every rem-based size for projectors. */
+  html.mode-classroom {
+    font-size: 112.5%;
+  }
   body {
     @apply bg-background text-foreground;
   }
