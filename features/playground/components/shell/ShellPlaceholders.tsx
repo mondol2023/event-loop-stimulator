@@ -7,17 +7,8 @@ import { usePlaygroundStore } from "../../store/PlaygroundContext";
 
 // Stand-ins for surfaces that later Phase 6 tasks own. Each says what is missing in words and shows
 // real data only; none of them invents values. They are replaced, not extended:
-//   PlaybackPlaceholder   -> Task 9 (PlaybackBar, Scrubber, NarrationLine)
 //   EventLoopPlaceholder  -> Task 10 (EventLoopView, ConsolePanel)
 //   ViewPlaceholder       -> Task 12 (PlaceholderPanel) for V8 Internals and Hardware
-
-export function PlaybackPlaceholder() {
-  return (
-    <section aria-label="Playback" className="flex h-16 shrink-0 items-center border-t border-border bg-panel px-3 text-sm text-muted-foreground">
-      The playback controls and the narration line are not built yet.
-    </section>
-  );
-}
 
 /** The program's output at the current tick, until the console panel replaces it. */
 export function EventLoopPlaceholder() {
@@ -26,8 +17,8 @@ export function EventLoopPlaceholder() {
   const length = useStore(store, (s) => s.playback.length);
   const lines = useConsole();
 
-  // With no playback bar yet, nothing else can move the cursor: show the finished run's output.
-  // The playback bar (Task 9) owns the cursor and removes this.
+  // Until the console panel (Task 10) follows the cursor itself, a finished run opens on its last tick so its
+  // output is visible; the playback bar then takes over the cursor.
   useEffect(() => {
     if (status === "ready" && length > 0) store.getState().seek(length - 1);
   }, [store, status, length]);

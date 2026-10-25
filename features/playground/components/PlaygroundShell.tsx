@@ -16,7 +16,8 @@ import { ExamplesList, ExamplesMenu } from "./examples/ExamplesMenu";
 import { VerifiedBadge } from "./examples/VerifiedBadge";
 import { AstPaneLazy, BytecodePaneLazy, MachineCodePaneLazy, SourceEditorLazy } from "./lazy";
 import { ResizableSplit } from "./ResizableSplit";
-import { EventLoopPlaceholder, HARDWARE_COPY, PlaybackPlaceholder, V8_INTERNALS_COPY, ViewPlaceholder } from "./shell/ShellPlaceholders";
+import { PlaybackBar } from "./playback/PlaybackBar";
+import { EventLoopPlaceholder, HARDWARE_COPY, V8_INTERNALS_COPY, ViewPlaceholder } from "./shell/ShellPlaceholders";
 import { StatusIndicator } from "./shell/StatusIndicator";
 import { TabPanel, tabTriggerProps } from "./shell/TabPanel";
 import { TruthBadge } from "./TruthBadge";
@@ -214,7 +215,7 @@ export function PlaygroundShell() {
           </Tabs>
         }
       />
-      <PlaybackPlaceholder />
+      <PlaybackBar />
     </main>
   );
 }
