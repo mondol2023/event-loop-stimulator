@@ -20,6 +20,15 @@ test("the worker runs a program and a newer edit supersedes an older one", async
   const editor = page.getByRole("textbox", { name: "Source code" });
   const status = page.getByTestId("status");
   const output = page.getByTestId("console");
+  // A new run opens on tick 0 with no output yet; the console shows what the program has printed so far, so
+  // the output is read at the last tick. The click repeats until it lands on the new run's timeline: an edit
+  // can still be in its debounce, and a click then seeks the old timeline, which the new run replaces at tick 0.
+  const expectFinalOutput = async (text: string): Promise<void> => {
+    await expect(async () => {
+      await page.getByRole("button", { name: "Last tick" }).click({ timeout: 2_000 });
+      await expect(output).toHaveText(text, { timeout: 1_000 });
+    }).toPass({ timeout: 30_000 });
+  };
   // The editor is CodeMirror: select all, then insert text as one input event.
   const setSource = async (text: string): Promise<void> => {
     await editor.click();
@@ -29,10 +38,10 @@ test("the worker runs a program and a newer edit supersedes an older one", async
 
   // Type something else first, so the recorded program below arrives through an edit, not as the page's own default.
   await setSource('console.log("warm up");');
-  await expect(output).toHaveText("warm up\n", { timeout: 30_000 });
+  await expectFinalOutput("warm up\n");
   await setSource(source);
   await expect(status).toHaveText("Ready", { timeout: 30_000 });
-  await expect(output).toHaveText(stdout);
+  await expectFinalOutput(stdout);
 
   // An edit after the first program was dispatched: only the second program's output may survive.
   // The engine bounds a run to well under a second, so whether the worker is still busy when the
@@ -42,7 +51,7 @@ test("the worker runs a program and a newer edit supersedes an older one", async
   // rAF polling, so the short in-flight window is not missed between two 100 ms polls.
   await page.waitForFunction(() => document.querySelector("[data-testid=status]")?.textContent !== "Ready", null, { polling: "raf", timeout: 10_000 });
   await setSource('console.log("second");');
-  await expect(output).toHaveText("second\n", { timeout: 30_000 });
+  await expectFinalOutput("second\n");
   await expect(status).toHaveText("Ready");
 
   expect(problems).toEqual([]);
