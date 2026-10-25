@@ -7,7 +7,6 @@ import { useStore } from "zustand";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { EventLoopView } from "@/features/event-loop-2d/EventLoopView";
 import { ModeSpeedSync } from "@/features/preferences/ModeSpeedSync";
 import { usePlaygroundStore } from "../store/PlaygroundContext";
 import { LangToggle } from "./editor/LangToggle";
@@ -15,7 +14,7 @@ import { ProblemsList } from "./editor/ProblemsList";
 import type { SourceEditorHandle } from "./editor/SourceEditor";
 import { ExamplesList, ExamplesMenu } from "./examples/ExamplesMenu";
 import { VerifiedBadge } from "./examples/VerifiedBadge";
-import { AstPaneLazy, BytecodePaneLazy, CoachMarksLazy, MachineCodePaneLazy, SourceEditorLazy } from "./lazy";
+import { AstPaneLazy, BytecodePaneLazy, CoachMarksLazy, EventLoopViewLazy, MachineCodePaneLazy, SourceEditorLazy } from "./lazy";
 import { PaletteLauncher } from "./palette/PaletteLauncher";
 import { ResizableSplit } from "./ResizableSplit";
 import { PlaybackBar } from "./playback/PlaybackBar";
@@ -205,7 +204,7 @@ export function PlaygroundShell() {
             {/* Collapsing hides only the tab content; the tab strip and the playback bar stay. */}
             <div id={bottomContentId} className={`min-h-0 flex-1 flex-col ${collapsed ? "flex lg:hidden" : "flex"}`}>
               <TabPanel group={runGroup} value="event-loop" active={bottomTab === "event-loop"} className={PANEL}>
-                <EventLoopView />
+                <EventLoopViewLazy />
               </TabPanel>
               <TabPanel group={runGroup} value="v8" active={bottomTab === "v8"} className={PANEL}>
                 <ViewPlaceholder title="V8 Internals">{V8_INTERNALS_COPY}</ViewPlaceholder>

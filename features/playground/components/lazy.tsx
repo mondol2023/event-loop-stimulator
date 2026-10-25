@@ -14,5 +14,8 @@ export const AstPaneLazy = dynamic(() => import("./panes/AstPane").then((m) => m
 export const BytecodePaneLazy = dynamic(() => import("./panes/BytecodePane").then((m) => m.BytecodePane), { ssr: false, loading: PaneSkeleton });
 export const MachineCodePaneLazy = dynamic(() => import("./panes/MachineCodePane").then((m) => m.MachineCodePane), { ssr: false, loading: PaneSkeleton });
 
+// Motion's layout engine lives behind this boundary (D6); the skeleton fills the panel's final box, so nothing shifts.
+export const EventLoopViewLazy = dynamic(() => import("@/features/event-loop-2d/EventLoopView").then((m) => m.EventLoopView), { ssr: false, loading: PaneSkeleton });
+
 // Rendered after hydration only, and its chunk is not part of the first load.
 export const CoachMarksLazy = dynamic(() => import("./onboarding/CoachMarks").then((m) => m.CoachMarks), { ssr: false });
