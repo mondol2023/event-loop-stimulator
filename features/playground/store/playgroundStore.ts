@@ -88,6 +88,7 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
               stop: null,
             },
             playback: { ...s.playback, ...EMPTY_PLAYBACK },
+            hover: { pane: null, line: null },
           }));
           return;
         }
@@ -117,6 +118,8 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
             stop: null,
           },
           playback: { ...s.playback, ...EMPTY_PLAYBACK },
+          // Line numbers from the old program would highlight unrelated lines in the new one.
+          hover: { pane: null, line: null },
         }));
       }
 

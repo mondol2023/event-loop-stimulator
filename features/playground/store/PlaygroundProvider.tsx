@@ -20,7 +20,11 @@ function createPipelineWorker(): WorkerLike {
     onmessageerror: null,
   };
   worker.onmessage = (e) => adapter.onmessage?.({ data: e.data });
-  worker.onerror = (e) => adapter.onerror?.(e);
+  worker.onerror = (e) => {
+    // Uncancelled, the browser re-reports a worker error on the page as an uncaught error too.
+    if (typeof (e as Partial<Event>).preventDefault === "function") e.preventDefault();
+    adapter.onerror?.(e);
+  };
   worker.onmessageerror = (e) => adapter.onmessageerror?.(e);
   return adapter;
 }

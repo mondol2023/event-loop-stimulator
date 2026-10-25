@@ -35,8 +35,8 @@ describe("shortcutFor", () => {
     for (const key of KEYS) expect(shortcutFor({ ...plain, key, editable: true })).toBeNull();
   });
 
-  it("ignores a held Space but lets a held arrow keep stepping", () => {
-    expect(shortcutFor({ ...plain, key: " ", repeat: true })).toBeNull();
+  it("swallows a held Space without toggling, and lets a held arrow keep stepping", () => {
+    expect(shortcutFor({ ...plain, key: " ", repeat: true })).toBe("swallow");
     expect(shortcutFor({ ...plain, key: "ArrowRight", repeat: true })).toBe("step-forward");
   });
 
@@ -83,11 +83,11 @@ describe("isEditableTarget", () => {
 });
 
 describe("isActivatableTarget", () => {
-  it("is true for a button, a link with href and a role=button, false for plain content", () => {
+  it("is true for a button and a role=button, false for a link and plain content", () => {
     expect(isActivatableTarget(document.createElement("button"))).toBe(true);
     const link = document.createElement("a");
     link.setAttribute("href", "/x");
-    expect(isActivatableTarget(link)).toBe(true);
+    expect(isActivatableTarget(link)).toBe(false);
     const div = document.createElement("div");
     div.setAttribute("role", "button");
     expect(isActivatableTarget(div)).toBe(true);
@@ -152,7 +152,7 @@ describe("useShortcuts", () => {
     press(document.body, { key: " " });
     expect(store.getState().playback.isPlaying).toBe(true);
     const held = press(document.body, { key: " ", repeat: true });
-    expect(held.defaultPrevented).toBe(false);
+    expect(held.defaultPrevented).toBe(true);
     expect(store.getState().playback.isPlaying).toBe(true);
   });
 

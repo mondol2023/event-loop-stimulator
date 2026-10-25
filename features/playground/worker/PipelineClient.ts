@@ -1,5 +1,5 @@
 import type { Language } from "@/core/compile/CompilationManager";
-import { parseResponse, type PipelineRequest, type PipelineResponse } from "./protocol";
+import { parseRequest, parseResponse, type PipelineRequest, type PipelineResponse } from "./protocol";
 
 // The main-thread end of the pipeline worker: debounces edits, numbers jobs, drops responses for
 // superseded jobs, and replaces a worker that is busy or has crashed (D3: a run cannot be
@@ -100,9 +100,16 @@ export function createPipelineClient(deps: Deps): PipelineClient {
     latestJobId += 1;
     inFlight = true;
     deps.onEvent({ kind: "started", jobId: latestJobId });
+    // The worker drops a request that fails the schema without replying, which would leave the job compiling forever.
+    const request = parseRequest({ type: "run", jobId: latestJobId, source, lang });
+    if (!request) {
+      inFlight = false;
+      deps.onEvent({ kind: "failed", jobId: latestJobId, message: "The program is too long." });
+      return;
+    }
     try {
       worker ??= createWorker();
-      worker.postMessage({ type: "run", jobId: latestJobId, source, lang });
+      worker.postMessage(request);
     } catch (error) {
       // A throwing factory or post must still end the job, or status would stay "simulating" forever.
       fail(error instanceof Error ? error.message : "The pipeline worker could not be started.");

@@ -46,6 +46,13 @@ describe("pipeline events", () => {
     expect(store.getState().compile.status).toBe("simulating");
   });
 
+  it("clears the hovered line when a new job compiles", () => {
+    const store = readyStore();
+    store.getState().setHover("bytecode", 40);
+    store.getState().applyPipelineEvent({ kind: "response", response: { ...run.compiled, jobId: 2 } });
+    expect(store.getState().hover).toEqual({ pane: null, line: null });
+  });
+
   it("ends a refused program as refused, with its diagnostics and no timeline", () => {
     const store = readyStore();
     const compiled = runSource("with ({}) {}", 2)[0];

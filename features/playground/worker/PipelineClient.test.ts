@@ -316,6 +316,22 @@ describe("PipelineClient dispose", () => {
   });
 });
 
+describe("PipelineClient request validation", () => {
+  it("fails an over-long source instead of leaving the job compiling, and keeps the worker usable", () => {
+    const { events, fake, client } = setup();
+    client.request("x".repeat(65_537), "js");
+    client.flush();
+    expect(events).toEqual([
+      { kind: "started", jobId: 1 },
+      { kind: "failed", jobId: 1, message: "The program is too long." },
+    ]);
+    expect(fake.instances).toHaveLength(0);
+    client.request("ok", "js");
+    client.flush();
+    expect(fake.instances[0]?.posted).toHaveLength(1);
+  });
+});
+
 describe("PipelineClient with the real handler", () => {
   it("forwards compiled then simulated for the latest job", async () => {
     const { events, client } = setup((w) => w.respondWith(handleRequest));

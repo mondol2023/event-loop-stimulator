@@ -298,3 +298,19 @@ It allows pure npm packages.
 **Decision.** Each `PlaygroundProvider` creates its own Zustand store. The timeline lives in a `WeakMap<PlaygroundStore, TimelineStore>` holder, outside React and Zustand state (the spec's "module ref", scoped per store). Store state carries only `timelineVersion`, which bumps on each swap so that selectors re-run.
 
 **Consequence.** Tests and embeds are isolated, and the store never diffs or clones a large timeline.
+
+## ADR-047: Playback key refinements, and the worker CSP gap (Phase 5)
+
+**Context.** Global shortcuts must not fight focused widgets, and Task 13 found one gap in the worker's CSP.
+
+**Decision.**
+- **Space.** It is ignored on a button-like target (button, summary, `role=button|switch|checkbox`), which activates on Space itself. A repeated Space is consumed (default prevented) without toggling, so a held key neither flickers playback nor scrolls the page.
+- **Widget roles.** Inputs, contenteditable and ARIA widget roles (slider, spinbutton, textbox, combobox, listbox, tab, tablist, menu, menuitem, radiogroup, radio) own all shortcut keys, including Home and End.
+- **`play()` at the last tick** restarts from tick 0.
+- **`initialJobId`.** The client starts counting from the store's current job number, so a client re-created by Fast Refresh does not restart at 1 and have the store drop its events.
+- **Failed before compiled.** A `failed` event for a job whose `compiled` has not arrived clears the previous run's views, timeline and hover, because they belong to the old source.
+- **Over-long source.** The client validates the request against the protocol schema and emits `failed` itself, because the worker drops an invalid request without replying.
+
+**Known gap.** The pipeline worker script is served from `/_next/static` without its own CSP header (`proxy.ts` skips that path), and a worker takes its CSP from its own response, so the browser-level `unsafe-eval` ban does not apply inside the worker. The guards are the lint bans, `check-build` and Zod's `jitless` mode. Fixing it needs a server-layer headers change for the worker chunk; it is deferred.
+
+**Consequence.** Keys behave like the platform's own widgets, and the worker's "never execute" guarantee rests on static checks, not on the browser.

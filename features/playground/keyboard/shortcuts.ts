@@ -5,7 +5,9 @@ export type ShortcutAction =
   | "boundary-back"
   | "boundary-forward"
   | "first"
-  | "last";
+  | "last"
+  // A held Space: consumed so it cannot scroll the page, but it must not toggle again.
+  | "swallow";
 
 export type ShortcutKeyEvent = {
   key: string;
@@ -26,8 +28,9 @@ export function shortcutFor(e: ShortcutKeyEvent): ShortcutAction | null {
   if (e.editable || e.ctrlKey || e.metaKey || e.altKey) return null;
   switch (e.key) {
     case " ":
-      // A held Space would flicker playback; a focused button already handles Space itself.
-      return e.repeat || e.activatable ? null : "toggle-play";
+      // A focused button already handles Space itself; a held Space on anything else must not flicker playback.
+      if (e.activatable) return null;
+      return e.repeat ? "swallow" : "toggle-play";
     case "ArrowLeft":
       return e.shiftKey ? "boundary-back" : "step-back";
     case "ArrowRight":
@@ -45,7 +48,7 @@ const OWNS_KEYS =
   "input, textarea, select, [contenteditable]:not([contenteditable='false']), " +
   "[role='slider'], [role='spinbutton'], [role='textbox'], [role='combobox'], [role='listbox'], " +
   "[role='tab'], [role='tablist'], [role='menu'], [role='menuitem'], [role='radiogroup'], [role='radio']";
-const ACTIVATES_ON_SPACE = "button, a[href], summary, [role='button'], [role='switch'], [role='checkbox']";
+const ACTIVATES_ON_SPACE = "button, summary, [role='button'], [role='switch'], [role='checkbox']";
 
 function closestMatch(t: EventTarget | null, selector: string): boolean {
   // window and document are not Elements; a cross-realm Element still has closest().

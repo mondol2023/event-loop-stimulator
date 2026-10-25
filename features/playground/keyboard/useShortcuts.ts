@@ -17,6 +17,8 @@ function dispatch(store: PlaygroundStore, action: ShortcutAction): void {
       return s.jumpBoundary(1);
     case "first":
       return s.seek(0);
+    case "swallow":
+      return;
     case "last":
       // seek is a no-op on an empty timeline, so length 0 is safe.
       return s.seek(s.playback.length - 1);
