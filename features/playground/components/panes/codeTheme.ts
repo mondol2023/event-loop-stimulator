@@ -11,6 +11,9 @@ const highlightTheme = EditorView.theme({
   ".cm-content": { caretColor: "var(--foreground)", tabSize: "2" },
   // CSP: CodeMirror hides each gutter's width spacer with `style.cssText`, which style-src 'nonce-…' blocks, so hide it here.
   ".cm-gutter > .cm-gutterElement:first-child": { visibility: "hidden", pointerEvents: "none" },
+  // Room for three digits from the start (the 8px is the gutter element's own padding): the document often
+  // arrives after the view, and a gutter that widens then shifts the text.
+  ".cm-lineNumbers .cm-gutterElement": { minWidth: "calc(3ch + 8px)" },
   ".cm-gutters": { backgroundColor: "var(--panel)", color: "var(--muted-foreground)", border: "none" },
   ".cm-activeLine, .cm-activeLineGutter": { backgroundColor: "transparent" },
   ".cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {

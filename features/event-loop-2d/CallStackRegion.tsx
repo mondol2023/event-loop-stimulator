@@ -10,7 +10,8 @@ import { useIsClient } from "./useIsClient";
 // The outer li fades and is moved by the layout animation; the inner box owns the transform, so the two never fight.
 const SPRING = { type: "spring", stiffness: 500, damping: 32 } as const;
 const LEAVE = { duration: 0.15, ease: [0.22, 1, 0.36, 1] } as const;
-const FRAME_CLASS = "rounded-md border border-border border-l-4 border-l-primary bg-card px-3 py-1.5 text-sm text-card-foreground";
+// min-h-8 is the empty state's height too, so a frame arriving or leaving does not move the regions below it.
+const FRAME_CLASS = "flex min-h-8 items-center rounded-md border border-border border-l-4 border-l-primary bg-card px-3 py-1 text-sm text-card-foreground";
 
 function FrameName({ name }: { name: string }) {
   return (

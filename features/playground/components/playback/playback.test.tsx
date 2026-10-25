@@ -113,9 +113,9 @@ describe("Scrubber", () => {
     mount(store, <Scrubber />);
     const { length } = store.getState().playback;
     act(() => store.getState().seek(length - 1));
-    expect(screen.getByTestId("scrubber-thumb").style.left).toBe("100%");
+    expect(screen.getByTestId("scrubber-thumb").style.transform).toBe("translateX(100%)");
     act(() => store.getState().seek(0));
-    expect(screen.getByTestId("scrubber-thumb").style.left).toBe("0%");
+    expect(screen.getByTestId("scrubber-thumb").style.transform).toBe("translateX(0%)");
   });
 
   it("renders one marker per compile.markers entry, with warnings readable as text", () => {
