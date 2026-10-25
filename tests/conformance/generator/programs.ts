@@ -4,10 +4,13 @@ import fc from "fast-check";
 // It builds a statement MODEL and renders it, so fast-check shrinks structurally (drop a
 // statement, flatten a callback, shorten a body) instead of by characters.
 //
-// Rules that keep a program deterministic on real Node:
+// Rules that keep most programs deterministic on real Node:
 // - Delays are in {0, 1, 2, 5, 10} ms and every timer is created before the loop starts
 //   (main script or a nextTick / microtask / promise callback). A callback that runs from a
-//   timer never creates one, so no two timers can tie on an expiry that depends on timing.
+//   timer never creates one, so no timer is re-armed against another (nondeterminism rule 2).
+//   Not every race is ruled out: a timer armed after console output can still race an earlier
+//   one (rule 3, core/host/nondeterminism.ts), which the simulator flags and the differential
+//   property discards.
 // - No `setImmediate`: its order against a timer created in the same tick depends on how
 //   long the process took to start.
 // - Nothing throws out of a callback: every rejection ends in a handler, so stderr is empty

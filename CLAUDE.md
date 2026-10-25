@@ -16,6 +16,8 @@ A V8 engine and event-loop visualizer. The spec is `PROMPT.md`: run one phase pe
 | `npm run conformance:record` | Re-record `*.expected.json` on real Node; refuses unless the runtime equals `docs/TARGET.md` |
 | `npm run conformance:status` | Rewrite `tests/conformance/bytecode-status.json` from the generator's current output (the bytecode ratchet; never touches `*.expected.json`) |
 | `npm run conformance:diff -- <file.cjs>` | Our bytecode against real Node's, side by side (a development aid) |
+| `npm run conformance:differential -- --runs 1000` | Generate N programs and compare the simulator with real Node; refuses unless the runtime equals `docs/TARGET.md`. `--seed S` replays a run |
+| `npm run asm:record` | Encode every x64 form the baseline compiler emits with `llvm-mc` (falling back to `clang`) and write `tests/conformance/asm/encodings.expected.json`; refuses only if neither is installed |
 | `npm run conformance:vendor-test262` | Re-vendor the in-subset test262 tests into `vendor/test262/` |
 | `npm run docs:subset` | Regenerate the excluded-construct tables in `docs/SUPPORTED_SUBSET.md` and `docs/FIDELITY.md` from `core/frontend/subset/excluded.ts` |
 | `npm run seed` | Upsert Role docs and indexes; promotes `ADMIN_BOOTSTRAP_EMAIL` only if that user already registered |
@@ -29,7 +31,7 @@ A phase is done only when lint, typecheck, test and build all pass, with the out
 
 - **Never execute it.** User source is only parsed (`@babel/parser`) and interpreted by our spec model in `core/`.
 - **Banned APIs.** Never use `eval`, `new Function`/`Function()`, `ShadowRealm`, `vm`/`node:vm` or `child_process`. ESLint bans them repo-wide; never disable that rule.
-- **The one exception.** `scripts/conformance/` and `tests/conformance/` may use `child_process`, and only to run repo-owned or generated fixture programs on real node.
+- **The one exception.** `scripts/conformance/` and `tests/conformance/` may use `child_process`, and only to run repo-owned or generated fixture programs on real node, or `llvm-mc`/`clang` as an assembler on asm text the repo generated (never user source).
 - **Zod.** Import it only from `@/core/shared/zod`, which sets `jitless` so that Zod never compiles parsers with `new Function`.
 
 ## Conformance expectations come only from real Node

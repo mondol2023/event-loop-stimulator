@@ -35,10 +35,12 @@ export const RE_ARMED_LIST_TIE: NondeterminismRule = {
 };
 
 /**
- * Rule 3 (timer-after-first-write): a timer inserted after the first console write (into a new list or an
- * existing one), due up to WRITE_SLACK_MS before a list armed before that write. getLibuvNow() reads the clock at each
- * insert, and a write costs real time (the first ~2.2 ms, probed), so the later list may start
- * late enough to run second. Later writes cost microseconds and are ignored. With 0 ms writes it runs first, one of the recorded outcomes.
+ * Rule 3 (timer-after-first-write): a timer inserted after a console write that followed the arming
+ * of another list (into a new list or an existing one), due up to WRITE_SLACK_MS before that list.
+ * getLibuvNow() reads the clock at each insert, and a write costs real time (the first ~2.2 ms,
+ * later ones less but still enough to flip a 2 ms gap in 10 of 40 runs, probed), so the later list
+ * may start late enough to run second. A write before the other list was armed does not matter
+ * (probed: 0 flips in 40 runs). With 0 ms writes it runs first, one of the recorded outcomes.
  */
 export const TIMER_ARMED_AFTER_WRITE: NondeterminismRule = {
   fixture: "timer-after-first-write",
@@ -78,7 +80,7 @@ export class NondeterminismWatch {
     if (!this.#armedAt.has(list)) this.#armedAt.set(list, this.#writes);
     const raced = lists.some((other) => {
       const gap = other.expiry - due;
-      return other !== list && other.timers.length > 0 && (this.#armedAt.get(other) ?? 0) === 0 && this.#writes > 0 && gap > 0 && gap <= WRITE_SLACK_MS;
+      return other !== list && other.timers.length > 0 && this.#writes > (this.#armedAt.get(other) ?? 0) && gap > 0 && gap <= WRITE_SLACK_MS;
     });
     if (raced) this.#raise(TIMER_ARMED_AFTER_WRITE);
   }

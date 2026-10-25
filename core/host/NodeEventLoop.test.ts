@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { simulate } from "@/core/timeline/simulate";
+import { TIMER_ARMED_AFTER_WRITE } from "./nondeterminism";
 
 // The loop as a whole: phase order, exit, and the Node-internal frames below each kind of
 // callback. Every tail here was probed on the pinned node (docs/TARGET.md).
@@ -44,6 +45,17 @@ describe("NodeEventLoop phases", () => {
     const r = run(`setTimeout(() => { console.log("a"); Promise.resolve().then(() => console.log("a.p")); }, 1);
 setTimeout(() => console.log("b"), 1);`);
     expect(r.stdout).toBe("a\na.p\nb\n");
+  });
+
+  it("flags a timer armed after output that followed another timer's arming, even after an earlier write", () => {
+    // Real node, probed under load: "a b t1 t2" 52 times, "a b t2 t1" 12 times (the "b" write can
+    // delay t1's start by a ms). Reduced from the program that broke the seed-11 differential run.
+    const r = run(`console.log("a");
+setTimeout(() => console.log("t2"), 2);
+console.log("b");
+setTimeout(() => console.log("t1"), 1);`);
+    expect(r.stdout).toBe("a\nb\nt1\nt2\n");
+    expect(r.warnings).toEqual([TIMER_ARMED_AFTER_WRITE.warning]);
   });
 
   it("exits 0 with no output for an empty loop", () => {

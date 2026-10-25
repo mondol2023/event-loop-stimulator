@@ -69,7 +69,7 @@ It allows pure npm packages.
 
 ## ADR-008: Scope of the code-execution exception, and the build check (Phase 0)
 
-**Context.** §6.2 exempts `scripts/conformance/` and `tests/conformance/` from the code-execution bans, because "those directories need `child_process`".
+**Context.** §6.2 exempts `scripts/conformance/` and `tests/conformance/` from the code-execution bans, because "those directories need `child_process`". Phase 4 widens what they may spawn: real node, and `llvm-mc` on asm text the repo generated (`scripts/conformance/asm-record.mts`, D4).
 
 **Decision.**
 - **Least privilege.** The exception lifts only the `child_process` ban. `eval`, `Function`, `ShadowRealm` and `vm` stay banned there too.
@@ -240,6 +240,158 @@ It allows pure npm packages.
 - **V8's `SyntaxError` text is not reproduced.** A syntax error is our own `E_SYNTAX` diagnostic with a range and a hint, not V8's stderr. This is a recorded gap in `FIDELITY.md`.
 
 **Consequence.** The simulator in Phase 3 must provide the harness builtins before the test262 `todo` can be turned on. UI code that maps a tick to source must handle a missing range.
+
+## ADR-025: Refused fixtures are judged by refusal, not by stderr bytes (Phase 3, D1)
+
+**Context.** The three `ts-*-refused` fixtures use TypeScript that Node's strip-only loader refuses. Node's stderr for them is an `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` code frame with loader-internal frames, which is not program behavior and which the simulator should not reproduce. Principle 2 is "refuse rather than approximate" (ADR-024 treats `SyntaxError` text the same way).
+
+**Decision.** A fixture with `meta.expect: "refused"` must also carry `meta.diagnostic` (the meta schema rejects one without it). It passes when all three hold: real Node exited non-zero; the simulator refuses with exit code 1 and stderr lines `<code>: <message>` (the test262 contract's format); and the code equals `meta.diagnostic`, for example `E_TS_UNSUPPORTED`.
+
+**Consequence.** Byte equality covers every program that runs. A refusal is checked by its code, so a changed diagnostic code is a visible fixture change, while Node's loader text can change with the target without touching us.
+
+## ADR-026: Natives mode and feedback extraction make `internals` fixtures comparable by bytes (Phase 3, D2)
+
+**Context.** The Map, elements-kind and IC claims of PROMPT.md §3 are checked against V8 itself (`%HaveSameMap`, `%HasSmiElements`, `%DebugPrint`), but those are not JavaScript the subset accepts, and `%DebugPrint` prints addresses and a great deal of V8-internal text.
+
+**Decision.**
+- `CompilationManager.compile(source, lang, { natives: true })` enables Babel's `v8intrinsic` plugin and compiles `%Name(args)` to `CallRuntime [Name]`, as V8 does under `--allow-natives-syntax`, for an allowlist: `HaveSameMap`, `HasFastProperties`, `HasSmiElements`, `HasDoubleElements`, `HasObjectElements`, `HasHoleyElements`, `HasDictionaryElements` and `DebugPrint`.
+- **The option is unreachable from user input.** It is not in `CompileInput`, the worker message schema or any UI path, and a test proves it. Without it `%Name` is an ordinary syntax error.
+- A fixture meta key `extract: "feedback"` makes the recorder keep only the `%DebugPrint` lines that name the function and the property-IC slots, normalized to `function NAME` / `slot #N KIND STATE`. Kept kinds: `LoadProperty`, `LoadKeyed`, `SetNamedSloppy`, `SetNamedStrict`, `SetKeyedSloppy`, `SetKeyedStrict` and `DefineNamedOwn`. Our `%DebugPrint` prints exactly those lines.
+- The internals fixtures are recorded with `--allow-natives-syntax --no-lazy-feedback-allocation`, which matches our eager feedback model. Real V8's lazy allocation is a documented gap in `FIDELITY.md`.
+
+**Consequence.** The "Verified model" claims for Maps, elements kinds and IC states rest on recorded V8 output compared byte for byte, not on our reading of V8's source. The price is a test-only compile mode that must never leak, hence the proof.
+
+## ADR-027: How a run stops (Phase 3, D3)
+
+**Context.** PROMPT.md §7.1 says a run that exceeds a limit ends with "Simulation limit reached — real Node would continue", never a JS error. Some behavior is also reachable at run time but cannot be made exact, and the compiler cannot see it.
+
+**Decision.** A `SimulationStop` is one of two kinds: `{ kind: "limit", limit }` or `{ kind: "unsupported", reason }`.
+- **Limits** (`core/shared/limits.ts`): `ticks` 5,000, `callDepth` 64, `heapObjects` 1,024 (cumulative allocations, independent of the Illustrative GC, so a GC can never change whether a limit hits), `virtualTime` 60,000 ms, and three additions to §7.1: `work` (1,000,000 element visits inside builtins, such as a `map` over `length = 2**32 - 1`), `output` (1 Mi characters of stdout and stderr together) and `strings` (8 Mi characters built by concatenation or `join`, cumulative). Real Node would continue past all three, so the notice stays true. `output` and `strings` came from a ~100-byte program that doubled a string and ran the compile worker out of heap: V8's fatal out-of-memory aborted the whole server process, because a worker thread's OOM is not contained.
+- **Unsupported.** Execution reached something whose exact output is not modeled: a `console.log` with `%j`, `%o` or `%O`, a TypeError whose text would print an object, `Array.prototype.sort` of 64 or more elements, a `Number.prototype.toString` radix, and so on. `FIDELITY.md` lists every reason.
+- Internally the interpreter and runtime throw `SimulationHalt`, which only `simulate` catches. Output up to that point is kept, and the notice goes to `warnings` and `stop`, **never** to stdout or stderr. The definitions live in `core/shared` because the layers below the timeline enforce the limits and may not import it.
+
+**Consequence.** A hostile or merely large program ends at a defined place with the output it had produced. An unsupported stop is a gap, not a wrong answer: the fixtures prove that what is printed is exact, and the stop says where exactness ended.
+
+## ADR-028: Tick granularity is statement-level, by the owner's ruling (Phase 3, D4)
+
+**Context.** The plan followed PROMPT.md §7.5 (one Tick per bytecode dispatch, job start, loop-phase transition, GC event and exit) and required a measurement before relying on it: count the ticks of every program fixture and every vendored test262 test, and stop and ask the human if any needs more than 5,000.
+
+**Decision.** The gate failed: with a tick per dispatch, `recursion-factorial` needs **28,491** ticks. The owner chose statement-level ticks (the other option was a different limit). A tick is now: a dispatch at a statement position (the `S>` marks of the bytecode listing), a `JumpLoop` back edge (so an empty loop body still ticks), the entry of a function, a job start, a loop-phase transition, a GC event and the exit. Every other dispatch belongs to the statement it sits in, and a job end only closes its start. `TickBoundary` is the one rule, used by both the limiter and the recorder, so recording never changes where a run stops.
+
+**What the gate measures now** (`tests/conformance/tick-budget.test.ts`; measured on this branch): the highest of the 97 runnable program fixtures is `recursion-factorial` at 4,880 ticks, only 120 under the limit; the next is `inspect-circular-and-long-arrays` at 495. Across the 1,902 vendored test262 runs (every test, sloppy and strict) the highest is 298. Phase 3's `Tick` carries no `machine`, `cache`, `bus` or `alu` (Phases 4 and 7, Illustrative) and no `v8.tiers` (Phase 4's TieringModel); each later phase adds its field.
+
+**Consequence.** The deviation from §7.5 is flagged for human review. A step is a statement, not a bytecode; Phase 4's bytecode-level stepping needs a view over the dispatch commands, which are still recorded. `recursion-factorial` is within 3% of the limit, so any change to what counts as a tick can break it, and the gate test says so.
+
+## ADR-029: Maps follow V8 13.6, not PROMPT.md §7.4's wording (Phase 3, D5)
+
+**Context.** §7.4 says a field-representation change makes the old Map "deprecated". Probing the pinned V8 gave two results that the plan first read as one rule ("generalizes in place").
+
+**Decision.**
+- `%HaveSameMap({x:1,y:2}, {x:"string",y:[1]})` is `true` (fixture `maps-same-shape-vs-order`): generalizing to Tagged is not a new Map.
+- **Smi → Double does produce a new Map** (fixture `maps-field-generalization`). After `a.f = 1.5` on `{f:1}`, `a` no longer shares a Map with its Smi sibling `b`, yet a fresh `{f:3}` shares `a`'s new Map. The old Map is deprecated and objects migrate lazily: `b` matches again only after its own field generalizes. So "in place" was wrong for Smi → Double, and the model follows the fixture.
+- `delete` of the last-added property leaves fast mode in the fixture that tests it, and the model follows that too.
+
+**Consequence.** Every Map rule in `V8Map` and `TransitionTree` that a fixture probes has a recorded V8 result behind it. Rules no fixture probes (other representation changes, dictionary-mode thresholds beyond `delete`) are Modeled, not Verified.
+
+## ADR-030: Size and storage of the timeline (Phase 3, D6)
+
+**Context.** PROMPT.md §7.5 allows a 5,000-tick timeline within 20 MB. A tick carries console output, the object list, timers and queues, and most of it is unchanged from one tick to the next.
+
+**Decision.** Ticks share their unchanged sub-objects by reference (structural sharing). `TimelineStore` keeps a full keyframe every 64 ticks and, in between, a patch of the keys whose reference changed (set, unset, or append for a console that only grew). It serves `at(i)` by replaying at most 63 patches, through an LRU of 256 materialized ticks. "20 MB" is the UTF-8 byte length of the serialized store, which is what crosses the worker boundary.
+
+**Consequence.** `TimelineStore.test.ts` serializes a worst-case 5,000-tick run (growing output, 64 live objects, 3 live timers) and a real run that stops at a limit, and asserts both stay under the budget. Scrubbing reads from the LRU. Phase 5's worker owns the timeline; `/api/compile` never sends it (ADR-032).
+
+## ADR-031: Test-only host modes (Phase 3, D7)
+
+**Context.** The vendored test262 tests need `assert`, `Test262Error`, `$DONOTEVALUATE`, `$DONE` and `print` (ADR-024), which are not Node globals and must not exist in a user's program.
+
+**Decision.** `SimulationOptions.host` is `"node"` (the default, and the only mode reachable from user input) or `"test262"`, which adds exactly the harness builtins that `tests/conformance/test262/harnessContract.md` specifies. Like natives mode (ADR-026), it is in no schema.
+
+**Consequence.** Natives and test262 are options of `simulate`, not of a user message. The Phase 5 worker schema must keep both unreachable.
+
+## ADR-032: `/api/compile` returns a summary and runs the real pipeline in a prebuilt worker (Phase 3, D8)
+
+**Context.** Phase 1's route ran a stub worker (ADR-010 found a plain `.mjs` worker resolves under `next start`). The real pipeline is TypeScript that imports `core/`, and it can produce a timeline of up to 20 MB, while the client builds its own in its Web Worker (Phase 5). Task 24 had to find out how such an entry gets bundled.
+
+**Decision.**
+- The response is a `CompileSummary`: `{ diagnostics, output?: { stdout, stderr, exitCode }, warnings, stop?, tickCount }`, a `.strict()` Zod schema that the parent applies to every worker answer before using it. Streams, warnings and stop reasons are length-capped, so an oversized answer cannot reach the client. `output` is absent when the program was refused. The audit stays free of code (`codeHash` only).
+- **Spike result: path 2 shipped.** Path 1 (`new Worker(new URL("./compile-worker.ts", import.meta.url))`) did not work, because Turbopack copies a TypeScript worker entry unbundled instead of bundling it. Path 2: `esbuild` (now a direct devDependency) bundles `compile-worker.ts` and the `core/` pipeline into `server/security/sandbox/dist/compile-worker.mjs` (`scripts/build-worker.mts`, run by `predev` and `prebuild`), and `outputFileTracingIncludes` ships it. `scripts/check-build.mts` scans that file too, so the no-`eval`/`child_process`/`vm` ban holds for the bundle. This closes ADR-010's worker risk.
+- The pool keeps its 64 MB heap and 2 s timeout. A program that reaches the limit under a short `timeoutMs` answers `timeout` and audits `sandbox.timeout`.
+
+**Consequence.** The worker is a resource guard, not the sandbox: nothing ever executes user code, which is the real safety property. A worker that runs out of heap can take the process down, which is why `output` and `strings` exist (ADR-027). The bundle is a build artifact (`npm run build:worker`, run by `predev` and `prebuild`), so a change under `core/` reaches the route only through a rebuild.
+
+## ADR-033: Machine state is derived, not stored (Phase 4, D1)
+
+**Context.** PROMPT.md §7.5 puts `machine` on every Tick. That would grow every tick of the 20 MB budget (ADR-030) with data that is a function of the tick and the compiled function.
+
+**Decision.** The owner ruled that the Tick carries no `machine`. `machineStateAt(tick, baseline)` (`core/baseline/machineState.ts`) is a pure function returning `{ truth: "illustrative", asmLine, registers, flags }`, or `null` while no JS frame runs or the tick is not at a bytecode of that baseline. The state is the one on entry to the bytecode's first instruction, because a tick is reported before its bytecode executes. `registers` holds `rax` (the tagged accumulator: a Smi is `value << 1`, any other value an illustrative compressed pointer, derived from its `ObjectId` for objects), `rsi` (the context) and `rbp`/`rsp` (the frame), the last three illustrative. `flags` are set only at a `cmp` instruction (TestNull, TestUndefined, TestReferenceEqual, see As built; a `cmp` of the tagged words) and are `null` anywhere else.
+
+**Consequence.** Ticks, `TimelineStore` and the 20 MB budget are unchanged. The asm and register views compute the state when a tick is shown.
+
+**As built.** The projection is pure (the same tick and baseline give the same state) and nothing about it is stored on the Tick. `flags` are projected only when the instruction shown at that bytecode is a `cmp`: `TestNull`, `TestUndefined` and `TestReferenceEqual`. The other `Test*` bytecodes call a builtin, so the code shown for them has no `cmp` and `flags` is `null`. The register scheme is Illustrative and does not match the pinned Node build (ADR-039).
+
+## ADR-034: Tier changes are not ticks (Phase 4, D2)
+
+**Context.** A tier-up or deopt is not a step of the program, so it must not move where a run stops or add scrub positions.
+
+**Decision.** The owner ruled that `TickBoundary` is untouched. When a `TieringModel` is attached, a recorded Tick gains `v8.tiers`, a `ModeledTiers` wrapper `{ truth: "modeled", byFunction: Record<FunctionId, Tier> }` (defined in `core/interpreter/tiering/TieringModel.ts`, carried by `core/timeline/Tick.ts`), and `v8.tierEvents`, an array of `TierEvent` (a tier-up, with an `osr` flag, or a deopt with a `DeoptimizeReason`) that is present only when events happened. The events are drained onto the next Tick that is recorded, and the narration names each one as Modeled. Without a model neither field exists.
+
+**Consequence.** Events raised with no tick recorded at all are dropped. Otherwise `finish()` attaches the events still pending after the last tick to it. Several events can share one tick.
+
+**As built.** `TickRecorder.finish()` attaches the events still pending after the last tick to that tick, so a run that ends on a limit or on a final non-tick step no longer drops them (with no tick recorded there is nothing to attach them to, and they are dropped). `FIDELITY.md` keeps the remaining gap. A `TierUpEvent` carries `invocations`, the function's invocation count when it fired. A run without a `TieringModel` is byte-identical to a run before Phase 4: neither field exists on its Ticks.
+
+## ADR-035: Template coverage is exhaustive by type (Phase 4, D3)
+
+**Context.** The asm pane must not drift from the bytecode pane, and a new opcode must not silently lack a template.
+
+**Decision.** `TEMPLATES` in `core/baseline/templates/index.ts` is `satisfies Record<Opcode, Template>`, so a missing opcode is a compile error and needs no test. Every opcode starts as a stub that calls a named builtin, and hand-written templates override the ones Sparkplug emits inline. An opcode Sparkplug handles out of line is `call [r13 + IsolateData::builtin_entry(k<Name>)]` (`callBuiltin` in `core/baseline/Template.ts`; binary operations use `k<Op>_Baseline`), which exercises REX.B and an `r13` disp8. Register roles cite `register-x64.h` at the pinned V8.
+
+**Consequence.** Templates are pure: the same bytecode gives the same instructions. The generator and runtime-call templates are the least faithful (`FIDELITY.md`).
+
+**Asm is Illustrative, its bytes are exact.** The asm is the template translation of the shown bytecode and is not the code V8 would emit. The bytes are the exact encoding of the asm shown: `X64Encoder` (`core/baseline/x64/Encoder.ts`) is table-driven and resolves label fixups with branch relaxation, and ADR-036 cross-checks every form the compiler emits against a real assembler.
+
+## ADR-036: `llvm-mc` or `clang` may run on repo-generated asm text (Phase 4, D4)
+
+**Context.** The x64 encoder is hand-written, so its bytes need a real assembler as the oracle. ADR-008 scoped the `child_process` exception to running node.
+
+**Decision.** The exception in `scripts/conformance/` and `tests/conformance/` now also covers `llvm-mc`, and only on asm text the repo generated, never user source. `npm run asm:record` (`scripts/conformance/asm-record.mts`) collects every distinct form the baseline compiler emits, assembles them to an object with `llvm-mc -filetype=obj` (or `clang -c -x assembler` as a fallback), reads the `.text` bytes and writes `tests/conformance/asm/encodings.expected.json`. It does not use `--show-encoding`, which prints a fixup placeholder for label branches. It refuses with install instructions when `llvm-mc` is missing (`LLVM_MC` overrides the path). `tests/conformance/asm.test.ts` compares the encoder with that file offline.
+
+**Consequence.** The file is written only by the script, never by hand. `asm.test.ts` compares the encoder with it offline.
+
+**As recorded.** `llvm-mc` is not installed on the owner's Windows machine, so the golden was recorded with clang 23.1.4's integrated assembler (`clang --target=x86_64-unknown-linux-gnu -c -x assembler`), not `llvm-mc`. `asm:record` prefers `llvm-mc` (`LLVM_MC` overrides the path) and falls back to `clang` (`CLANG`), refusing only when neither runs. Both are the same LLVM MC layer, and the recorder reads only the object's `.text` section, so a wrapper difference cannot reach the bytes. `encodings.expected.json` records which tool and version produced it (`assembler.tool`, `assembler.version`, `llvm`). The `it.todo` and tripwire remain in `asm.test.ts` only as the branch for a missing golden.
+
+## ADR-037: The TieringModel is a Modeled observer (Phase 4, D5)
+
+**Context.** Tiering must be teachable without ever influencing the Exact layer.
+
+**Decision.** `core/interpreter/tiering/TieringModel.ts` implements two narrow interfaces. The interpreter sees only `TieringHooks` (`onInvoke`, `onBackEdge`, `onIcTransition`, `onBinaryOp`): void, fire-and-forget, over plain-data sites with no heap references. The timeline sees only `TieringReadout` (`tiers()`, `drainEvents()`). Flag defaults are those of V8 13.6.233.17 (`src/flags/flag-definitions.h`):
+- Budgets are in bytecode bytes: a call charges the function's length, a back edge its loop's length. Thresholds are absolute multiples of the function's length: Sparkplug at 8, Maglev at 400, Turbofan at 3000, and at least 2 invocations before optimization.
+- OSR from back edges: Sparkplug to Maglev at 100 loop lengths, Maglev to Turbofan at 500.
+- An IC change or a deopt re-arms an optimization gate of 500 invocations (`minimum_invocations_after_ic_update`). A Maglev tier-up also sets a `turbofanGate` 3000 - 400 invocations ahead, so a re-Maglev after a deopt does not reach Turbofan on the next call.
+- A property IC that gains a Map in optimized code deopts with `kWrongMap`. A binary-op hint (`kNone`, `kSignedSmall`, `kNumber`, `kAny`, kept only in the model) that widens deopts with `kNotASmi`, `kOverflow`, `kLostPrecision`, `kMinusZero` or `kNotANumber`. A deopt lands in Sparkplug if the function has baseline code, else in Ignition.
+- A site's first feedback never deopts, and unary operators are not hooked (`FIDELITY.md`).
+
+**Consequence.** Every value carries `truth: "modeled"`. The conformance suite gives identical results with the model attached, which is the proof that it never changes output.
+
+**As built.** The tiers are `ignition`, `sparkplug`, `maglev` and `turbofan`, and the thresholds (8, 400, 3000) are compared with a bytecode-byte budget that calls and back edges both charge, so for a function without loops they equal call counts, not time. The model shows when V8 would typically switch; it does not record when it did (`FIDELITY.md`).
+
+## ADR-038: `/api/compile` is unchanged by Phase 4 (Phase 4, D6)
+
+**Context.** Tiers and machine code are timeline data, and ADR-032 keeps the timeline out of the route.
+
+**Decision.** `CompileSummary` gets no tier or asm field. Tiers reach the client only through its own Web Worker (Phase 5).
+
+**Consequence.** The route's schema, size caps and audit rows are as they were.
+
+**Lazy views.** `views.asm` and `views.binary` on a compiled program are memoised getters, computed on first access, because the baseline code generator is about half of `compile()` time and `simulate()` never reads the views (about 3x faster compile when they are not accessed; measured once on a 9,954-byte, 78-function program: compile 107-111 ms to 39-43 ms, with the asm and binary views costing 71-82 ms when accessed; not a repo benchmark). A failing emit does not throw: the view is `unavailable` with `E_TEMPLATE: <message>` for a `RangeError` (a stack overflow in deeply nested code) or `E_INTERNAL: <message>` for any other throw, so `compile()` keeps its never-throws contract.
+
+## ADR-039: The Smi, register and pointer model is Illustrative, not Node's layout (Phase 4)
+
+**Context.** The asm and register panes need one tagged-value scheme. Probing the pinned Node 24.19.0 (V8 13.6.233.17) showed its build has pointer compression off and stores 32-bit Smis as `value << 32` in a 64-bit word, so `%IsSmi(2**30)` is true there (probed once on 24.19.0; not recorded as a fixture). Phase 3's `isSmi` is the 31-bit range (-2^30 to 2^30 - 1), and the Phase 4 panes were built on it.
+
+**Decision.** The owner kept the model and labelled it (option 2) instead of switching to Node's layout. It is an Illustrative compressed-pointer scheme: `rax` holds `value << 1`, `r14` is a cage base, and a Smi overflows at 2**30. Map offsets, the Context layout and `InstanceType` numbers are likewise Illustrative. Elements-kind and `isSmi` consumers follow the 31-bit range, including the narration text "isn't a Smi". The comments in `core/baseline/illustrativePointers.ts`, `machineState.ts` and the check and context templates say so.
+
+**Consequence.** `FIDELITY.md` lists the difference, and the panes are labelled Illustrative; no Exact output depends on it. The "Smi vs HeapObject tagging, pointer compression" row of the base table predates this ruling (see `FIDELITY.md`). The comments in `core/runtime/heap/estimatedSize.ts` and the title in `core/runtime/values/Smi.test.ts` were relabelled as illustrative.
 
 ## ADR-040: The timeline crosses the worker boundary as the serialized string (Phase 5, D1)
 

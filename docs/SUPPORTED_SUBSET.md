@@ -49,6 +49,23 @@ A namespace global (`console`, `process`, `Promise`, `Object`, `Math`) can only 
 
 Instance methods (`arr.map`, `promise.then`, `str.padStart`) are not listed above: which one a program calls depends on the receiver's type, which a static pass cannot know. An unimplemented method is reported by the simulator when it runs. A computed key on an ordinary object (`obj[k]` where `k` is a variable) is not checked either, so `obj[k]` can still reach `constructor` at run time; the simulator treats that as an ordinary property lookup.
 
+## What stops a run
+
+A program the validator accepts can still end early when it runs (ADR-027 in [`DECISIONS.md`](DECISIONS.md)). The output produced up to that point is kept, and the reason goes to `warnings`, never to stdout or stderr.
+
+| Stop | When | Notice |
+|---|---|---|
+| `ticks` | more than **5,000** ticks (a tick is a statement, a back edge, a function entry, a job start, a loop-phase transition, a GC event or the exit; ADR-028) | `Simulation limit reached — real Node would continue` |
+| `callDepth` | more than **64** user frames at once | same |
+| `heapObjects` | more than **1,024** JS-visible allocations, cumulative | same |
+| `virtualTime` | a run that needs more than **60,000** virtual ms | same |
+| `work` | more than 1,000,000 element visits inside builtins (a `map` over `length = 2**32 - 1`) | same |
+| `output` | more than 1 Mi characters written to stdout and stderr | same |
+| `strings` | more than 8 Mi characters built by concatenation or `join` | same |
+| `unsupported` | behavior whose exact Node output is not modeled (`console.log("%j", x)`, `sort` of 64 or more elements, …) | `Simulation stopped: <reason>`; the reasons are listed in [`FIDELITY.md`](FIDELITY.md) |
+
+A limit is never a JavaScript `RangeError`: real Node would continue, so the program must not observe it.
+
 ## Excluded
 
 Every row below is refused with the code shown. `E_NOT_YET_SUPPORTED` means "could be added later, with fixtures recorded on real Node"; `E_EXCLUDED_FEATURE` and `E_EXCLUDED_API` are exclusions by design. This table is generated from `core/frontend/subset/excluded.ts` by `npm run docs:subset`; a test fails when it drifts.

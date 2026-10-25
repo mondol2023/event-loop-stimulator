@@ -32,6 +32,74 @@ The bytecode is the single source of truth, as it is in V8:
 - The baseline compiler is a per-bytecode template translation, as Sparkplug is, so the asm pane can't drift from the bytecode.
 - Every mapping in the app (AST node, asm span, byte span, tick) goes through `(functionId, bytecodeOffset)`.
 
+## Phase 3: V8's side, Node's side, and the timeline
+
+The simulator mirrors who owns what in real Node. V8 owns values, objects, Maps, inline caches, the heap, the spec operations, the builtins, promises and the microtask queue, and the Ignition interpreter. Node owns the event loop, `process.nextTick`, timers, immediates, unhandled-rejection processing, the console streams and the fatal-exception printer. The two meet in a narrow `HostHooks` interface (write to a stream, name the entry point, track a rejection, observe a microtask enqueue), the way an embedder plugs into V8.
+
+```
+        ┌───────────────────────────── core/host  (Node) ─────────────────────────────┐
+        │  NodeEventLoop · VirtualClock · nextTick · timers · rejections · errorPrinter │
+        │  nodeGlobals · nodeFrames (pinned internal frames) · nondeterminism · warnings│
+        └───────▲──────────────── HostHooks ───────────────────────┬───────────────────┘
+                │ write · entryPoint · promiseRejectionTracker     │ runs jobs, calls callbacks
+        ┌───────┴──────────────── core/runtime  (V8) ──────────────▼───────────────────┐
+        │  Realm · values/objects · V8Map + TransitionTree · FeedbackVector (ICs)       │
+        │  spec ops · builtins (Object, Array, Math, Error, Promise, console, inspect)  │
+        │  MicrotaskQueue · heap (Illustrative)                                         │
+        └───────▲──────────────────────────────────────────────────────────────────────┘
+                │ Completion values (a JS throw is a value, never a TS throw)
+        ┌───────┴──────────── core/interpreter ─────────────┐
+        │  IgnitionInterpreter · Frame · dispatch/*          │  executes the BytecodeArrays of Phase 2
+        └────────────────────────────────────────────────────┘
+```
+
+`core/runtime` and `core/interpreter` know nothing of Node; `core/host` is the only layer that knows the loop. The only TypeScript `throw` that crosses a layer is `SimulationHalt` (a limit or an unsupported behavior, [ADR-027](DECISIONS.md)); its definitions live in `core/shared`, which is why the layers below `core/timeline` can use them.
+
+### Command → Tick → TimelineStore
+
+```
+IgnitionInterpreter ─┐  Command: dispatch · job-start · job-end · loop-phase · gc · exit
+NodeEventLoop       ─┼──────────────▶ StepObserver ──▶ GcObserver (adds modeled gc commands)
+MicrotaskQueue      ─┘                                        │
+                                                              ▼
+                              TickRecorder (records)  or  TickLimiter (counts only)
+                                 │  TickBoundary decides which commands make a Tick
+                                 │  (statement-level, ADR-028); the same rule for both
+                                 ▼
+                       Tick (read-only snapshot + narration) ──▶ SimulationResult.ticks
+                                                                      │
+                                                                      ▼
+                              TimelineStore.fromTicks: keyframe every 64 ticks + patches,
+                              LRU of 256 materialized ticks, ≤ 20 MB serialized (ADR-030)
+```
+
+- **`SimulationEngine`** builds a fresh `Realm`, interpreter and loop for each run, wires the observer chain, and is the only code that catches `SimulationHalt`. `simulate(source, lang, options)` compiles with `CompilationManager` and then runs it; the same input gives the same result.
+- **The recorder only reads.** It never allocates on the heap, calls a function, reads an `Error.stack` or changes a queue, so a recorded run prints exactly what an unrecorded run prints. `record: false` swaps it for the `TickLimiter`, which counts the same ticks, so a run stops at the same place either way.
+- **`/api/compile`** runs `simulate` with `record: false` and answers a summary ([ADR-032](DECISIONS.md)); the timeline is built by the client's own Web Worker (Phase 5).
+- **Test-only modes.** `natives` (compile) and `host: "test262"` (simulate) are options of the functions, in no schema and no UI path ([ADR-026](DECISIONS.md), [ADR-031](DECISIONS.md)).
+
+## Phase 4: baseline machine code and the tiering model
+
+Machine code is **Illustrative** and tiering is **Modeled**; neither may influence the Exact layer.
+
+```
+BytecodeProgram ──▶ BaselineCompiler ──▶ BaselineCode (asm lines + bytes, each mapped to a bytecode offset)
+                      │ TEMPLATES (one per opcode, exhaustive by type, ADR-035)
+                      ▼
+                    x64/ (table-driven Encoder, register roles of register-x64.h)
+
+IgnitionInterpreter ──hooks──▶ TieringModel ──readout──▶ TickRecorder: v8.tiers, v8.tierEvents
+tick + BaselineCode ──▶ machineStateAt (pure, derived, ADR-033) ──▶ asm line, rax/rsi/rbp/rsp, flags
+```
+
+- **`core/baseline`** compiles each bytecode through a pure template, so the asm and byte views map to `(functionId, bytecodeOffset)` like every other view. The encoder is checked against a real LLVM assembler (`llvm-mc`, or `clang` as a fallback) by `npm run asm:record` and `tests/conformance/asm.test.ts` ([ADR-036](DECISIONS.md)).
+- **`core/interpreter/tiering`** is an observer. The interpreter only calls write-only hooks; the timeline only reads `tiers()` and drains events, so nothing flows back into a run ([ADR-037](DECISIONS.md)). Tier changes are not ticks ([ADR-034](DECISIONS.md)).
+- **Layout.** `core/baseline/` holds `BaselineCompiler.ts`, `Template.ts`, `templates/` (one file per opcode family, `index.ts` the exhaustive `TEMPLATES`), `x64/` (`Encoder.ts`, `encodings.ts`, `registers.ts`, `syntax.ts`), `frame.ts`, `isolateData.ts`, `illustrativePointers.ts` and `machineState.ts`. The register, Smi and pointer scheme is Illustrative and not Node's layout ([ADR-039](DECISIONS.md)).
+- **Compile views.** `views.asm` and `views.binary` of a compiled program are lazy memoised getters; a failing emit is an `unavailable` view (`E_TEMPLATE` or `E_INTERNAL`), never a throw ([ADR-038](DECISIONS.md)).
+- **Timeline.** A Tick gains `v8.tiers` and `v8.tierEvents` only when a `TieringModel` is attached, and `TickRecorder.finish()` attaches events pending after the last tick to it ([ADR-034](DECISIONS.md)). `machineStateAt` computes the machine state on demand, so no `machine` is stored ([ADR-033](DECISIONS.md)).
+- **Asm recorder.** `scripts/conformance/asm-record.mts` (with `asm-forms.mts` and `asm-assembler.mts`) is the only new `child_process` user. It runs a local assembler (`llvm-mc`, or `clang` as a fallback) on asm text the repo generated, never user source, and writes `tests/conformance/asm/encodings.expected.json`, which `asm.test.ts` checks offline ([ADR-036](DECISIONS.md)).
+- **`/api/compile`** is unchanged ([ADR-038](DECISIONS.md)).
+
 ## Directory layout
 
 ```
@@ -40,14 +108,15 @@ proxy.ts             optimistic session redirect, security headers, request id
 instrumentation.ts   validates the environment on server boot
 core/                PURE TS, runs in browser, worker and server:
                      frontend/ bytecode/ views/ compile/ shared/   (Phase 2)
-                     baseline/ runtime/ interpreter/ host/ timeline/   (later phases)
+                     runtime/ interpreter/ host/ timeline/         (Phase 3)
+                     baseline/ interpreter/tiering/                (Phase 4)
 features/            React feature modules (components/, hooks/, store/), incl. the pipeline worker
 server/              `import "server-only"`: env, db, repositories, auth, security, audit, actions
 components/ui/       shadcn output
 lib/                 small shared UI helpers (cn)
 tests/conformance/   fixtures + *.expected.json recorded on real Node, bytecode-status.json (ratchet), generator, runner, test262 runner
 tests/tooling/       proofs for the lint rules, design tokens and build check
-scripts/conformance/ the ONLY code that spawns real node (pinned, sandboxed)
+scripts/conformance/ the ONLY code that spawns real node (pinned, sandboxed) or llvm-mc/clang (repo-generated asm)
 scripts/             build checks
 vendor/test262/      in-subset tests only, plus exclusions.json with a reason for every test left out
 docs/                ARCHITECTURE, DECISIONS, FIDELITY, TARGET, SUPPORTED_SUBSET
@@ -85,7 +154,7 @@ Nothing imports `app/` (integration tests may import `app/api/**` handlers, [ADR
   4. Repositories: the only importers of Mongoose models. They return plain domain types and validate every id before a query.
 
   Server Actions and Route Handlers stay thin: Zod, authorize, rate limit, service, audit.
-  - `POST /api/compile` runs, in order: origin + signed CSRF -> caller -> rate limit -> bounded body read -> Zod -> `worker_threads` pool (64 MB, 2 s). Phase 1 runs a stub worker; the pool guards resources and is not a sandbox for user code.
+  - `POST /api/compile` runs, in order: origin + signed CSRF -> caller -> rate limit -> bounded body read -> Zod -> `worker_threads` pool (64 MB, 2 s) running the real `simulate` from a prebuilt bundle (`scripts/build-worker.mts`, [ADR-032](DECISIONS.md)) -> a `.strict()` `CompileSummary`. The pool guards resources and is not a sandbox: user code is never executed by anything.
   - Auth uses iron-session and argon2id; a password change, ban or role change bumps `sessionVersion`, which revokes every older session.
   - Data lives in MongoDB, as a replica set so transactions work; the connection opens on first use.
   - Rate limits use Redis, or memory in dev. Settings come from a Mongo `Setting` doc (30 s cache, defaults on failure).

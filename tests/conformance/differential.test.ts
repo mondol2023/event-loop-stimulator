@@ -155,6 +155,15 @@ describe("differentialProperty with an unstable oracle (stubbed runReal)", () =>
     expect(stats.discarded).toBe(6);
   });
 
+  it("discards a program whose simulator outcome changes between runs, instead of failing", () => {
+    // The oracle simulator is real node: on a racy program (a timer armed after console output,
+    // seed 11) its one run can land on the rare outcome while every real re-run lands on the common one.
+    let calls = 0;
+    const flaky: Simulator = { run: () => ({ stdout: calls++ === 0 ? "rare\n" : "common\n", stderr: "", exitCode: 0, warnings: [] }) };
+    const stats = differentialProperty(flaky, { numRuns: 1, seed: 1, runReal: () => ({ stdout: "common\n", stderr: "", exitCode: 0 }) });
+    expect(stats).toEqual({ runs: 1, discarded: 1 });
+  });
+
   it("discards a program the simulator flags as order-not-guaranteed, without running real node", () => {
     let calls = 0;
     const flagged: Simulator = { run: () => ({ stdout: "x\n", stderr: "", exitCode: 0, warnings: ["Order not guaranteed in real Node: test"] }) };

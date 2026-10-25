@@ -26,11 +26,15 @@ Every pane and view carries one of these as a quiet badge with a one-sentence to
 | Ignition bytecode listing | **Verified model** | Same opcode sequence as `node --print-bytecode` for every fixture function; operand differences listed below |
 | Hidden classes (Maps), transitions, in-object vs backing-store properties, elements kinds | **Verified model** | Fixtures assert against V8 natives (`--allow-natives-syntax`: `%HaveSameMap`, `%HasSmiElements`, `%HasDoubleElements`, `%DebugPrint`) |
 | Inline-cache states, feedback slots | **Verified model** where `%DebugPrint` exposes it; otherwise **Modeled** | Fixture checks |
-| Tier-up to Sparkplug / Maglev / TurboFan and deopts | **Modeled** | Shown as "would typically…"; sanity-checked with `%GetOptimizationStatus` fixtures |
-| Smi vs HeapObject tagging, pointer compression | **Verified model** | Matches V8's documented tagging scheme for the pinned build config |
+| Tier-up to Sparkplug / Maglev / TurboFan and deopts | **Modeled** | Shown as "would typically…"; not checked by a fixture; Modeled |
+| Smi vs HeapObject tagging, pointer compression | **Illustrative** | Not Node 24.19.0's layout. The panes use a 31-bit Smi and a compressed-pointer scheme the pinned build does not have (row below, ADR-039) |
+| Smi range, registers and pointer compression of the asm and register panes | **Illustrative** | A 31-bit Smi (`rax = value << 1`, overflow at 2**30) and a cage base in `r14`. The pinned Node 24.19.0 build has pointer compression off, stores 32-bit Smis as `value << 32`, and `%IsSmi(2**30)` is true there (probed once on 24.19.0; not recorded as a fixture) (ADR-039). This supersedes the row above for the model's registers and Smi range |
+| Map offsets, Context layout, `InstanceType` numbers | **Illustrative** | Chosen for the teaching panes, not read from V8 (ADR-039) |
 | Heap addresses, young/old generation occupancy, GC timing | **Illustrative** | Never affects Exact results |
 | Machine code (assembly) and register contents | **Illustrative** | Sparkplug-style per-bytecode templates using V8's real x64 register roles |
-| Machine-code bytes | **Exact encoding of the shown assembly** | Golden bytes checked against `llvm-mc --show-encoding` |
+| Machine-code bytes | **Exact encoding of the shown assembly** | Golden bytes in tests/conformance/asm/encodings.expected.json, checked against a real LLVM assembler (llvm-mc, or clang's integrated assembler when llvm-mc is absent; recorded with clang 23.1.4 because llvm-mc was not installed; ADR-036) |
+| Machine-state flags | **Illustrative** | Projected only when the shown instruction is a `cmp` (`TestNull`, `TestUndefined`, `TestReferenceEqual`); `null` at every other bytecode (ADR-033) |
+| Which tier a function is in, and when it changes | **Modeled** | Invocation counts of 8 / 400 / 3000, not V8's interrupt budget and concurrent compilation; see the tiering notes below (ADR-037) |
 | CPU caches, ALU, buses (3D) | **Illustrative** | — |
 
 ## Excluded constructs
@@ -90,12 +94,61 @@ These are refused with a diagnostic instead of approximated, so they can never p
 
 ## Known gaps
 
-Each gap names the construct, the difference from real Node/V8, and the fixture that shows it. The interpreter lands in Phase 3, so these are the gaps of the front end and the bytecode so far.
+Each gap names the construct, the difference from real Node/V8, and the fixture that shows it. The first group is the front end and the bytecode (Phase 2); the groups after it are the interpreter, the runtime model and the loop (Phase 3).
 
 - **V8's `SyntaxError` text is not reproduced.** A program with a syntax error gets our own `E_SYNTAX` diagnostic (a range and a hint). Real Node prints V8's message, source line and caret on stderr. A test262 `negative: {phase: parse}` test is judged by the code, not the wording (ADR-024). Errors that Babel recovers from (`let x; let x;`, a misplaced `return`) become diagnostics too, so no bytecode is produced for them.
 - **Node-internal stack frames are constants of the pinned version.** The stack of an uncaught error ends in frames such as `node:internal/modules/cjs/loader:1872:14`. We can print them only as recorded for Node 24.19.0; they are not derived from anything and change with the target ([`TARGET.md`](TARGET.md)). Seen in: `uncaught-type-error`, `uncaught-reference-error`, `unhandled-rejection`, `let-tdz-uncaught` and `error-in-timer-uncaught`.
 - **Bytecode of a function that is never called is unverified.** V8 compiles lazily, so real Node prints no bytecode for it and there is nothing to compare with (ADR-022). The generator still compiles it.
 - **One bytecode fixture is `pending`**, listed under "Bytecode operand differences" below: `loose-equality-coercions`.
+
+### Interpreter and runtime model (Phase 3)
+
+- **Eager vs lazy feedback allocation.** The model allocates a closure's `FeedbackVector` when the closure is created, which is what real V8 does under `--no-lazy-feedback-allocation`. Real V8's default is lazy: a function called only a couple of times has **no** feedback vector, and the vector appears after a budget of invocations. The internals fixtures are recorded with `--no-lazy-feedback-allocation` so they compare by bytes (ADR-026); a learner who runs the same program in a plain `node` would see the vector later than we show it. Seen in: `ic-states`.
+- **IC states for non-property slots are Modeled.** `%DebugPrint` exposes the property-IC slots (`LoadProperty`, `LoadKeyed`, `SetNamed*`, `SetKeyed*`, `DefineNamedOwn`), and those states are Verified against it. The states of call, binary-operation, compare and `TypeOf` slots (`UNINITIALIZED → MONOMORPHIC → …` and the type-feedback lattice) follow V8's documented state machine but no fixture can read them back, so they are Modeled. Only the five-shape rule for megamorphic property loads is probed.
+- **Heap and GC are Illustrative.** The young/old generation split, object addresses, sizes, scavenges and mark-compacts are a teaching picture (`core/runtime/heap`). They never affect output or a limit: the `heapObjects` limit counts cumulative allocations, independent of the GC model (ADR-027). The `gc` ticks are emitted at points our model chooses, not where V8 would collect.
+- **Map rules without a fixture are Modeled.** Hidden-class transitions, in-object slack and elements-kind transitions that the internals fixtures probe (`maps-same-shape-vs-order`, `maps-field-generalization`, `elements-kinds-transitions`) are Verified. Anything beyond them, such as the dictionary-mode threshold other than `delete`, follows V8's source and is not checked (ADR-029).
+- **Tick granularity is statement-level**, not one tick per bytecode (ADR-028). `recursion-factorial` takes 4,880 of the 5,000 ticks, so a program of that shape that recurses a little deeper stops at the tick limit although real Node would not.
+- **Node-internal frames and the loop's real-time behavior** are constants and a virtual clock. JavaScript costs 0 virtual ms and the 60,000 ms virtual-time limit ends a run; real Node's time passes while code runs.
+
+### Tiering model (Phase 4, Modeled)
+
+- **Thresholds are budget values**: 8, 400 and 3000 times the function's bytecode length, which charges calls and back edges. For a function without loops they are call counts.
+- **A site's first feedback never deopts.** A property IC going UNINITIALIZED to monomorphic, or a binary operation's first hint, only records feedback in optimized code; real V8 would soft-deopt there with `kInsufficientTypeFeedback`.
+- **Unary operators are not hooked.** Inc, Dec, Negate and BitwiseNot share V8's binary-operation hint but feed the model nothing.
+- **Turbofan is held back after a re-Maglev.** A Maglev tier-up sets a gate 3000 - 400 invocations ahead (`turbofanGate`), so a function that deopts and returns to Maglev does not reach Turbofan on its next call.
+- **Real V8 tiers by budget; we use a bytecode-byte budget.** V8 spends an interrupt budget on its own schedule, and compiles Sparkplug in batches and Maglev/Turbofan concurrently. The model charges bytecode bytes against budget thresholds (multiples of the function's length), so the tier shown is a teaching approximation of when V8 would switch, not a recording of it.
+- **Turbofan is practically unreachable by call count.** It needs 3000 calls, each costing at least a function-entry tick, against the 5,000-tick limit (ADR-027, ADR-028); in practice the limit stops the run first. A hot loop can still reach it by OSR (500 loop lengths of back edges).
+- **Tier events can be lost only with no tick.** Events are drained onto the next recorded Tick, and events pending after the last one are attached to it by `finish()`. A run that records no tick at all drops them (ADR-034).
+- **Machine code is Illustrative.** The asm is the Sparkplug-style template translation of the shown bytecode, and the bytes are the exact x64 encoding of the asm shown (checked against LLVM's MC layer: llvm-mc or clang, recorded with clang 23.1.4; ADR-036), not necessarily the bytes V8 would emit. Register values, pointers and stack addresses (ADR-033) are illustrative. The generator and runtime-call templates are the most illustrative: they follow V8's shape, not its code.
+- **Machine-state flags exist only for `cmp` instructions.** `TestNull`, `TestUndefined` and `TestReferenceEqual` show a `cmp`, so they project flags; every other bytecode, including the other `Test*` ones that call a builtin, shows `flags: null` (ADR-033).
+- **The Smi, register and pointer model is not Node's.** The panes show a 31-bit Smi in `rax` (`value << 1`) and a cage base in `r14`, while the pinned Node 24.19.0 / V8 13.6 build has pointer compression off and 32-bit Smis stored as `value << 32`, so `%IsSmi(2**30)` is true there and a value near 2**30 is a Smi in Node but a HeapNumber in the panes. Elements-kind consumers and the narration text "isn't a Smi" follow the 31-bit range (ADR-039).
+
+#### Stops (`unsupported`)
+
+Each of these ends the run with `Simulation stopped: <reason>` in `warnings` (never in stdout or stderr), keeping the output produced so far (ADR-027). The program is in the subset, and real Node would print something we do not reproduce. Fixtures that exercise a stop assert the kind, not the text.
+
+| Area | Reasons |
+|---|---|
+| Printing (`util.inspect`, `console.*`) | `%j`, `%o`, `%O` directives; `%d`/`%i`/`%f` with an object argument (its `valueOf` would run); `%s` with a function, or with an object that has its own `toString`; `util.inspect` of an object-valued `toString`/name part, of an `arguments` object, of a Node `Timeout`/`Immediate`, of an object whose prototype chain has no constructor, of an error whose stack is not a string, whose name is not a string, or whose stack has more than 10 frames; the ICU display width of a character in a grouped array |
+| Errors and rejections | printing an Error with extra own properties; a rejected Error constructed outside the script; an unhandled rejection whose reason is a non-Error object; `new Error(obj)` with an object message, and an Error name or message field that is an object; `AggregateError` from a non-array; `Error.prototype.toString` on a primitive |
+| TypeError text | calling or `new`-ing a value through a callee that V8's CallPrinter prints as an intermediate value; a TypeError that would print an object key, an object comparison function, an array or an error, or a `then` that is an object; strict assignment to a read-only property or global; `delete` on a primitive or `null`/`undefined`; strict `delete` of a non-configurable property |
+| Objects and arrays | assigning an object to an array's `length` (its `valueOf` runs twice); an element property with non-default attributes; a non-writable array length; `push` past the largest array length; `Array.prototype.*` on a receiver that is not an array; `sort` of 64 or more elements (TimSort's merge phase); `caller` and `arguments` of a running sloppy function |
+| Promises | a promise whose constructor is not `%Promise%` (species); `Promise.all`/`race`/`allSettled`/`any` over an iterable that is not an array or a string |
+| Strings, numbers, functions | a string longer than V8's maximum length; `Number.prototype.toString` with a radix other than 10; `Function.prototype.call`/`apply`/`bind` on a non-function; an `apply` argument list of more than 65,535 values |
+| Node host | `process.nextTick`, `queueMicrotask`, `setTimeout`, `setInterval` or `setImmediate` with a callback that is not a function (`ERR_INVALID_ARG_TYPE` is not modeled); `clearTimeout`/`clearImmediate` on a non-timer; `Timeout.prototype.*` or `Immediate.prototype.*` on another receiver; calling or constructing Node's `Timeout`/`Immediate` class; a Node builtin member that is not modeled (`<Global>.<member>`) |
+| Test-only | `%DebugPrint` of anything but a user function; `%Name` of a non-object; a test262 harness message that is an object |
+
+#### Nondeterministic orderings
+
+Real Node does not guarantee these orders; they depend on how many real milliseconds startup, callbacks or console writes took. The simulator never picks an order at random. JavaScript costs 0 virtual ms, so it always takes one branch, which is one of the outcomes recorded over many real runs, and it adds a fidelity warning to `warnings` (never to stdout or stderr), once per rule per run. The rules are in `core/host/nondeterminism.ts`; each names the fixture whose recording proves it.
+
+| Rule | Situation | Fixture | Simulator's order |
+|---|---|---|---|
+| 1 | a `setTimeout(≤1)` and a `setImmediate` both pending when the loop starts | `timeout-vs-immediate-main` | the immediate first (first recorded outcome) |
+| 2 | a timer list re-armed from a timer callback ties with another pending list | `timer-in-timer-ordering` (`A C A1 A0 B` in 46 of 50 runs, `A C B A1 A0` in 4) | the older list first |
+| 3 | a timer armed after a console write that followed the arming of an earlier list, due within 5 ms of it | `timer-after-first-write` (the first write costs about 2.2 ms; a 4 ms gap flipped, a 5 ms gap did not; later writes still flipped a 2 ms gap in 10 of 40 runs, found by the differential run, seed 1350358517) | the earlier-armed list first |
+
+A program outside these three rules that still has a racy order will be Exact in the order the simulator picks and may differ from a given real run; the rules cover the cases probed so far, not every race.
 
 ## How real bytecode is captured
 
@@ -109,7 +162,7 @@ Each gap names the construct, the difference from real Node/V8, and the fixture 
 
 ## Bytecode operand differences
 
-Opcode sequences match `--print-bytecode` except where this section says otherwise. Of the 87 fixtures with recorded bytecode, 82 are `exact`, 4 are `opcodes` (operand differences only, listed below) and 1 is `pending` (ADR-023, `tests/conformance/bytecode-status.json`). Operand-level differences are listed here, per fixture.
+Opcode sequences match `--print-bytecode` except where this section says otherwise. Of the 88 fixtures with recorded bytecode, 83 are `exact`, 4 are `opcodes` (operand differences only, listed below) and 1 is `pending` (ADR-023, `tests/conformance/bytecode-status.json`). The ratchet after Task 12 (per-iteration `let` contexts, which made `bc-loop-let` and `closure-in-loop-let` exact) was 82 `exact`, 4 `opcodes` and 1 `pending` of 87; the added fixture, `timer-after-first-write`, is `exact`. Operand-level differences are listed here, per fixture.
 
 - `bc-tdz-assign`, `assignFirst`: after an assignment to a not-yet-initialized binding inside a branch, V8 flushes the merge with `Ldar` of the temporary holding the value; we reload the binding. Same value, different register operand. The register optimizer's flush rule behind this is not yet understood.
 - `bc-defaults` and `default-params`, `viaClosure`'s arrow: the header name of an arrow in a default initializer (`read = () => x`) is `x` in V8, the identifier read inside it, while its constant-pool entry stays `read`. We print `read` in both. Instructions are identical.

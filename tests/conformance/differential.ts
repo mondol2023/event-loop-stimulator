@@ -7,9 +7,9 @@ import type { Simulator } from "./support/simulator";
 // The differential property (PROMPT.md §3.4): for every generated program, a simulator's
 // output equals real Node's. Real Node is only ever run on generated programs.
 //
-// A program on which real Node itself disagrees with itself is discarded: no simulator
-// can be held to an output that is not stable. Otherwise a mismatch fails with the
-// shrunk program and the first differing line.
+// A program on which real Node, or the simulator, disagrees with itself is discarded: no
+// simulator can be held to an output that is not stable. Otherwise a mismatch fails with
+// the shrunk program and the first differing line.
 
 export type DifferentialOptions = {
   /** Programs to try. Defaults to `CONFORMANCE_RUNS`, else 25. */
@@ -83,8 +83,12 @@ export function differentialProperty(sim: Simulator, opts: DifferentialOptions =
     if (actual.warnings.some((w) => NONDETERMINISM_WARNING.test(w))) return { kind: "unstable" };
     const expected = real(source);
     if (sameRun(expected, actual)) return { kind: "same" };
+    // Both sides are re-run: a simulator can be real node too (the oracle), whose one run may be
+    // the rare outcome of a race while every real re-run gives the common one. The model in
+    // core/ is deterministic, so its re-runs never change the verdict.
     for (let i = 0; i < reruns; i++) {
       if (!sameRun(expected, real(source))) return { kind: "unstable" };
+      if (!sameRun(actual, sim.run(source, "js"))) return { kind: "unstable" };
     }
     return { kind: "mismatch", diff: describeDifference(expected, actual) };
   };

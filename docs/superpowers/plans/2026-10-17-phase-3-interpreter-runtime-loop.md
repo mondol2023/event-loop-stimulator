@@ -51,6 +51,15 @@ The conformance harness from Phase 2 is the judge throughout. A mismatch is a bu
 - **Tooling.** `esbuild` and `rolldown` are present in `node_modules` as transitive dependencies only. The Next 16.3 docs say nothing about bundling `worker_threads` entries.
 - **The Phase 2 pipeline today.** `closure-in-loop-let` and `bc-loop-let` get **no program** (`E_NOT_YET_SUPPORTED: ForStatement is not compiled to bytecode yet`, for per-iteration `let` contexts), so they cannot run until Task 12. The three `ts-*-refused` fixtures are refused by design. Every other fixture compiles.
 
+### Outcomes measured while executing this plan (added in Task 25)
+
+- **D4 gate.** With one tick per dispatch, `recursion-factorial` needed 28,491 ticks, so the owner chose statement-level ticks (ADR-028). Now the highest program fixture is `recursion-factorial` at 4,880 ticks (120 under the limit); the next is 495. The highest of 1,902 vendored test262 runs is 298.
+- **D3 additions.** The `output` (1 Mi chars) and `strings` (8 Mi chars) limits were added after a ~100-byte string-doubling program ran the compile worker out of heap and aborted the server process (ADR-027).
+- **D5.** Smi → Double does produce a new Map (the fixture `maps-field-generalization`); the plan's "generalizes in place" wording was right only for Tagged (ADR-029).
+- **Task 24 spike.** Path 1 failed (Turbopack copies the TypeScript worker entry unbundled); path 2 (`esbuild` prebuild into `server/security/sandbox/dist/compile-worker.mjs`) shipped (ADR-032).
+- **Nondeterminism.** Three rules, three fixtures: `timeout-vs-immediate-main`, `timer-in-timer-ordering`, `timer-after-first-write` (`FIDELITY.md`).
+- **Bytecode ratchet.** After Task 12: 82 `exact`, 4 `opcodes`, 1 `pending` of 87. At the end of the phase: 83 / 4 / 1 of 88.
+
 ## Global Constraints
 
 - **Never execute user code.** `core/` interprets bytecode. No `eval`, `Function`, `vm`, `ShadowRealm` or `child_process` outside `scripts/conformance/**` and `tests/conformance/**` (ADR-008).
