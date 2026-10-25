@@ -27,6 +27,14 @@ describe("pipeline events", () => {
     expect(getTimeline(store)?.length).toBe(run.simulated.tickCount);
     expect(playback.length).toBe(run.simulated.tickCount);
     expect(compile.boundaries).toEqual(run.simulated.boundaries);
+    expect(compile.markers).toEqual(run.simulated.markers);
+  });
+
+  it("resets markers in the same notification when a new job compiles", () => {
+    const store = readyStore();
+    expect(store.getState().compile.markers.length).toBeGreaterThan(0);
+    store.getState().applyPipelineEvent({ kind: "response", response: { ...run.compiled, jobId: 2 } });
+    expect(store.getState().compile.markers).toEqual([]);
   });
 
   it("swaps the timeline out in one notification when a new job compiles (D2)", () => {
@@ -87,7 +95,7 @@ describe("pipeline events", () => {
     const versionBefore = store.getState().compile.timelineVersion;
     store.getState().applyPipelineEvent({ kind: "failed", jobId: 2, message: "worker crashed" });
     const state = store.getState();
-    expect(state.compile).toMatchObject({ status: "failed", jobId: 2, views: null, lineIndex: null, baselines: null, strippedJs: null, boundaries: [] });
+    expect(state.compile).toMatchObject({ status: "failed", jobId: 2, views: null, lineIndex: null, baselines: null, strippedJs: null, boundaries: [], markers: [] });
     expect(state.compile.timelineVersion).toBe(versionBefore + 1);
     expect(state.editor.diagnostics).toEqual([]);
     expect(getTimeline(store)).toBeNull();

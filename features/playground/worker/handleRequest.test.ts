@@ -62,11 +62,23 @@ describe("handleRequest", () => {
     const store = TimelineStore.deserialize(sim.timeline);
     expect(store.length).toBe(sim.tickCount);
     expect(sim.boundaries[0]).toBe(0);
+    expect(sim.markers.filter((m) => m.kind === "job").map((m) => m.index)).toEqual(sim.boundaries);
     expect(sim.exitCode).toBe(0);
     expect(sim.stop).toBeNull();
     const last = store.at(store.length - 1);
     const stdout = last.console.filter((l) => l.stream === "stdout").map((l) => l.text).join("");
     expect(stdout).toBe(fixtureStdout);
+  });
+
+  it("gives every asm line an Intel form that differs from the AT&T text for a mov", () => {
+    const [compiled] = run(fixtureSource);
+    if (compiled?.type !== "compiled" || !compiled.views) throw new Error("expected views");
+    const lines = compiled.views.asm.functions.flatMap((f) => f.lines);
+    expect(lines.length).toBeGreaterThan(0);
+    for (const l of lines) expect(l.intel).not.toBe("");
+    const mov = lines.find((l) => l.text.startsWith("movq "));
+    expect(mov).toBeDefined();
+    expect(mov?.intel).not.toBe(mov?.text);
   });
 
   it("posts only compiled, with nulls, when the program has diagnostics", () => {
@@ -149,7 +161,7 @@ describe("handleRequest", () => {
 });
 
 describe("parseResponse", () => {
-  const simulated = { type: "simulated", jobId: 1, timeline: "{}", boundaries: [0], tickCount: 1, exitCode: 0, warnings: [], stop: null };
+  const simulated = { type: "simulated", jobId: 1, timeline: "{}", boundaries: [0], markers: [{ index: 0, kind: "job", phase: "script", loopPhase: null }], tickCount: 1, exitCode: 0, warnings: [], stop: null };
 
   it("accepts a valid simulated response", () => {
     expect(parseResponse(simulated)).toEqual(simulated);
@@ -158,6 +170,12 @@ describe("parseResponse", () => {
   it.each(SIMULATION_LIMITS)("round-trips the %s stop limit", (limit) => {
     const response = { ...simulated, stop: { kind: "limit", limit } };
     expect(parseResponse(response)).toEqual(response);
+  });
+
+  it("rejects more than 10,000 markers", () => {
+    const marker = { index: 0, kind: "warning", message: "m" };
+    expect(parseResponse({ ...simulated, markers: Array.from({ length: 10_000 }, () => marker) })).not.toBeNull();
+    expect(parseResponse({ ...simulated, markers: Array.from({ length: 10_001 }, () => marker) })).toBeNull();
   });
 
   it("rejects an unknown stop limit", () => {

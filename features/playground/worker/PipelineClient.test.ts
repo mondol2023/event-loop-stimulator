@@ -52,7 +52,7 @@ function setup(onCreate?: (w: FakeWorker) => void) {
   return { timers, fake, events, client, inst };
 }
 
-const simulated = (jobId: number): PipelineResponse => ({ type: "simulated", jobId, timeline: "{}", boundaries: [0], tickCount: 1, exitCode: 0, warnings: [], stop: null });
+const simulated = (jobId: number): PipelineResponse => ({ type: "simulated", jobId, timeline: "{}", boundaries: [0], markers: [], tickCount: 1, exitCode: 0, warnings: [], stop: null });
 
 const compiledOk = (jobId: number) => ({
   type: "compiled",

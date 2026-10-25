@@ -3,6 +3,7 @@ import type { Diagnostic } from "@/core/shared/diagnostics";
 import { DIAGNOSTIC_CODES } from "@/core/shared/diagnostics";
 import { SIMULATION_LIMITS, type SimulationStop } from "@/core/shared/simulationHalt";
 import { z } from "@/core/shared/zod";
+import type { TimelineMarker } from "@/core/timeline/boundaries";
 import type { AsmViewOutput } from "@/core/views/AsmView";
 import type { AstViewOutput } from "@/core/views/AstView";
 import type { BinaryViewOutput } from "@/core/views/BinaryView";
@@ -56,6 +57,7 @@ export type PipelineResponse =
       /** `TimelineStore.serialize()`. */
       readonly timeline: string;
       readonly boundaries: number[];
+      readonly markers: TimelineMarker[];
       readonly tickCount: number;
       readonly exitCode: number;
       readonly warnings: string[];
@@ -110,6 +112,12 @@ const DiagnosticSchema = z
   })
   .strict();
 
+const MARKERS_MAX = 10_000; // 5,000 ticks, each with at most one job and one warning marker
+const MarkerSchema = z.discriminatedUnion("kind", [
+  z.object({ index: nonNegativeInt, kind: z.literal("job"), phase: z.string(), loopPhase: z.string().nullable() }).strict(),
+  z.object({ index: nonNegativeInt, kind: z.literal("warning"), message: z.string() }).strict(),
+]);
+
 const StopSchema = z.union([
   z.object({ kind: z.literal("limit"), limit: z.enum(SIMULATION_LIMITS) }).strict(),
   z.object({ kind: z.literal("unsupported"), reason: z.string() }).strict(),
@@ -133,6 +141,7 @@ export const PipelineResponseSchema = z.discriminatedUnion("type", [
       jobId,
       timeline: z.string().max(TIMELINE_MAX_CHARS),
       boundaries: z.array(nonNegativeInt),
+      markers: z.array(MarkerSchema).max(MARKERS_MAX),
       tickCount: nonNegativeInt,
       exitCode: z.number().int(),
       warnings: z.array(z.string()),

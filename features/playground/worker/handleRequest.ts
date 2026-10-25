@@ -3,7 +3,7 @@ import type { BaselineCode } from "@/core/baseline/Template";
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import { CompilationManager } from "@/core/compile/CompilationManager";
 import { TieringModel } from "@/core/interpreter/tiering/TieringModel";
-import { jobBoundaries } from "@/core/timeline/boundaries";
+import { jobBoundaries, timelineMarkers } from "@/core/timeline/boundaries";
 import { SimulationEngine } from "@/core/timeline/SimulationEngine";
 import { TimelineStore } from "@/core/timeline/TimelineStore";
 import { buildLineIndex } from "@/core/views/lineIndex";
@@ -67,6 +67,7 @@ export function handleRequest(request: PipelineRequest, post: (response: Pipelin
       jobId,
       timeline,
       boundaries: jobBoundaries(result.ticks),
+      markers: timelineMarkers(result.ticks),
       tickCount: result.tickCount,
       exitCode: result.exitCode,
       warnings: [...result.warnings],

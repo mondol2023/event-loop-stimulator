@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { jobBoundaries } from "./boundaries";
+import { jobBoundaries, timelineMarkers } from "./boundaries";
 import { simulate } from "./simulate";
 
 // Copy of tests/conformance/fixtures/nexttick-vs-promise.cjs (core/ tests may not read files or import tests/).
@@ -41,5 +41,29 @@ describe("jobBoundaries", () => {
       const [cur, prev] = [ticks[i], ticks[i - 1]];
       expect(cur?.phase !== prev?.phase || cur?.loopPhase !== prev?.loopPhase).toBe(true);
     }
+  });
+});
+
+describe("timelineMarkers", () => {
+  it("is [] for no ticks", () => {
+    expect(timelineMarkers([])).toEqual([]);
+  });
+  it("puts a job marker at each boundary, with the tick's phase", () => {
+    const { ticks } = simulate(src, "js");
+    const jobs = timelineMarkers(ticks).filter((m) => m.kind === "job");
+    expect(jobs.map((m) => m.index)).toEqual([0, 7, 21, 34, 39]);
+    expect(jobs.find((m) => m.index === 7)).toMatchObject({ phase: "nextTick" });
+    expect(jobs.map((m) => m.index)).toEqual(jobBoundaries(ticks));
+  });
+  it("marks where a warning first appears", () => {
+    const { ticks } = simulate(`setTimeout(() => console.log("timeout"), 0);
+setImmediate(() => console.log("immediate"));
+`, "js");
+    const markers = timelineMarkers(ticks);
+    const warnings = markers.filter((m) => m.kind === "warning");
+    expect(warnings.length).toBeGreaterThan(0);
+    expect(warnings.some((m) => m.message.includes("Order not guaranteed"))).toBe(true);
+    const indices = markers.map((m) => m.index);
+    expect(indices).toEqual([...indices].sort((a, b) => a - b));
   });
 });

@@ -4,6 +4,7 @@ import type { BaselineCode } from "@/core/baseline/Template";
 import type { Language } from "@/core/compile/CompilationManager";
 import type { Diagnostic } from "@/core/shared/diagnostics";
 import type { SimulationStop } from "@/core/shared/simulationHalt";
+import type { TimelineMarker } from "@/core/timeline/boundaries";
 import { TimelineStore } from "@/core/timeline/TimelineStore";
 import type { LineIndex, Pane } from "@/core/views/lineIndex";
 import type { PipelineEvent } from "../worker/PipelineClient";
@@ -26,6 +27,7 @@ export type PlaygroundState = {
     lineIndex: LineIndex | null;
     baselines: readonly BaselineCode[] | null;
     boundaries: readonly number[];
+    markers: readonly TimelineMarker[];
     /** Bumped whenever the held TimelineStore is replaced or dropped, so readers know to refetch it. */
     timelineVersion: number;
     exitCode: number | null;
@@ -82,6 +84,7 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
               lineIndex: null,
               baselines: null,
               boundaries: [],
+              markers: [],
               timelineVersion: compile.timelineVersion + 1,
               exitCode: null,
               warnings: [],
@@ -112,6 +115,7 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
             lineIndex: response.lineIndex,
             baselines: response.baselines,
             boundaries: [],
+            markers: [],
             timelineVersion: compile.timelineVersion + 1,
             exitCode: null,
             warnings: [],
@@ -145,6 +149,7 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
             status: "ready",
             message: null,
             boundaries: response.boundaries,
+            markers: response.markers,
             timelineVersion: compile.timelineVersion + 1,
             exitCode: response.exitCode,
             warnings: response.warnings,
@@ -165,6 +170,7 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
           lineIndex: null,
           baselines: null,
           boundaries: [],
+          markers: [],
           timelineVersion: 0,
           exitCode: null,
           warnings: [],
