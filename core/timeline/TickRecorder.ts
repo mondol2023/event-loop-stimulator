@@ -66,7 +66,7 @@ export class TickRecorder implements StepObserver {
   attach(world: TimelineWorld): void {
     this.#world = world;
     this.#logged = world.realm.taskIds.log.length;
-    this.#previous = { ...this.#draft(-1, "script", null), narration: "" };
+    this.#previous = { ...this.#draft(-1, "script", null), narration: "", narrationWithheld: "" };
   }
 
   get ticks(): readonly Tick[] {
@@ -99,7 +99,9 @@ export class TickRecorder implements StepObserver {
     if (events.length === 0) return;
     const context: NarrationContext = { program: this.#program, realm: world.realm, queued: [] };
     const v8 = { ...last.v8, tiers: world.tiering.tiers(), tierEvents: [...(last.v8.tierEvents ?? []), ...events] };
-    this.#ticks[this.#ticks.length - 1] = { ...last, v8, narration: [last.narration, ...tierEventSentences(events, context)].filter((s) => s !== "").join(" ") };
+    const tier = tierEventSentences(events, context);
+    const append = (text: string): string => [text, ...tier].filter((s) => s !== "").join(" ");
+    this.#ticks[this.#ticks.length - 1] = { ...last, v8, narration: append(last.narration), narrationWithheld: append(last.narrationWithheld) };
   }
 
   /** The bookkeeping that is not a tick: which task is running and which loop phase the loop is in. */
@@ -152,7 +154,8 @@ export class TickRecorder implements StepObserver {
     const pos = c.kind === "dispatch" ? c.pos : null;
     const draft = this.#draft(this.#ticks.length, this.#phaseFor(c), pos, world.tiering?.drainEvents() ?? []);
     const narration = narrate(c, previous, draft, context);
-    const tick = reuse(previous, { ...draft, narration });
+    const narrationWithheld = narrate(c, previous, draft, context, true);
+    const tick = reuse(previous, { ...draft, narration, narrationWithheld });
     this.#ticks.push(tick);
     this.#previous = tick;
   }

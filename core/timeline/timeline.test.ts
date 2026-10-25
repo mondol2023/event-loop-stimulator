@@ -137,6 +137,23 @@ describe("narration", () => {
     expect(text).toMatch(/Node exits with code 0/);
   });
 
+  describe("withholding the printed text", () => {
+    const payloads = ["SECRET", "a SECRET", "x` to stdout. SECRET", "a SECRET", "`SECRET`"];
+    for (const payload of payloads) {
+      it(`never quotes ${JSON.stringify(payload)} in narrationWithheld`, () => {
+        const ticks = ticksOf(`console.log(${JSON.stringify(payload)});`);
+        const printed = ticks.some((t) => t.narration.includes("SECRET"));
+        expect(printed, "the plain narration quotes the output").toBe(true);
+        for (const t of ticks) expect(t.narrationWithheld, `tick ${t.index}`).not.toContain("SECRET");
+        expect(ticks.map((t) => t.narrationWithheld).join(" ")).toContain("The program wrote output.");
+      });
+    }
+
+    it("is identical to the narration on ticks that print nothing", () => {
+      for (const t of ticksOf("let a = 1; a += 2;")) expect(t.narrationWithheld).toBe(t.narration);
+    });
+  });
+
   it("gives every tick a non-empty narration", () => {
     const src = "async function f() { await 1; throw new Error('x'); }\nf().catch(() => {}); setTimeout(() => {}, 1);";
     for (const t of ticksOf(src)) expect(t.narration.length, `tick ${t.index}`).toBeGreaterThan(0);

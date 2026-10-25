@@ -118,4 +118,5 @@ export type TickDraft = {
   warnings: FidelityWarning[];
 };
 
-export type Tick = DeepReadonly<TickDraft & { narration: string }>;
+/** `narrationWithheld` is `narration` with the program's printed text left out, for predict-first. */
+export type Tick = DeepReadonly<TickDraft & { narration: string; narrationWithheld: string }>;

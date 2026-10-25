@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useContext, useEffect, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import { modeDefaults } from "@/features/preferences/modes";
 import { PreferencesContext } from "@/features/preferences/PreferencesProvider";
@@ -34,12 +34,16 @@ export function useConsoleHidden(): { hidden: boolean; reveal(): void } {
   const atEnd = useStore(store, (s) => s.playback.length > 0 && s.playback.index === s.playback.length - 1);
   // Without a provider (tests, embeds) the console is plain self-study.
   const predictFirst = modeDefaults(useContext(PreferencesContext)?.mode ?? "self-study").predictFirst;
-  const revealedJob = useSyncExternalStore(
-    (listener) => {
+  const subscribe = useCallback(
+    (listener: () => void) => {
       const r = revealOf(store);
       r.listeners.add(listener);
       return () => r.listeners.delete(listener);
     },
+    [store],
+  );
+  const revealedJob = useSyncExternalStore(
+    subscribe,
     () => revealOf(store).job,
     () => null,
   );
@@ -48,8 +52,3 @@ export function useConsoleHidden(): { hidden: boolean; reveal(): void } {
   }, [atEnd, store, jobId]);
   return { hidden: predictFirst && revealedJob !== jobId && !atEnd, reveal: () => markRevealed(store, jobId) };
 }
-
-const CONSOLE_SENTENCE = /(?:console\.log|console\.error|Node printed) (?:wrote )?`.*?` to (?:stdout|stderr)\./g;
-
-/** Narration with the quoted program output removed, for while predict-first is hiding the console. */
-export const redactConsoleText = (narration: string): string => narration.replace(CONSOLE_SENTENCE, "The program wrote output.");

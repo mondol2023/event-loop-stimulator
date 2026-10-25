@@ -53,7 +53,7 @@ describe("the tiering model never changes a run", () => {
         const v8 = { ...t.v8 };
         delete v8.tiers;
         delete v8.tierEvents;
-        return { ...t, narration: undefined, v8 };
+        return { ...t, narration: undefined, narrationWithheld: undefined, v8 };
       });
 
     for (const [name, source] of [["a hot function with a deopt", HOT]] as const) {

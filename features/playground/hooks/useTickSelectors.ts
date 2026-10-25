@@ -49,6 +49,7 @@ const selectLoopPhase = (t: Tick): LoopPhaseState => ({ phase: t.phase, loopPhas
 const selectConsole = (t: Tick) => t.console;
 const selectV8 = (t: Tick): Tick["v8"] | null => t.v8;
 const selectNarration = (t: Tick) => t.narration;
+const selectNarrationWithheld = (t: Tick) => t.narrationWithheld;
 const selectWarnings = (t: Tick) => t.warnings;
 
 export const useCallStack = (): Tick["callStack"] => useTick(selectCallStack, EMPTY_CALL_STACK);
@@ -58,4 +59,5 @@ export const useLoopPhase = (): LoopPhaseState => useTick(selectLoopPhase, EMPTY
 export const useConsole = (): Tick["console"] => useTick(selectConsole, EMPTY_CONSOLE);
 export const useV8State = (): Tick["v8"] | null => useTick(selectV8, null);
 export const useNarration = (): string => useTick(selectNarration, "");
+export const useNarrationWithheld = (): string => useTick(selectNarrationWithheld, "");
 export const useFidelityWarnings = (): Tick["warnings"] => useTick(selectWarnings, EMPTY_WARNINGS);

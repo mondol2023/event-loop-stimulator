@@ -29,8 +29,12 @@ type State = DeepReadonly<TickDraft>;
 /** At most this many hidden-class sentences per tick; a migration replays a whole transition chain. */
 const MAX_MAP_SENTENCES = 3;
 
-export function narrate(command: Command, before: Tick | null, after: TickDraft, ctx: NarrationContext): string {
-  return [headline(command, after, ctx), ...changes(before, after, ctx)].join(" ");
+/** Stands in for a console sentence in the withheld narration; it never quotes the program's output. */
+export const WITHHELD_CONSOLE_SENTENCE = "The program wrote output.";
+
+/** `withhold` replaces every console sentence with {@link WITHHELD_CONSOLE_SENTENCE}; otherwise the text is the same. */
+export function narrate(command: Command, before: Tick | null, after: TickDraft, ctx: NarrationContext, withhold = false): string {
+  return [headline(command, after, ctx), ...changes(before, after, ctx, withhold)].join(" ");
 }
 
 // ---- the headline: what this step is ----
@@ -164,7 +168,7 @@ function calleeOf(task: TaskRef): string {
 
 // ---- what changed since the previous tick ----
 
-function changes(before: Tick | null, after: State, ctx: NarrationContext): string[] {
+function changes(before: Tick | null, after: State, ctx: NarrationContext, withhold: boolean): string[] {
   const out: string[] = [];
   // The first tick has no "since": whatever Node's loader set up before your code is not a change.
   if (before && before.index >= 0) {
@@ -175,7 +179,7 @@ function changes(before: Tick | null, after: State, ctx: NarrationContext): stri
   out.push(...tierEventSentences(after.v8.tierEvents ?? [], ctx));
   out.push(...queuedSentences(ctx.queued, after));
   if (before) {
-    for (const line of after.console.slice(before.console.length)) out.push(consoleSentence(line));
+    for (const line of after.console.slice(before.console.length)) out.push(withhold ? WITHHELD_CONSOLE_SENTENCE : consoleSentence(line));
     for (const warning of after.warnings.slice(before.warnings.length)) out.push(`Fidelity warning: ${warning.message}`);
   }
   return out;

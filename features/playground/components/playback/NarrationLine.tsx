@@ -1,7 +1,7 @@
 "use client";
 
-import { redactConsoleText, useConsoleHidden } from "../../hooks/useConsoleHidden";
-import { useNarration } from "../../hooks/useTickSelectors";
+import { useConsoleHidden } from "../../hooks/useConsoleHidden";
+import { useNarration, useNarrationWithheld } from "../../hooks/useTickSelectors";
 
 /**
  * What the current tick does, in words. The height is two lines whatever the text, and a longer text
@@ -11,7 +11,8 @@ export function NarrationLine() {
   // Predict-first: the narration must not quote output the console is still hiding.
   const { hidden } = useConsoleHidden();
   const narration = useNarration();
-  const shown = hidden ? redactConsoleText(narration) : narration;
+  const withheld = useNarrationWithheld();
+  const shown = hidden ? withheld : narration;
   return (
     // tabIndex: keyboard users must be able to scroll an overflowing region.
     <div
