@@ -23,10 +23,11 @@ export function StatusIndicator() {
   return (
     <p className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
       <Icon aria-hidden="true" className="size-4 shrink-0" />
-      <span role="status" data-testid="status">
-        {label}
+      {/* One live region for the label and the failure message, so both are announced. */}
+      <span role="status" className="flex min-w-0 items-center gap-1.5">
+        <span data-testid="status">{label}</span>
+        {message ? <span className="truncate text-warning">{message}</span> : null}
       </span>
-      {message ? <span className="truncate text-warning">{message}</span> : null}
     </p>
   );
 }

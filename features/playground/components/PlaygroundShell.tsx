@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -51,6 +51,16 @@ export function PlaygroundShell() {
   const [bottomTab, setBottomTab] = useState<BottomTab>("event-loop");
   const [collapsed, setCollapsed] = useState(false);
   const bottomContentId = useId();
+
+  // The Hardware tab is hidden below md (768 px); leaving it selected would show a panel with no visible tab.
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 768px)");
+    const onChange = (e: MediaQueryListEvent): void => {
+      if (!e.matches) setBottomTab((tab) => (tab === "hardware" ? "event-loop" : tab));
+    };
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
   const codeGroup = useId();
   const runGroup = useId();
 

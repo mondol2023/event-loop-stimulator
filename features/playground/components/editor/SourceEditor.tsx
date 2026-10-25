@@ -18,6 +18,8 @@ export type SourceEditorHandle = { focusRange(range: SourceRange): void };
 // done here and the browser never edits the DOM itself. Composition (IME) input is left to the browser.
 const replaceSelectionOnType = EditorView.domEventHandlers({
   beforeinput(event, view) {
+    // A non-cancelable event cannot be stopped, so replacing here too would insert twice.
+    if (!event.cancelable || view.state.readOnly) return false;
     if (event.inputType !== "insertText" || event.isComposing || event.data === null) return false;
     if (view.state.selection.ranges.every((range) => range.empty)) return false;
     event.preventDefault();

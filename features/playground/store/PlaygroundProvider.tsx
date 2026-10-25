@@ -55,44 +55,44 @@ export function PlaygroundProvider({
   // otherwise sit in the first-load JS (D6 budget). The effect runs after hydration, so only the first compile waits for it.
   useEffect(() => {
     let disposed = false;
-    let teardown: (() => void) | null = null;
-    void import("../worker/PipelineClient")
-      .then(({ createPipelineClient }) => {
-        if (disposed) return;
-        const client = createPipelineClient({
-          createWorker: createPipelineWorker,
-          onEvent: (e) => store.getState().applyPipelineEvent(e),
-          setTimer: (fn, ms) => window.setTimeout(fn, ms),
-          clearTimer: (h) => window.clearTimeout(h as number),
-          // The store outlives the client (Fast Refresh re-runs this effect), and it ignores any job older than its own.
-          initialJobId: store.getState().compile.jobId,
-        });
-        const clock = createPlaybackClock({
-          store,
-          requestFrame: (cb) => window.requestAnimationFrame(cb),
-          cancelFrame: (h) => window.cancelAnimationFrame(h),
-        });
-        const request = (): void => {
-          const { source, lang } = store.getState().editor;
-          client.request(source, lang);
-        };
-        const unsubSource = store.subscribe((s) => s.editor.source, request);
-        const unsubLang = store.subscribe((s) => s.editor.lang, request);
-        request();
-        client.flush();
-        teardown = () => {
-          unsubSource();
-          unsubLang();
-          clock.dispose();
-          client.dispose();
-        };
-      })
-      .catch(() => {
-        if (!disposed) store.getState().applyPipelineEvent({ kind: "failed", jobId: store.getState().compile.jobId, message: "The compile pipeline could not be loaded." });
+    // Assigned step by step, so a throw part-way through setup still tears down what was already made.
+    const teardowns: (() => void)[] = [];
+    const setup = ({ createPipelineClient }: typeof import("../worker/PipelineClient")): void => {
+      if (disposed) return;
+      const client = createPipelineClient({
+        createWorker: createPipelineWorker,
+        onEvent: (e) => store.getState().applyPipelineEvent(e),
+        setTimer: (fn, ms) => window.setTimeout(fn, ms),
+        clearTimer: (h) => window.clearTimeout(h as number),
+        // The store outlives the client (Fast Refresh re-runs this effect), and it ignores any job older than its own.
+        initialJobId: store.getState().compile.jobId,
       });
+      teardowns.push(() => client.dispose());
+      const clock = createPlaybackClock({
+        store,
+        requestFrame: (cb) => window.requestAnimationFrame(cb),
+        cancelFrame: (h) => window.cancelAnimationFrame(h),
+      });
+      teardowns.push(() => clock.dispose());
+      const request = (): void => {
+        const { source, lang } = store.getState().editor;
+        client.request(source, lang);
+      };
+      teardowns.push(store.subscribe((s) => s.editor.source, request));
+      teardowns.push(store.subscribe((s) => s.editor.lang, request));
+      request();
+      client.flush();
+    };
+    // The catch is only for the module failing to load; a bug in setup must surface, not read as a load failure.
+    void import("../worker/PipelineClient").then(
+      (module) => setup(module),
+      () => {
+        if (!disposed) store.getState().applyPipelineEvent({ kind: "failed", jobId: store.getState().compile.jobId, message: "The compile pipeline could not be loaded." });
+      },
+    );
     return () => {
       disposed = true;
-      teardown?.();
+      for (const teardown of teardowns.splice(0).reverse()) teardown();
     };
   }, [store]);
 

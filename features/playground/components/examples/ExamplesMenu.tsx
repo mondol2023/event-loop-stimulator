@@ -30,16 +30,21 @@ export function applyExample(store: PlaygroundStore, example: Example): void {
  * Choosing an example over the learner's own code asks first (nothing silently destroys their work);
  * over an empty editor or another example it just loads.
  */
-function useChooseExample(): { choose(example: Example): void; pending: Example | null; confirm(): void; cancel(): void } {
+function useChooseExample(): { choose(example: Example): void; pending: Example | null; title: string; confirm(): void; cancel(): void } {
   const store = usePlaygroundStore();
   const [pending, setPending] = useState<Example | null>(null);
+  // The last asked-about title stays after closing, so the dialog text does not blank during its exit animation.
+  const [title, setTitle] = useState("");
   return {
     choose(example) {
       const { source } = store.getState().editor;
-      if (source !== "" && exampleForSource(source) === null) setPending(example);
-      else applyExample(store, example);
+      if (source !== "" && exampleForSource(source) === null) {
+        setTitle(example.title);
+        setPending(example);
+      } else applyExample(store, example);
     },
     pending,
+    title,
     confirm() {
       if (pending) applyExample(store, pending);
       setPending(null);
@@ -49,7 +54,7 @@ function useChooseExample(): { choose(example: Example): void; pending: Example 
 }
 
 export function ExamplesMenu() {
-  const { choose, pending, confirm, cancel } = useChooseExample();
+  const { choose, pending, title, confirm, cancel } = useChooseExample();
   return (
     <>
       {/* Non-modal, so closing the menu to open the confirmation never leaves the page inert. */}
@@ -85,7 +90,7 @@ export function ExamplesMenu() {
       <AlertDialog open={pending !== null} onOpenChange={(open) => !open && cancel()}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{`Replace your code with '${pending?.title ?? ""}'?`}</AlertDialogTitle>
+            <AlertDialogTitle>{`Replace your code with '${title}'?`}</AlertDialogTitle>
             <AlertDialogDescription>Your current code is not one of the examples, so it will be lost.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
