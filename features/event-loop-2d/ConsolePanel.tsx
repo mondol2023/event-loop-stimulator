@@ -1,6 +1,12 @@
 "use client";
 
 import { SquareTerminal } from "lucide-react";
+import { useContext, useState } from "react";
+import { useStore } from "zustand";
+import { Button } from "@/components/ui/button";
+import { modeDefaults } from "@/features/preferences/modes";
+import { PreferencesContext } from "@/features/preferences/PreferencesProvider";
+import { usePlaygroundStore } from "@/features/playground/store/PlaygroundContext";
 import { TruthBadge } from "@/features/playground/components/TruthBadge";
 import { useConsole } from "@/features/playground/hooks/useTickSelectors";
 
@@ -10,6 +16,14 @@ import { useConsole } from "@/features/playground/hooks/useTickSelectors";
  */
 export function ConsolePanel() {
   const lines = useConsole();
+  const store = usePlaygroundStore();
+  const jobId = useStore(store, (s) => s.compile.jobId);
+  const atEnd = useStore(store, (s) => s.playback.length > 0 && s.playback.index === s.playback.length - 1);
+  // Without a provider (tests, embeds) the console is plain self-study.
+  const predictFirst = modeDefaults(useContext(PreferencesContext)?.mode ?? "self-study").predictFirst;
+  // The job that was revealed, so a new compile hides the output again without an effect.
+  const [revealedJob, setRevealedJob] = useState<number | null>(null);
+  const hidden = predictFirst && revealedJob !== jobId && !atEnd;
   return (
     <section aria-label="Console" className="flex min-h-0 min-w-0 flex-col gap-2 rounded-lg border border-border bg-panel p-3">
       <div className="flex items-center gap-1.5">
@@ -19,26 +33,36 @@ export function ConsolePanel() {
         </h3>
         <TruthBadge level="exact" />
       </div>
-      {lines.length === 0 ? <p className="text-xs text-muted-foreground">No output yet.</p> : null}
-      <pre
-        data-testid="console"
-        // The log can outgrow its box, so keyboard users need to scroll it.
-        tabIndex={0}
-        aria-label="Console output"
-        className="max-h-60 min-h-12 flex-1 overflow-auto rounded-md border border-border bg-card p-3 font-mono text-sm break-words whitespace-pre-wrap text-card-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-      >
-        {lines.map((line, i) =>
-          line.stream === "stderr" ? (
-            <span key={i} data-stream="stderr" title="stderr" className="text-destructive before:mr-2 before:text-xs before:content-['stderr']">
-              {line.text}
-            </span>
-          ) : (
-            <span key={i} data-stream="stdout">
-              {line.text}
-            </span>
-          ),
-        )}
-      </pre>
+      {hidden ? (
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-sm text-muted-foreground">Predict the output, then reveal</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => setRevealedJob(jobId)}>
+            Reveal
+          </Button>
+        </div>
+      ) : null}
+      {!hidden && lines.length === 0 ? <p className="text-xs text-muted-foreground">No output yet.</p> : null}
+      {hidden ? null : (
+        <pre
+          data-testid="console"
+          // The log can outgrow its box, so keyboard users need to scroll it.
+          tabIndex={0}
+          aria-label="Console output"
+          className="max-h-60 min-h-12 flex-1 overflow-auto rounded-md border border-border bg-card p-3 font-mono text-sm break-words whitespace-pre-wrap text-card-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          {lines.map((line, i) =>
+            line.stream === "stderr" ? (
+              <span key={i} data-stream="stderr" title="stderr" className="text-destructive before:mr-2 before:text-xs before:content-['stderr']">
+                {line.text}
+              </span>
+            ) : (
+              <span key={i} data-stream="stdout">
+                {line.text}
+              </span>
+            ),
+          )}
+        </pre>
+      )}
     </section>
   );
 }

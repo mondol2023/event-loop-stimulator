@@ -1,24 +1,22 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { useStore } from "zustand";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ModeSpeedSync } from "@/features/preferences/ModeSpeedSync";
 import { usePlaygroundStore } from "../store/PlaygroundContext";
+import { BottomPanel, type BottomTab } from "./bottom/BottomPanel";
 import { LangToggle } from "./editor/LangToggle";
 import { ProblemsList } from "./editor/ProblemsList";
 import type { SourceEditorHandle } from "./editor/SourceEditor";
 import { ExamplesList, ExamplesMenu } from "./examples/ExamplesMenu";
 import { VerifiedBadge } from "./examples/VerifiedBadge";
-import { AstPaneLazy, BytecodePaneLazy, CoachMarksLazy, EventLoopViewLazy, MachineCodePaneLazy, SourceEditorLazy } from "./lazy";
+import { AstPaneLazy, BytecodePaneLazy, CoachMarksLazy, MachineCodePaneLazy, SourceEditorLazy } from "./lazy";
 import { PaletteLauncher } from "./palette/PaletteLauncher";
 import { ResizableSplit } from "./ResizableSplit";
 import { PlaybackBar } from "./playback/PlaybackBar";
-import { HARDWARE_COPY, V8_INTERNALS_COPY, ViewPlaceholder } from "./shell/ShellPlaceholders";
 import { StatusIndicator } from "./shell/StatusIndicator";
 import { TabPanel, tabTriggerProps } from "./shell/TabPanel";
 import { TruthBadge } from "./TruthBadge";
@@ -28,9 +26,6 @@ const isSegment = (v: string): v is Segment => v === "editor" || v === "code" ||
 
 type CodeTab = "ast" | "bytecode" | "asm";
 const isCodeTab = (v: string): v is CodeTab => v === "ast" || v === "bytecode" || v === "asm";
-
-type BottomTab = "event-loop" | "v8" | "hardware";
-const isBottomTab = (v: string): v is BottomTab => v === "event-loop" || v === "v8" || v === "hardware";
 
 // Below 1024 px one region shows at a time behind the segmented control; from 1024 px all three show.
 // Hidden regions stay mounted, so each keeps its scroll position and active tab across segment switches.
@@ -52,7 +47,6 @@ export function PlaygroundShell() {
   const [codeTab, setCodeTab] = useState<CodeTab>("ast");
   const [bottomTab, setBottomTab] = useState<BottomTab>("event-loop");
   const [collapsed, setCollapsed] = useState(false);
-  const bottomContentId = useId();
 
   // The Hardware tab is hidden below md (768 px); leaving it selected would show a panel with no visible tab.
   useEffect(() => {
@@ -64,7 +58,6 @@ export function PlaygroundShell() {
     return () => query.removeEventListener("change", onChange);
   }, []);
   const codeGroup = useId();
-  const runGroup = useId();
 
   return (
     <main className="flex h-dvh min-h-0 flex-col bg-background text-foreground">
@@ -171,49 +164,7 @@ export function PlaygroundShell() {
           />
         }
         second={
-          <Tabs value={bottomTab} onValueChange={(v) => isBottomTab(v) && setBottomTab(v)} className="min-h-0 flex-1 gap-0 bg-panel">
-            <div className="flex min-h-10 shrink-0 items-center gap-2 border-y border-border px-2">
-              <TabsList variant="line" aria-label="Run views">
-                <TabsTrigger value="event-loop" {...tabTriggerProps(runGroup, "event-loop")}>
-                  Event Loop
-                </TabsTrigger>
-                <TabsTrigger value="v8" {...tabTriggerProps(runGroup, "v8")}>
-                  V8 Internals
-                </TabsTrigger>
-                {/* The 3D view needs room; it is not offered on phones. */}
-                <TabsTrigger value="hardware" {...tabTriggerProps(runGroup, "hardware")} className="hidden md:inline-flex">
-                  Hardware
-                </TabsTrigger>
-              </TabsList>
-              <div className="ml-auto flex items-center gap-2">
-                {bottomTab === "hardware" ? <TruthBadge level="illustrative" /> : null}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-expanded={!collapsed}
-                  aria-controls={bottomContentId}
-                  aria-label={collapsed ? "Expand the run panel" : "Collapse the run panel"}
-                  onClick={() => setCollapsed((c) => !c)}
-                  className="hidden lg:inline-flex"
-                >
-                  {collapsed ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
-                </Button>
-              </div>
-            </div>
-            {/* Collapsing hides only the tab content; the tab strip and the playback bar stay. */}
-            <div id={bottomContentId} className={`min-h-0 flex-1 flex-col ${collapsed ? "flex lg:hidden" : "flex"}`}>
-              <TabPanel group={runGroup} value="event-loop" active={bottomTab === "event-loop"} className={PANEL}>
-                <EventLoopViewLazy />
-              </TabPanel>
-              <TabPanel group={runGroup} value="v8" active={bottomTab === "v8"} className={PANEL}>
-                <ViewPlaceholder title="V8 Internals">{V8_INTERNALS_COPY}</ViewPlaceholder>
-              </TabPanel>
-              <TabPanel group={runGroup} value="hardware" active={bottomTab === "hardware"} className={PANEL}>
-                <ViewPlaceholder title="Hardware">{HARDWARE_COPY}</ViewPlaceholder>
-              </TabPanel>
-            </div>
-          </Tabs>
+          <BottomPanel tab={bottomTab} onTabChange={setBottomTab} collapsed={collapsed} onCollapsedChange={setCollapsed} />
         }
       />
       <PlaybackBar />
