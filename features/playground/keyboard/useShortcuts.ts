@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { PlaygroundStore } from "../store/playgroundStore";
-import { isActivatableTarget, isEditableTarget, type ShortcutAction, shortcutFor } from "./shortcuts";
+import { isActivatableTarget, isEditableTarget, isModalOpen, type ShortcutAction, shortcutFor } from "./shortcuts";
 
 function dispatch(store: PlaygroundStore, action: ShortcutAction): void {
   const s = store.getState();
@@ -32,6 +32,7 @@ function dispatch(store: PlaygroundStore, action: ShortcutAction): void {
 export function useShortcuts(store: PlaygroundStore): void {
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent): void {
+      if (isModalOpen()) return;
       const action = shortcutFor({
         key: e.key,
         shiftKey: e.shiftKey,

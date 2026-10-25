@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { type Diagnostic, lineColumn } from "@/core/shared/diagnostics";
 import { docsHref } from "../../diagnostics/docsHref";
 
@@ -29,12 +28,13 @@ export function ProblemsList({ diagnostics, source, onSelect }: ProblemsListProp
               <span className="font-sans text-foreground">{d.message}</span>
             </button>
             <p className="text-muted-foreground">{d.hint}</p>
-            <Link
+            {/* A plain anchor: a soft navigation would carry this page's nonce into the docs document. */}
+            <a
               href={docsHref(d)}
               className="w-fit text-webapi underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               Why?
-            </Link>
+            </a>
           </li>
         );
       })}

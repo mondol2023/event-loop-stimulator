@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { isModalOpen } from "../../keyboard/shortcuts";
 
 const STORAGE_KEY = "sl_onboarded";
 
@@ -47,7 +48,6 @@ export function CoachMarks() {
   const [visible, setVisible] = useState(() => !readDone());
   const [index, setIndex] = useState(0);
   const [place, setPlace] = useState<Place>(null);
-  const nextRef = useRef<HTMLButtonElement>(null);
 
   const dismiss = useCallback(() => {
     writeDone();
@@ -66,15 +66,12 @@ export function CoachMarks() {
   useEffect(() => {
     if (!visible) return;
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") dismiss();
+      // An Escape that closed a dialog is already handled; it must not also end the tour for good.
+      if (e.key === "Escape" && !e.defaultPrevented && !isModalOpen()) dismiss();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [visible, dismiss]);
-
-  useEffect(() => {
-    if (visible) nextRef.current?.focus();
-  }, [visible, index]);
 
   if (!visible || !step) return null;
   const last = index === STEPS.length - 1;
@@ -108,7 +105,7 @@ export function CoachMarks() {
           <Button type="button" variant="ghost" size="sm" className="ml-auto" onClick={dismiss}>
             Skip
           </Button>
-          <Button ref={nextRef} type="button" size="sm" onClick={() => (last ? dismiss() : setIndex(index + 1))}>
+          <Button type="button" size="sm" onClick={() => (last ? dismiss() : setIndex(index + 1))}>
             {last ? "Done" : "Next"}
           </Button>
         </div>

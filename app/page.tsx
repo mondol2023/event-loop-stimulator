@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 // Placeholder. The landing page (Persuade mode, live mini-visualizer as hero)
@@ -13,7 +12,8 @@ export default function Home() {
       </p>
       <div>
         <Button asChild size="lg">
-          <Link href="/playground">Open the playground</Link>
+          {/* A full document load, so the page gets its own nonce. */}
+          <a href="/playground">Open the playground</a>
         </Button>
       </div>
     </main>

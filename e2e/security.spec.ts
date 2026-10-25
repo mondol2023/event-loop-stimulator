@@ -74,3 +74,17 @@ test("POST /api/compile runs the real core pipeline in the production build's wo
   expect(body.diagnostics).toEqual([]);
   expect(body.output).toEqual({ stdout: expected.outcomes[0]?.stdout, stderr: "", exitCode: 0 });
 });
+
+test("opening the command palette from inside the editor produces no CSP violations", async ({ page }) => {
+  const messages: string[] = [];
+  page.on("console", (message) => messages.push(message.text()));
+  page.on("pageerror", (error) => messages.push(error.message));
+  await page.goto("/playground");
+  await page.getByRole("textbox", { name: "Source code" }).click();
+  await page.keyboard.press("Control+k");
+  await expect(page.getByPlaceholder("Type a command")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByPlaceholder("Type a command")).toBeHidden();
+  await page.waitForLoadState("networkidle");
+  expect(messages.filter((text) => /Content Security Policy/i.test(text))).toEqual([]);
+});

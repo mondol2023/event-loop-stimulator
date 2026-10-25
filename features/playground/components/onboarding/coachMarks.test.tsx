@@ -49,4 +49,13 @@ describe("CoachMarks", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     vi.restoreAllMocks();
   });
+
+  it("ignores an Escape another dialog already handled", () => {
+    render(<CoachMarks />);
+    const handled = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+    handled.preventDefault();
+    window.dispatchEvent(handled);
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(localStorage.getItem("sl_onboarded")).toBeNull();
+  });
 });

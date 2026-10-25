@@ -1,6 +1,5 @@
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Fragment } from "react";
 import { EXCLUDED } from "@/core/frontend/subset/excluded";
 import { MAX_LINES, MAX_SOURCE_BYTES } from "@/core/frontend/subset/validator";
@@ -58,10 +57,10 @@ const TD = "py-2 pr-4 align-top";
 export default function SubsetPage() {
   return (
     <main className="mx-auto max-w-[70ch] px-4 py-10 text-base leading-relaxed text-foreground">
-      <Link href="/playground" className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+      <a href="/playground" className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         <ArrowLeft aria-hidden="true" className="size-4" />
         Back to the playground
-      </Link>
+      </a>
       <h1 className="mt-6 text-3xl font-semibold tracking-tight">Supported subset</h1>
       <p className="mt-4 text-muted-foreground">
         The playground runs one self-contained script. Anything outside the subset is refused with a diagnostic over the offending token and a hint, never approximated. Your code is parsed and simulated, never executed.

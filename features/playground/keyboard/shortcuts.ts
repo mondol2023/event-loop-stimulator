@@ -56,6 +56,13 @@ function closestMatch(t: EventTarget | null, selector: string): boolean {
   return (t as Element).closest(selector) !== null;
 }
 
+const OPEN_MODAL = "[role='dialog'][data-state='open'], [role='alertdialog'][data-state='open']";
+
+/** A Radix modal is open: keys belong to it, not to the page behind it. */
+export function isModalOpen(): boolean {
+  return document.querySelector(OPEN_MODAL) !== null;
+}
+
 export function isEditableTarget(t: EventTarget | null): boolean {
   return closestMatch(t, OWNS_KEYS);
 }

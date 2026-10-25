@@ -3,7 +3,7 @@
 import { javascript } from "@codemirror/lang-javascript";
 import { EditorState } from "@codemirror/state";
 import { EditorView, lineNumbers } from "@codemirror/view";
-import { useCallback } from "react";
+import { type RefObject, useCallback } from "react";
 import { useStore } from "zustand";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePlaygroundStore } from "../../store/PlaygroundContext";
@@ -11,7 +11,7 @@ import { useNonce } from "../csp/useNonce";
 import { codeTheme } from "../panes/codeTheme";
 
 /** The JavaScript left after TypeScript is stripped, as a read-only document. */
-export function StrippedJsDialog({ open, onOpenChange }: { open: boolean; onOpenChange(open: boolean): void }) {
+export function StrippedJsDialog({ open, onOpenChange, returnFocusRef }: { open: boolean; onOpenChange(open: boolean): void; returnFocusRef?: RefObject<HTMLElement | null> }) {
   const store = usePlaygroundStore();
   const stripped = useStore(store, (s) => s.compile.strippedJs) ?? "";
   const nonce = useNonce();
@@ -41,7 +41,15 @@ export function StrippedJsDialog({ open, onOpenChange }: { open: boolean; onOpen
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" showCloseButton>
+      <DialogContent
+        className="sm:max-w-2xl"
+        showCloseButton
+        // The palette that opened this has unmounted its item, so Radix has nothing to return focus to.
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          returnFocusRef?.current?.focus();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Stripped JavaScript</DialogTitle>
           <DialogDescription>What the simulator runs after the type annotations are removed.</DialogDescription>

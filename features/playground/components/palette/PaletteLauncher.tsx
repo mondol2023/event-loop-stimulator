@@ -1,6 +1,7 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { isModalOpen } from "../../keyboard/shortcuts";
 import { ReplaceExampleDialog, useChooseExample } from "../examples/ExamplesMenu";
 
 // cmdk and CodeMirror load on first use, so the first-load JS (D6 budget) does not grow; only this chord listener ships eagerly.
@@ -12,13 +13,25 @@ export function PaletteLauncher({ onShowHardware }: { onShowHardware(): void }) 
   const [open, setOpen] = useState(false);
   const [everOpened, setEverOpened] = useState(false);
   const [strippedOpen, setStrippedOpen] = useState(false);
+  const [strippedEver, setStrippedEver] = useState(false);
   const choice = useChooseExample();
+  const openRef = useRef(false);
+  // Where focus was before the palette, for the dialogs a command opens to hand it back to.
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent): void {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== "k") return;
+      // e.code, so non-Latin layouts work; macOS users press Cmd (metaKey), others Ctrl.
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.code !== "KeyK") return;
       e.preventDefault();
       e.stopPropagation();
+      // Another modal (the palette itself excepted) owns the keyboard.
+      if (!openRef.current && isModalOpen()) return;
+      if (!openRef.current) returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setEverOpened(true);
       setOpen((o) => !o);
     }
@@ -35,12 +48,15 @@ export function PaletteLauncher({ onShowHardware }: { onShowHardware(): void }) 
             onOpenChange={setOpen}
             onChooseExample={choice.choose}
             onShowHardware={onShowHardware}
-            onShowStrippedJs={() => setStrippedOpen(true)}
+            onShowStrippedJs={() => {
+              setStrippedEver(true);
+              setStrippedOpen(true);
+            }}
           />
         ) : null}
-        {strippedOpen ? <StrippedJsDialog open onOpenChange={setStrippedOpen} /> : null}
+        {strippedEver ? <StrippedJsDialog open={strippedOpen} onOpenChange={setStrippedOpen} returnFocusRef={returnFocusRef} /> : null}
       </Suspense>
-      <ReplaceExampleDialog choice={choice} />
+      <ReplaceExampleDialog choice={choice} returnFocusRef={returnFocusRef} />
     </>
   );
 }

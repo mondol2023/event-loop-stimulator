@@ -34,11 +34,35 @@ function setup() {
 describe("PaletteLauncher", () => {
   it("opens on Ctrl+K and Go to tick seeks to n-1", async () => {
     const { seek } = setup();
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "k", code: "KeyK", ctrlKey: true });
     fireEvent.click(await screen.findByText("Go to tick…"));
     const input = await screen.findByPlaceholderText(/tick number/i);
     fireEvent.change(input, { target: { value: "5" } });
     fireEvent.click(await screen.findByText("Go to tick 5"));
     await waitFor(() => expect(seek).toHaveBeenCalledWith(4));
+  });
+
+  it("reopens on the root page with an empty search after a command", async () => {
+    setup();
+    fireEvent.keyDown(window, { key: "k", code: "KeyK", ctrlKey: true });
+    fireEvent.click(await screen.findByText("Go to tick…"));
+    fireEvent.change(await screen.findByPlaceholderText(/tick number/i), { target: { value: "5" } });
+    fireEvent.click(await screen.findByText("Go to tick 5"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    fireEvent.keyDown(window, { key: "k", code: "KeyK", ctrlKey: true });
+    expect(await screen.findByText("Go to tick…")).toBeTruthy();
+    expect((screen.getByPlaceholderText(/type a command/i) as HTMLInputElement).value).toBe("");
+  });
+
+  it("does not open over another open modal", async () => {
+    setup();
+    const modal = document.createElement("div");
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("data-state", "open");
+    document.body.append(modal);
+    fireEvent.keyDown(window, { key: "k", code: "KeyK", ctrlKey: true });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByPlaceholderText(/type a command/i)).toBeNull();
+    modal.remove();
   });
 });

@@ -31,6 +31,17 @@ export function CommandPalette({ open, onOpenChange, onChooseExample, onShowHard
   const hasStripped = useStore(store, (s) => s.compile.strippedJs !== null);
   const [page, setPage] = useState<Page>("root");
   const [search, setSearch] = useState("");
+  const length = useStore(store, (s) => s.playback.length);
+
+  // Every way of closing (a command, Esc, the Ctrl+K toggle) lands here, so reopening always starts at the root.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (!open) {
+      setPage("root");
+      setSearch("");
+    }
+  }
 
   const go = (next: Page): void => {
     setPage(next);
@@ -43,14 +54,13 @@ export function CommandPalette({ open, onOpenChange, onChooseExample, onShowHard
   };
 
   const tick = /^\d+$/.test(search.trim()) ? Number(search.trim()) : null;
+  // Past the end it lands on the last tick, and says so.
+  const target = tick !== null && length > 0 ? Math.min(tick, length) : tick;
 
   return (
     <CommandDialog
       open={open}
-      onOpenChange={(next) => {
-        onOpenChange(next);
-        if (!next) go("root");
-      }}
+      onOpenChange={onOpenChange}
       title="Command palette"
       description="Run a command, load an example, or jump to a tick."
     >
@@ -65,7 +75,8 @@ export function CommandPalette({ open, onOpenChange, onChooseExample, onShowHard
           }}
         />
         <CommandList>
-          <CommandEmpty>No matching command.</CommandEmpty>
+          {page === "tick" ? null : <CommandEmpty>No matching command.</CommandEmpty>}
+          {page === "tick" && (tick === null || tick < 1) ? <p className="px-2 py-3 text-sm text-muted-foreground">Type a tick number, from 1.</p> : null}
           {page === "root" ? (
             <CommandGroup heading="Commands">
               <CommandItem onSelect={run(runNow)}>Run</CommandItem>
@@ -100,8 +111,8 @@ export function CommandPalette({ open, onOpenChange, onChooseExample, onShowHard
           ) : null}
           {page === "tick" && tick !== null && tick >= 1 ? (
             <CommandGroup heading="Go to tick">
-              <CommandItem value={`tick-${tick}`} onSelect={run(() => store.getState().seek(tick - 1))}>
-                {`Go to tick ${tick}`}
+              <CommandItem value={`tick-${tick}`} onSelect={run(() => store.getState().seek((target ?? tick) - 1))}>
+                {`Go to tick ${target ?? tick}`}
               </CommandItem>
             </CommandGroup>
           ) : null}
