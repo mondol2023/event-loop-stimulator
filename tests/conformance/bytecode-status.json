@@ -170,6 +170,9 @@
   "drain-after-each-callback": {
     "status": "exact"
   },
+  "elements-kinds-lattice": {
+    "status": "exact"
+  },
   "empty-script": {
     "status": "exact"
   },
@@ -180,6 +183,9 @@
     "status": "exact"
   },
   "finally-passthrough": {
+    "status": "exact"
+  },
+  "hidden-classes-shapes": {
     "status": "exact"
   },
   "immediate-vs-timeout-in-io-free-callback": {
