@@ -2,7 +2,7 @@
 
 import { BookOpen } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
-import { useRef, useState } from "react";
+import { type RefObject, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,11 +26,13 @@ export function applyExample(store: PlaygroundStore, example: Example): void {
   setSource(example.source);
 }
 
+export type ChooseExample = { choose(example: Example): void; pending: Example | null; title: string; confirm(): void; cancel(): void };
+
 /**
  * Choosing an example over the learner's own code asks first (nothing silently destroys their work);
  * over an empty editor or another example it just loads.
  */
-function useChooseExample(): { choose(example: Example): void; pending: Example | null; title: string; confirm(): void; cancel(): void } {
+export function useChooseExample(): ChooseExample {
   const store = usePlaygroundStore();
   const [pending, setPending] = useState<Example | null>(null);
   // The last asked-about title stays after closing, so the dialog text does not blank during its exit animation.
@@ -54,7 +56,7 @@ function useChooseExample(): { choose(example: Example): void; pending: Example 
 }
 
 export function ExamplesMenu() {
-  const { choose, pending, title, confirm, cancel } = useChooseExample();
+  const choice = useChooseExample();
   const triggerRef = useRef<HTMLButtonElement>(null);
   return (
     <>
@@ -76,7 +78,7 @@ export function ExamplesMenu() {
             {EXAMPLES.map((example) => (
               <DropdownMenu.Item
                 key={example.id}
-                onSelect={() => choose(example)}
+                onSelect={() => choice.choose(example)}
                 className="flex cursor-default flex-col gap-1 rounded-md px-2 py-1.5 text-sm outline-none data-highlighted:bg-muted"
               >
                 <span className="font-medium">{example.title}</span>
@@ -88,12 +90,21 @@ export function ExamplesMenu() {
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
 
+      <ReplaceExampleDialog choice={choice} returnFocusRef={triggerRef} />
+    </>
+  );
+}
+
+/** The confirmation before an example replaces the learner's own code. */
+export function ReplaceExampleDialog({ choice, returnFocusRef }: { choice: ChooseExample; returnFocusRef?: RefObject<HTMLElement | null> }) {
+  const { pending, title, confirm, cancel } = choice;
+  return (
       <AlertDialog open={pending !== null} onOpenChange={(open) => !open && cancel()}>
         <AlertDialogContent
           // The menu item that opened this has unmounted, so Radix has nowhere to return focus to.
           onCloseAutoFocus={(event) => {
             event.preventDefault();
-            triggerRef.current?.focus();
+            returnFocusRef?.current?.focus();
           }}
         >
           <AlertDialogHeader>
@@ -106,7 +117,6 @@ export function ExamplesMenu() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
   );
 }
 

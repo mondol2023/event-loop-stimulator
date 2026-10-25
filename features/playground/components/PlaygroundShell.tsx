@@ -15,7 +15,8 @@ import { ProblemsList } from "./editor/ProblemsList";
 import type { SourceEditorHandle } from "./editor/SourceEditor";
 import { ExamplesList, ExamplesMenu } from "./examples/ExamplesMenu";
 import { VerifiedBadge } from "./examples/VerifiedBadge";
-import { AstPaneLazy, BytecodePaneLazy, MachineCodePaneLazy, SourceEditorLazy } from "./lazy";
+import { AstPaneLazy, BytecodePaneLazy, CoachMarksLazy, MachineCodePaneLazy, SourceEditorLazy } from "./lazy";
+import { PaletteLauncher } from "./palette/PaletteLauncher";
 import { ResizableSplit } from "./ResizableSplit";
 import { PlaybackBar } from "./playback/PlaybackBar";
 import { HARDWARE_COPY, V8_INTERNALS_COPY, ViewPlaceholder } from "./shell/ShellPlaceholders";
@@ -117,7 +118,7 @@ export function PlaygroundShell() {
             secondClassName={showBelowLg(segment === "code")}
             handleClassName="hidden lg:block"
             first={
-              <section aria-label="Editor" className="flex min-h-0 flex-1 flex-col bg-panel">
+              <section aria-label="Editor" data-tour="editor" className="flex min-h-0 flex-1 flex-col bg-panel">
                 <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-border px-3 py-1">
                   <LangToggle />
                   <ExamplesMenu />
@@ -143,7 +144,7 @@ export function PlaygroundShell() {
               </section>
             }
             second={
-              <Tabs value={codeTab} onValueChange={(v) => isCodeTab(v) && setCodeTab(v)} className="min-h-0 flex-1 gap-0 bg-panel">
+              <Tabs value={codeTab} onValueChange={(v) => isCodeTab(v) && setCodeTab(v)} data-tour="panes" className="min-h-0 flex-1 gap-0 bg-panel">
                 <div className="flex min-h-10 shrink-0 items-center border-b border-border px-2">
                   <TabsList variant="line" aria-label="Compiled views">
                     <TabsTrigger value="ast" {...tabTriggerProps(codeGroup, "ast")}>
@@ -217,6 +218,13 @@ export function PlaygroundShell() {
         }
       />
       <PlaybackBar />
+      <PaletteLauncher
+        onShowHardware={() => {
+          // The Hardware tab is not offered below md, so selecting it there would show a panel with no tab.
+          if (window.matchMedia("(min-width: 768px)").matches) setBottomTab("hardware");
+        }}
+      />
+      <CoachMarksLazy />
     </main>
   );
 }

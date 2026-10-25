@@ -1,11 +1,11 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import type { Language } from "@/core/compile/CompilationManager";
 import { useShortcuts } from "../keyboard/useShortcuts";
 import { createPlaybackClock } from "../playback/PlaybackClock";
 import type { PipelineClient, WorkerLike } from "../worker/PipelineClient";
-import { PlaygroundStoreContext } from "./PlaygroundContext";
+import { PlaygroundStoreContext, RunNowContext } from "./PlaygroundContext";
 import { createPlaygroundStore, type PlaybackSpeed } from "./playgroundStore";
 
 type PipelineClientModule = typeof import("../worker/PipelineClient");
@@ -59,6 +59,9 @@ export function PlaygroundProvider({
 
   useShortcuts(store);
 
+  const flushRef = useRef<(() => void) | null>(null);
+  const runNow = useCallback(() => flushRef.current?.(), []);
+
   // Read through a ref, so a caller passing a new function each render does not restart the pipeline.
   const loadClientRef = useRef(loadClient);
   useEffect(() => {
@@ -96,6 +99,7 @@ export function PlaygroundProvider({
         requestFrame: (cb) => window.requestAnimationFrame(cb),
         cancelFrame: (h) => window.cancelAnimationFrame(h),
       });
+      flushRef.current = client.flush;
       request();
       client.flush();
     };
@@ -121,6 +125,7 @@ export function PlaygroundProvider({
     load();
     return () => {
       disposed = true;
+      flushRef.current = null;
       unsubSource();
       unsubLang();
       clock?.dispose();
@@ -128,5 +133,9 @@ export function PlaygroundProvider({
     };
   }, [store]);
 
-  return <PlaygroundStoreContext.Provider value={store}>{children}</PlaygroundStoreContext.Provider>;
+  return (
+    <PlaygroundStoreContext.Provider value={store}>
+      <RunNowContext.Provider value={runNow}>{children}</RunNowContext.Provider>
+    </PlaygroundStoreContext.Provider>
+  );
 }

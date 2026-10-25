@@ -13,3 +13,6 @@ export const SourceEditorLazy = dynamic(() => import("./editor/SourceEditor").th
 export const AstPaneLazy = dynamic(() => import("./panes/AstPane").then((m) => m.AstPane), { ssr: false, loading: PaneSkeleton });
 export const BytecodePaneLazy = dynamic(() => import("./panes/BytecodePane").then((m) => m.BytecodePane), { ssr: false, loading: PaneSkeleton });
 export const MachineCodePaneLazy = dynamic(() => import("./panes/MachineCodePane").then((m) => m.MachineCodePane), { ssr: false, loading: PaneSkeleton });
+
+// Rendered after hydration only, and its chunk is not part of the first load.
+export const CoachMarksLazy = dynamic(() => import("./onboarding/CoachMarks").then((m) => m.CoachMarks), { ssr: false });

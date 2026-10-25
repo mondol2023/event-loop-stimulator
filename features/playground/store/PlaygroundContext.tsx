@@ -13,3 +13,10 @@ export function usePlaygroundStore(): PlaygroundStore {
   if (!store) throw new Error("usePlaygroundStore must be used inside a PlaygroundStoreContext provider.");
   return store;
 }
+
+// Compiles the pending edit now instead of after the debounce; a no-op until the pipeline client has loaded.
+export const RunNowContext = createContext<() => void>(() => {});
+
+export function useRunNow(): () => void {
+  return useContext(RunNowContext);
+}

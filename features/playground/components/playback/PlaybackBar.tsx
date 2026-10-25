@@ -58,7 +58,7 @@ export function PlaybackBar() {
   const actions = store.getState();
 
   return (
-    <section aria-label="Playback" className="flex shrink-0 flex-col gap-1 border-t border-border bg-panel px-3 py-2">
+    <section aria-label="Playback" data-tour="playback" className="flex shrink-0 flex-col gap-1 border-t border-border bg-panel px-3 py-2">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <TooltipProvider>
           <div className="flex items-center">
