@@ -255,7 +255,7 @@ It allows pure npm packages.
 
 **Context.** Compile is fast and simulate can be slow. The panes should fill before the run ends.
 
-**Decision.** The worker posts `compiled` and later `simulated`. Applying a new job's `compiled` clears the old timeline in the same `setState` (timeline holder emptied, `timelineVersion` bumped, playback reset to index 0 and length 0).
+**Decision.** The worker posts `compiled` and later `simulated`. Applying a new job's `compiled` clears the old timeline in the same synchronous step (timeline holder emptied, `timelineVersion` bumped, playback reset to index 0 and length 0).
 
 **Consequence.** Old ticks never pair with the new line index, and subscribers see one notification for the swap.
 
@@ -263,7 +263,7 @@ It allows pure npm packages.
 
 **Context.** A worker cannot be interrupted mid-simulation, and a long run would block the next job.
 
-**Decision.** When a job is dispatched while another is running, `PipelineClient` calls `worker.terminate()` and spawns a fresh worker. The `jobId` check still guards every message.
+**Decision.** When a job is dispatched while another is running, `PipelineClient` calls `worker.terminate()` and drops the worker; the next dispatch spawns a fresh one. The `jobId` check still guards every message.
 
 **Consequence.** An old result can never arrive, at the cost of re-creating the worker.
 
