@@ -53,8 +53,7 @@ describe("PlaygroundProvider pipeline client", () => {
 
   it("starts a worker once the client module has loaded", async () => {
     mount();
-    await settle();
-    expect(created).toHaveLength(1);
+    await vi.waitFor(() => expect(created).toHaveLength(1), { timeout: 5000 });
   });
 
   it("creates nothing when it unmounts before the client module resolves", async () => {
@@ -70,7 +69,7 @@ describe("PlaygroundProvider pipeline client", () => {
 
   it("disposes its subscriptions and worker on unmount after loading", async () => {
     const { view, captured } = mount();
-    await settle();
+    await vi.waitFor(() => expect(created).toHaveLength(1), { timeout: 5000 });
     view.unmount();
     const posts = created.reduce((n, w) => n + w.posts, 0);
     captured.store?.getState().setSource("console.log(3)");
@@ -91,9 +90,8 @@ describe("PlaygroundProvider pipeline client", () => {
     expect(created).toHaveLength(0);
 
     act(() => captured.store?.getState().setSource("console.log(2)"));
-    await settle();
+    await vi.waitFor(() => expect(created).toHaveLength(1), { timeout: 5000 });
     expect(attempts).toBe(2);
-    expect(created).toHaveLength(1);
     expect(captured.store?.getState().compile.status).toBe("compiling");
   });
 });
