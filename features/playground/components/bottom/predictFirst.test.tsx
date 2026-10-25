@@ -56,6 +56,13 @@ describe("predict-first console", () => {
     expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
   });
 
+  it("moves focus to the console after Reveal", () => {
+    const store = readyStore();
+    render(ui(store, "interview"));
+    fireEvent.click(screen.getByRole("button", { name: "Reveal" }));
+    expect(document.activeElement).toBe(screen.getByTestId("console"));
+  });
+
   it("shows the console once playback reaches the last tick", () => {
     const store = readyStore();
     render(ui(store, "interview"));

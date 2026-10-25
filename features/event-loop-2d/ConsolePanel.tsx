@@ -1,7 +1,7 @@
 "use client";
 
 import { SquareTerminal } from "lucide-react";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { Button } from "@/components/ui/button";
 import { modeDefaults } from "@/features/preferences/modes";
@@ -24,6 +24,15 @@ export function ConsolePanel() {
   // The job that was revealed, so a new compile hides the output again without an effect.
   const [revealedJob, setRevealedJob] = useState<number | null>(null);
   const hidden = predictFirst && revealedJob !== jobId && !atEnd;
+  // Reveal unmounts its own button, so focus moves to the console it uncovered.
+  const preRef = useRef<HTMLPreElement>(null);
+  const focusOnReveal = useRef(false);
+  useEffect(() => {
+    if (!hidden && focusOnReveal.current) {
+      focusOnReveal.current = false;
+      preRef.current?.focus();
+    }
+  }, [hidden]);
   return (
     <section aria-label="Console" className="flex min-h-0 min-w-0 flex-col gap-2 rounded-lg border border-border bg-panel p-3">
       <div className="flex items-center gap-1.5">
@@ -36,7 +45,10 @@ export function ConsolePanel() {
       {hidden ? (
         <div className="flex flex-col items-start gap-2">
           <p className="text-sm text-muted-foreground">Predict the output, then reveal</p>
-          <Button type="button" variant="outline" size="sm" onClick={() => setRevealedJob(jobId)}>
+          <Button type="button" variant="outline" size="sm" onClick={() => {
+              focusOnReveal.current = true;
+              setRevealedJob(jobId);
+            }}>
             Reveal
           </Button>
         </div>
@@ -44,6 +56,7 @@ export function ConsolePanel() {
       {!hidden && lines.length === 0 ? <p className="text-xs text-muted-foreground">No output yet.</p> : null}
       {hidden ? null : (
         <pre
+          ref={preRef}
           data-testid="console"
           // The log can outgrow its box, so keyboard users need to scroll it.
           tabIndex={0}
