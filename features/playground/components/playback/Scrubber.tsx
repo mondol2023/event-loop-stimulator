@@ -66,13 +66,17 @@ export function Scrubber() {
   const markers = useStore(store, (s) => s.compile.markers);
   const { phase } = useLoopPhase();
   const thumbRef = useRef<HTMLSpanElement>(null);
+  const playedRef = useRef<HTMLSpanElement>(null);
   const dragging = useRef(false);
   const empty = length === 0;
 
   // The thumb moves through the CSSOM, never a server-rendered style attribute (D1). It moves by transform,
   // not by `left`: a layout property would count as a layout shift on every tick of a playing run.
   useLayoutEffect(() => {
-    if (thumbRef.current) thumbRef.current.style.transform = `translateX(${percentOf(index, length)}%)`;
+    const percent = percentOf(index, length);
+    if (thumbRef.current) thumbRef.current.style.transform = `translateX(${percent}%)`;
+    // The played part of the track grows from the left by scale, for the same reason.
+    if (playedRef.current) playedRef.current.style.transform = `scaleX(${percent / 100})`;
   }, [index, length]);
 
   function seekToPointer(e: PointerEvent<HTMLDivElement>): void {
@@ -143,13 +147,16 @@ export function Scrubber() {
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
-          className="relative h-5 cursor-pointer touch-none rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50"
+          className="relative h-5 cursor-pointer touch-none pointer-coarse:h-11 rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50"
         >
-          <span aria-hidden="true" className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-muted" />
+          <span aria-hidden="true" className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-muted">
+            <span ref={playedRef} className="absolute inset-0 origin-left [transform:scaleX(0)] bg-primary/40" />
+          </span>
           {/* The clip keeps the moved carrier from widening the page; it reaches 8px past each end (the padding around the
-              slider) so the thumb is whole at both ends. The carrier is as wide as the track, so a percentage translate is a
-              fraction of the track, and the thumb sits on its left edge. */}
-          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 -inset-x-2 overflow-hidden">
+              slider) so the thumb is whole at both ends. It clips sideways only, so the thumb's shadow is whole above and
+              below. The carrier is as wide as the track, so a percentage translate is a fraction of the track, and the
+              thumb sits on its left edge. */}
+          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 -inset-x-2 overflow-x-clip">
             <span ref={thumbRef} data-testid="scrubber-thumb" className="absolute inset-y-0 inset-x-2">
               <span className="absolute top-1/2 left-0 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-primary shadow" />
             </span>

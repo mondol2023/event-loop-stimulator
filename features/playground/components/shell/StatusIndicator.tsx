@@ -22,10 +22,13 @@ export function StatusIndicator() {
   const { label, Icon } = STATUS[status];
   return (
     <p className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
-      <Icon aria-hidden="true" className="size-4 shrink-0" />
+      {/* The label alone carries the status; below 640 px the icon gives its room to the top bar's controls. */}
+      <Icon aria-hidden="true" className="hidden size-4 shrink-0 sm:block" />
       {/* One live region for the label and the failure message, so both are announced. */}
       <span role="status" className="flex min-w-0 items-center gap-1.5">
-        <span data-testid="status">{label}</span>
+        <span data-testid="status" className="truncate">
+          {label}
+        </span>
         {message ? <span className="truncate text-warning">{message}</span> : null}
       </span>
     </p>

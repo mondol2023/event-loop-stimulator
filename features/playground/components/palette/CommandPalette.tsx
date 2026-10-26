@@ -1,20 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { usePreferences } from "@/features/preferences/usePreferences";
-import type { UsageMode } from "@/features/preferences/modes";
 import { EXAMPLES, type Example } from "../../examples";
 import { usePlaygroundStore, useRunNow } from "../../store/PlaygroundContext";
+import { MODES } from "../shell/TopBarControls";
 
 type Page = "root" | "examples" | "mode" | "tick";
 
-const MODES: readonly { value: UsageMode; label: string }[] = [
-  { value: "self-study", label: "Self-study" },
-  { value: "interview", label: "Interview" },
-  { value: "classroom", label: "Classroom" },
-];
+// The Hardware tab, and so "Toggle 3D", exists from md (768 px) up. Without matchMedia (jsdom) it counts as wide.
+const WIDE = "(min-width: 768px)";
+const hasMatchMedia = (): boolean => typeof window.matchMedia === "function";
+function subscribeWide(onChange: () => void): () => void {
+  if (!hasMatchMedia()) return () => undefined;
+  const query = window.matchMedia(WIDE);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+const isWide = (): boolean => !hasMatchMedia() || window.matchMedia(WIDE).matches;
+
+function Current() {
+  return <span className="ml-auto text-xs text-muted-foreground">current</span>;
+}
 
 export type CommandPaletteProps = {
   open: boolean;
@@ -27,7 +36,9 @@ export type CommandPaletteProps = {
 export function CommandPalette({ open, onOpenChange, onChooseExample, onShowHardware, onShowStrippedJs }: CommandPaletteProps) {
   const store = usePlaygroundStore();
   const runNow = useRunNow();
-  const { setTheme, setMode } = usePreferences();
+  const { theme, mode, setTheme, setMode } = usePreferences();
+  // The palette is client-only (lazy), so the server snapshot is never rendered.
+  const wide = useSyncExternalStore(subscribeWide, isWide, () => true);
   const hasStripped = useStore(store, (s) => s.compile.strippedJs !== null);
   const [page, setPage] = useState<Page>("root");
   const [search, setSearch] = useState("");
@@ -79,15 +90,33 @@ export function CommandPalette({ open, onOpenChange, onChooseExample, onShowHard
           {page === "tick" && (tick === null || tick < 1) ? <p className="px-2 py-3 text-sm text-muted-foreground">Type a tick number, from 1.</p> : null}
           {page === "root" ? (
             <CommandGroup heading="Commands">
-              <CommandItem onSelect={run(runNow)}>Run</CommandItem>
+              <CommandItem
+                onSelect={run(() => {
+                  runNow();
+                  // Nothing was waiting to compile, so the run on screen is current: play it again from the start.
+                  const s = store.getState();
+                  if (s.compile.status === "ready" && s.playback.length > 0) {
+                    s.seek(0);
+                    s.play();
+                  }
+                })}
+              >
+                Run
+              </CommandItem>
               <CommandItem onSelect={() => go("examples")}>Examples ›</CommandItem>
               <CommandItem onSelect={() => go("tick")}>Go to tick…</CommandItem>
-              <CommandItem onSelect={run(onShowHardware)}>Toggle 3D</CommandItem>
+              {wide ? <CommandItem onSelect={run(onShowHardware)}>Toggle 3D</CommandItem> : null}
               <CommandItem disabled={!hasStripped} onSelect={run(onShowStrippedJs)}>
                 Show stripped JS
               </CommandItem>
-              <CommandItem onSelect={run(() => setTheme("light"))}>Theme: Light</CommandItem>
-              <CommandItem onSelect={run(() => setTheme("dark"))}>Theme: Dark</CommandItem>
+              <CommandItem value="Theme: Light" onSelect={run(() => setTheme("light"))}>
+                Theme: Light
+                {theme === "light" ? <Current /> : null}
+              </CommandItem>
+              <CommandItem value="Theme: Dark" onSelect={run(() => setTheme("dark"))}>
+                Theme: Dark
+                {theme === "dark" ? <Current /> : null}
+              </CommandItem>
               <CommandItem onSelect={() => go("mode")}>Mode ›</CommandItem>
             </CommandGroup>
           ) : null}
@@ -103,8 +132,9 @@ export function CommandPalette({ open, onOpenChange, onChooseExample, onShowHard
           {page === "mode" ? (
             <CommandGroup heading="Mode">
               {MODES.map((m) => (
-                <CommandItem key={m.value} onSelect={run(() => setMode(m.value))}>
+                <CommandItem key={m.value} value={m.label} onSelect={run(() => setMode(m.value))}>
                   {m.label}
+                  {mode === m.value ? <Current /> : null}
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -2,17 +2,7 @@
 
 import { BookOpen } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
-import { type RefObject, useRef, useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { lazy, type RefObject, Suspense, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EXAMPLES, type Example, exampleForSource } from "../../examples";
 import { usePlaygroundStore } from "../../store/PlaygroundContext";
@@ -95,29 +85,20 @@ export function ExamplesMenu() {
   );
 }
 
-/** The confirmation before an example replaces the learner's own code. */
+const ReplaceExampleDialogContent = lazy(() => import("./ReplaceExampleDialog").then((m) => ({ default: m.ReplaceExampleDialogContent })));
+
+/**
+ * The confirmation before an example replaces the learner's own code. Its dialog code loads the first time it is
+ * needed and then stays mounted, so its exit animation still runs.
+ */
 export function ReplaceExampleDialog({ choice, returnFocusRef }: { choice: ChooseExample; returnFocusRef?: RefObject<HTMLElement | null> }) {
-  const { pending, title, confirm, cancel } = choice;
-  return (
-      <AlertDialog open={pending !== null} onOpenChange={(open) => !open && cancel()}>
-        <AlertDialogContent
-          // The menu item that opened this has unmounted, so Radix has nowhere to return focus to.
-          onCloseAutoFocus={(event) => {
-            event.preventDefault();
-            returnFocusRef?.current?.focus();
-          }}
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle>{`Replace your code with '${title}'?`}</AlertDialogTitle>
-            <AlertDialogDescription>Your current code is not one of the examples, so it will be lost.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirm}>Replace</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-  );
+  const [needed, setNeeded] = useState(false);
+  if (!needed && choice.pending !== null) setNeeded(true);
+  return needed ? (
+    <Suspense fallback={null}>
+      <ReplaceExampleDialogContent choice={choice} returnFocusRef={returnFocusRef} />
+    </Suspense>
+  ) : null;
 }
 
 /** The empty editor's teaching state: the same examples as the menu, one tap from running. */

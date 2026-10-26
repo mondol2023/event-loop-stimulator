@@ -1,6 +1,8 @@
 "use client";
 
+import { Command } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { isModalOpen } from "../../keyboard/shortcuts";
 import { ReplaceExampleDialog, useChooseExample } from "../examples/ExamplesMenu";
 
@@ -8,7 +10,10 @@ import { ReplaceExampleDialog, useChooseExample } from "../examples/ExamplesMenu
 const CommandPalette = lazy(() => import("./CommandPalette").then((m) => ({ default: m.CommandPalette })));
 const StrippedJsDialog = lazy(() => import("./StrippedJsDialog").then((m) => ({ default: m.StrippedJsDialog })));
 
-/** Ctrl/Cmd+K anywhere, CodeMirror included: the capture phase runs before the editor's own keymap, and ADR-047 ignores modified keys. */
+/**
+ * Ctrl/Cmd+K anywhere, CodeMirror included: the capture phase runs before the editor's own keymap, and ADR-047 ignores modified keys.
+ * The top bar's "Commands" button opens the same palette, so touch users reach it too.
+ */
 export function PaletteLauncher({ onShowHardware }: { onShowHardware(): void }) {
   const [open, setOpen] = useState(false);
   const [everOpened, setEverOpened] = useState(false);
@@ -27,10 +32,10 @@ export function PaletteLauncher({ onShowHardware }: { onShowHardware(): void }) 
     function onKeyDown(e: KeyboardEvent): void {
       // e.code, so non-Latin layouts work; macOS users press Cmd (metaKey), others Ctrl.
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.code !== "KeyK") return;
+      // Another modal (the palette itself excepted) owns the keyboard, this chord included.
+      if (!openRef.current && isModalOpen()) return;
       e.preventDefault();
       e.stopPropagation();
-      // Another modal (the palette itself excepted) owns the keyboard.
-      if (!openRef.current && isModalOpen()) return;
       if (!openRef.current) returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setEverOpened(true);
       setOpen((o) => !o);
@@ -41,6 +46,21 @@ export function PaletteLauncher({ onShowHardware }: { onShowHardware(): void }) 
 
   return (
     <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-label="Commands"
+        aria-keyshortcuts="Control+K Meta+K"
+        onClick={(e) => {
+          returnFocusRef.current = e.currentTarget;
+          setEverOpened(true);
+          setOpen(true);
+        }}
+      >
+        <Command aria-hidden="true" />
+        <span className="hidden md:inline">Commands</span>
+      </Button>
       <Suspense fallback={null}>
         {everOpened ? (
           <CommandPalette

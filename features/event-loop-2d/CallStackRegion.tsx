@@ -15,9 +15,13 @@ const LEAVE = { duration: 0.15, ease: [0.22, 1, 0.36, 1] } as const;
 // min-h-8 is the empty state's height too, so the first frame arriving or the last leaving (0 and 1 frames) does not move the regions below it.
 const FRAME_CLASS = "flex min-h-8 items-center rounded-md border border-border border-l-4 border-l-primary bg-card px-3 py-1 text-sm text-card-foreground";
 
+/**
+ * A function with no name (the CommonJS module wrapper, an anonymous callback) reads "(anonymous)", as V8's stack
+ * traces do. It is generated content, so the element's text stays the frame's real name.
+ */
 function FrameName({ name }: { name: string }) {
   return (
-    <span data-testid="frame-name" className="font-mono">
+    <span data-testid="frame-name" className="font-mono empty:text-muted-foreground empty:italic empty:before:content-['(anonymous)']">
       {name}
     </span>
   );

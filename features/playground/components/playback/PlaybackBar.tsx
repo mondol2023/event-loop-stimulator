@@ -2,10 +2,13 @@
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pause, Play, SkipBack, SkipForward, type LucideIcon } from "lucide-react";
 import { useStore } from "zustand";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { LoopPhase, TickPhase } from "@/core/timeline/Tick";
+import { useLoopPhase } from "../../hooks/useTickSelectors";
 import { usePlaygroundStore } from "../../store/PlaygroundContext";
 import { PLAYBACK_SPEEDS } from "../../store/playgroundStore";
 import { NarrationLine } from "./NarrationLine";
@@ -18,6 +21,7 @@ function TransportButton({
   Icon,
   disabled,
   onClick,
+  primary = false,
 }: {
   label: string;
   /** The shortcut, one entry per key cap. */
@@ -25,11 +29,13 @@ function TransportButton({
   Icon: LucideIcon;
   disabled: boolean;
   onClick: () => void;
+  /** Play/Pause: the one primary (green) control, since green marks what runs. */
+  primary?: boolean;
 }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button type="button" variant="ghost" size="icon" aria-label={label} disabled={disabled} onClick={onClick}>
+        <Button type="button" variant={primary ? "default" : "ghost"} size="icon" aria-label={label} disabled={disabled} onClick={onClick}>
           <Icon aria-hidden="true" />
         </Button>
       </TooltipTrigger>
@@ -42,6 +48,46 @@ function TransportButton({
         </KbdGroup>
       </TooltipContent>
     </Tooltip>
+  );
+}
+
+/** The current tick's phase, in the words the scrubber's markers and the loop view use. */
+function phaseLabel(phase: TickPhase | null, loopPhase: LoopPhase | null): string {
+  switch (phase) {
+    case null:
+      return "no run";
+    case "script":
+      return "main script";
+    case "microtask":
+      return "microtasks";
+    case "loop-transition":
+      return loopPhase ?? "between phases";
+    default:
+      return phase;
+  }
+}
+
+function phaseTone(phase: TickPhase | null): string {
+  switch (phase) {
+    case "nextTick":
+    case "microtask":
+      return "border-microtask/50 text-microtask";
+    case "timers":
+    case "check":
+      return "border-macrotask/50 text-macrotask";
+    default:
+      return "border-border text-muted-foreground";
+  }
+}
+
+/** A fixed width, so a longer phase name never moves the stop notice beside it while playing. */
+function PhaseChip() {
+  const { phase, loopPhase } = useLoopPhase();
+  return (
+    <span className={cn("inline-flex h-6 w-32 shrink-0 items-center justify-center truncate rounded-full border px-2 font-mono text-xs", phaseTone(phase))}>
+      <span className="sr-only">Phase: </span>
+      {phaseLabel(phase, loopPhase)}
+    </span>
   );
 }
 
@@ -71,6 +117,7 @@ export function PlaybackBar() {
               Icon={isPlaying ? Pause : Play}
               disabled={empty}
               onClick={() => actions.togglePlay()}
+              primary
             />
             <TransportButton label="Step forward" keys={["→"]} Icon={ChevronRight} disabled={empty} onClick={() => actions.step(1)} />
             <TransportButton label="Next job" keys={["Shift", "→"]} Icon={ChevronsRight} disabled={empty} onClick={() => actions.jumpBoundary(1)} />
@@ -97,7 +144,10 @@ export function PlaybackBar() {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        <span className="text-sm text-muted-foreground tabular-nums">{`Tick ${empty ? 0 : index + 1} / ${length}`}</span>
+        <span className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground tabular-nums">{`Tick ${empty ? 0 : index + 1} / ${length}`}</span>
+          <PhaseChip />
+        </span>
         <StopNotice stop={stop} />
       </div>
       <Scrubber />

@@ -6,7 +6,7 @@ import { useShortcuts } from "../../keyboard/useShortcuts";
 import { PlaygroundStoreContext } from "../../store/PlaygroundContext";
 import { createPlaygroundStore, PLAYBACK_SPEEDS, type PlaygroundStore } from "../../store/playgroundStore";
 import { fixtureRun, runSource } from "../../test/fixtureTimeline";
-import { NarrationLine } from "./NarrationLine";
+import { NarrationLine, narrationParts } from "./NarrationLine";
 import { PlaybackBar } from "./PlaybackBar";
 import { Scrubber } from "./Scrubber";
 import { StopNotice } from "./StopNotice";
@@ -248,5 +248,26 @@ describe("NarrationLine", () => {
     const region = screen.getByRole("status", { name: "Narration" });
     expect(region.getAttribute("aria-live")).toBe("polite");
     expect(region.textContent).toBe("");
+  });
+
+  it("goes quiet while playing, so ticks are not announced one by one", () => {
+    const store = readyStore();
+    mount(store, <NarrationLine />);
+    act(() => store.getState().play());
+    expect(screen.getByRole("status", { name: "Narration" }).getAttribute("aria-live")).toBe("off");
+    act(() => store.getState().pause());
+    expect(screen.getByRole("status", { name: "Narration" }).getAttribute("aria-live")).toBe("polite");
+  });
+
+  it("renders backtick-quoted code as mono text without the backticks", () => {
+    const { container } = render(<p>{narrationParts("V8 runs `then(f)` from its queue")}</p>);
+    expect(container.textContent).toBe("V8 runs then(f) from its queue");
+    expect(container.querySelector("code")?.textContent).toBe("then(f)");
+  });
+
+  it("leaves an unpaired backtick as typed", () => {
+    const { container } = render(<p>{narrationParts("a `b c")}</p>);
+    expect(container.textContent).toBe("a `b c");
+    expect(container.querySelector("code")).toBeNull();
   });
 });

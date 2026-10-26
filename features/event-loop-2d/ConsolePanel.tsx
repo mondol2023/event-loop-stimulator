@@ -1,6 +1,6 @@
 "use client";
 
-import { SquareTerminal } from "lucide-react";
+import { Eye, SquareTerminal } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { TruthBadge } from "@/features/playground/components/TruthBadge";
@@ -39,6 +39,7 @@ export function ConsolePanel() {
               focusOnReveal.current = true;
               reveal();
             }}>
+            <Eye aria-hidden="true" />
             Reveal
           </Button>
         </div>

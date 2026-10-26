@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { EXAMPLES } from "../../examples";
 import { isModalOpen } from "../../keyboard/shortcuts";
 
 const STORAGE_KEY = "sl_onboarded";
@@ -10,7 +11,7 @@ const STORAGE_KEY = "sl_onboarded";
 type Step = { target: string; title: string; body: string };
 
 const STEPS: readonly Step[] = [
-  { target: "editor", title: "The editor and examples", body: "Write JavaScript or TypeScript here, or load one of the ten examples. The views update as you type." },
+  { target: "editor", title: "The editor and examples", body: `Write JavaScript or TypeScript here, or load one of the ${EXAMPLES.length} examples. The views update as you type.` },
   { target: "panes", title: "The panes", body: "Each pane shows one stage V8 goes through. Hover a line in any of them to see the same line lit in the others." },
   { target: "playback", title: "Play and the scrubber", body: "Press Play, or drag the scrubber, to move through the run one tick at a time." },
 ];
@@ -42,6 +43,28 @@ function measure(target: string): Place {
 }
 
 const CARD_WIDTH = 320;
+// Measured from the rendered card with its two-line body; a taller card still stays on screen (the clamp below).
+const CARD_HEIGHT = 170;
+const GAP = 12;
+
+type Point = { top: number; left: number };
+
+/**
+ * Next to its target, never over it: below, above, right or left, the first side with room. A target that
+ * leaves no room on any side (a phone segment fills the screen) gets the card at its bottom edge, inside.
+ */
+function placeCard(place: Place, vw: number, vh: number, width: number): Point {
+  const clampLeft = (x: number): number => Math.min(Math.max(x, 8), vw - width - 8);
+  const clampTop = (y: number): number => Math.min(Math.max(y, 8), vh - CARD_HEIGHT - 8);
+  if (!place) return { top: Math.max(vh - 220, 8), left: (vw - width) / 2 };
+  const bottom = place.top + place.height;
+  const right = place.left + place.width;
+  if (bottom + GAP + CARD_HEIGHT <= vh) return { top: bottom + GAP, left: clampLeft(place.left) };
+  if (place.top - GAP - CARD_HEIGHT >= 0) return { top: place.top - GAP - CARD_HEIGHT, left: clampLeft(place.left) };
+  if (right + GAP + width <= vw) return { top: clampTop(place.top), left: right + GAP };
+  if (place.left - GAP - width >= 0) return { top: clampTop(place.top), left: place.left - GAP - width };
+  return { top: clampTop(bottom - CARD_HEIGHT - GAP), left: clampLeft(place.left + GAP) };
+}
 
 export function CoachMarks() {
   // Loaded with ssr:false, so storage is read on the client only and the server markup never differs.
@@ -76,12 +99,9 @@ export function CoachMarks() {
   if (!visible || !step) return null;
   const last = index === STEPS.length - 1;
 
-  // Anchored, the card sits inside its target on the edge nearer the screen's middle; unanchored, bottom center.
   const vw = window.innerWidth;
-  const vh = window.innerHeight;
   const width = Math.min(CARD_WIDTH, vw - 16);
-  const left = place ? Math.min(Math.max(place.left + 12, 8), vw - width - 8) : (vw - width) / 2;
-  const top = place ? (place.top > vh / 2 ? Math.max(place.top - 150, 8) : place.top + Math.min(place.height, 200) - 140) : Math.max(vh - 220, 8);
+  const { top, left } = placeCard(place, vw, window.innerHeight, width);
 
   return createPortal(
     <>
@@ -105,6 +125,11 @@ export function CoachMarks() {
           <Button type="button" variant="ghost" size="sm" className="ml-auto" onClick={dismiss}>
             Skip
           </Button>
+          {index > 0 ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => setIndex(index - 1)}>
+              Back
+            </Button>
+          ) : null}
           <Button type="button" size="sm" onClick={() => (last ? dismiss() : setIndex(index + 1))}>
             {last ? "Done" : "Next"}
           </Button>

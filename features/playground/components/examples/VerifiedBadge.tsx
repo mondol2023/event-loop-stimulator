@@ -7,13 +7,16 @@ import { useActiveExample } from "../../examples/useActiveExample";
 const SIMULATED = "Simulated by spec model";
 
 /** What the recorded run backs for an example: a "Matches Node" claim only when a recording exists. */
-export function ExampleStatus({ example, className }: { example: Example | null; className?: string }) {
+export function ExampleStatus({ example, className, compact = false }: { example: Example | null; className?: string; compact?: boolean }) {
+  const claim = example?.verified ? `Matches Node v${example.verified.node} (V8 ${example.verified.v8})` : null;
   return (
-    <span className={`inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${className ?? ""}`}>
-      {example?.verified ? (
-        <span className="inline-flex items-center gap-1 text-foreground">
+    <span className={`inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs ${className ?? ""}`}>
+      {claim ? (
+        // Compact (the editor header): a narrow header ends the line with an ellipsis rather than wrap it under the
+        // toolbar; the whole claim stays in the text and the native tooltip.
+        <span title={compact ? claim : undefined} className="inline-flex min-w-0 max-w-full items-center gap-1 text-foreground">
           <Check aria-hidden="true" className="size-3 shrink-0 text-primary" />
-          {`Matches Node v${example.verified.node} (V8 ${example.verified.v8})`}
+          <span className={compact ? "truncate" : undefined}>{claim}</span>
         </span>
       ) : (
         <span className="text-muted-foreground">{SIMULATED}</span>
@@ -33,5 +36,5 @@ export function ExampleStatus({ example, className }: { example: Example | null;
  * byte for byte; one edited character reverts it, because the claim is about that exact program.
  */
 export function VerifiedBadge() {
-  return <ExampleStatus example={useActiveExample()} />;
+  return <ExampleStatus example={useActiveExample()} compact />;
 }

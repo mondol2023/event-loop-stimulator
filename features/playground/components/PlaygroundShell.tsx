@@ -18,6 +18,7 @@ import { PaletteLauncher } from "./palette/PaletteLauncher";
 import { ResizableSplit } from "./ResizableSplit";
 import { PlaybackBar } from "./playback/PlaybackBar";
 import { StatusIndicator } from "./shell/StatusIndicator";
+import { TopBarControls } from "./shell/TopBarControls";
 import { TabPanel, tabTriggerProps } from "./shell/TabPanel";
 import { TruthBadge } from "./TruthBadge";
 
@@ -58,16 +59,25 @@ export function PlaygroundShell() {
     return () => query.removeEventListener("change", onChange);
   }, []);
   const codeGroup = useId();
+  // The palette offers this only from md (768 px) up, where the Hardware tab exists.
+  const showHardware = (): void => {
+    setBottomTab("hardware");
+    setCollapsed(false);
+  };
 
   return (
     <main className="flex h-dvh min-h-0 flex-col bg-background text-foreground">
       <ModeSpeedSync />
-      <header className="flex min-h-10 shrink-0 items-center gap-4 border-b border-border bg-panel px-3">
-        <Link href="/" className="text-sm font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+      <header className="flex min-h-10 shrink-0 items-center gap-3 border-b border-border bg-panel px-3 sm:gap-4">
+        <Link href="/" className="shrink-0 text-sm font-semibold whitespace-nowrap tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
           Silicon Loop
         </Link>
         <h1 className="sr-only">Playground</h1>
         <StatusIndicator />
+        <div className="ml-auto flex shrink-0 items-center gap-2 py-1">
+          <TopBarControls />
+          <PaletteLauncher onShowHardware={showHardware} />
+        </div>
       </header>
 
       <ToggleGroup
@@ -115,7 +125,8 @@ export function PlaygroundShell() {
                   <LangToggle />
                   <ExamplesMenu />
                   <TruthBadge level="exact" />
-                  <div className="ml-auto">
+                  {/* It shares the row while 12 rem are left and truncates; with less it takes a line of its own. */}
+                  <div className="ml-auto flex min-w-0 grow basis-48 justify-end">
                     <VerifiedBadge />
                   </div>
                 </div>
@@ -168,15 +179,6 @@ export function PlaygroundShell() {
         }
       />
       <PlaybackBar />
-      <PaletteLauncher
-        onShowHardware={() => {
-          // The Hardware tab is not offered below md, so selecting it there would show a panel with no tab.
-          if (window.matchMedia("(min-width: 768px)").matches) {
-            setBottomTab("hardware");
-            setCollapsed(false);
-          }
-        }}
-      />
       <CoachMarksLazy />
     </main>
   );

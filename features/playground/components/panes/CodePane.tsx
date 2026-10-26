@@ -22,7 +22,8 @@ export function CodePane({ pane, doc, label, truth, headers, actions }: CodePane
   return (
     <section aria-label={label} className="flex h-full min-h-0 flex-col bg-panel">
       <header className="flex min-h-9 shrink-0 items-center gap-2 border-b border-border px-3">
-        <h2 className="text-sm font-medium text-panel-foreground">{label}</h2>
+        {/* The tab above already shows the name; the heading stays for assistive technology. */}
+        <h2 className="sr-only">{label}</h2>
         <TruthBadge level={truth} />
         {actions ? <div className="ml-auto flex items-center gap-2">{actions}</div> : null}
       </header>
