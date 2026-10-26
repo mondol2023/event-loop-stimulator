@@ -30,6 +30,20 @@ describe("pipeline events", () => {
     expect(compile.markers).toEqual(run.simulated.markers);
   });
 
+  it("keeps the tier tracks and hardware trace of the job and resets them with the markers", () => {
+    const store = readyStore();
+    const { compile } = store.getState();
+    expect(compile.tierTracks).toEqual(run.simulated.tierTracks);
+    expect(compile.hardware).toEqual(run.simulated.hardware);
+    expect(compile.hardware).toHaveLength(run.simulated.tickCount);
+    store.getState().applyPipelineEvent({ kind: "response", response: { ...run.compiled, jobId: 2 } });
+    expect(store.getState().compile).toMatchObject({ tierTracks: [], hardware: [] });
+    const failed = readyStore();
+    failed.getState().applyPipelineEvent({ kind: "started", jobId: 2 });
+    failed.getState().applyPipelineEvent({ kind: "failed", jobId: 2, message: "worker crashed" });
+    expect(failed.getState().compile).toMatchObject({ tierTracks: [], hardware: [] });
+  });
+
   it("resets markers in the same notification when a new job compiles", () => {
     const store = readyStore();
     expect(store.getState().compile.markers.length).toBeGreaterThan(0);

@@ -70,6 +70,15 @@ describe("handleRequest", () => {
     expect(stdout).toBe(fixtureStdout);
   });
 
+  it("posts the tier tracks and one hardware step per tick next to the markers", () => {
+    const sim = run(fixtureSource).find((r) => r.type === "simulated");
+    if (sim?.type !== "simulated") throw new Error("expected simulated");
+    expect(sim.hardware).toHaveLength(sim.tickCount);
+    expect(sim.tierTracks[0]?.segments[0]).toEqual({ from: 0, tier: "ignition" });
+    expect(sim.hardware.some((h) => h.bus !== null)).toBe(true);
+    expect(parseResponse(sim)).toEqual(sim);
+  });
+
   it("gives every asm line an Intel form that differs from the AT&T text for a mov", () => {
     const [compiled] = run(fixtureSource);
     if (compiled?.type !== "compiled" || !compiled.views) throw new Error("expected views");
@@ -161,7 +170,7 @@ describe("handleRequest", () => {
 });
 
 describe("parseResponse", () => {
-  const simulated = { type: "simulated", jobId: 1, timeline: "{}", boundaries: [0], markers: [{ index: 0, kind: "job", phase: "script", loopPhase: null }], tickCount: 1, exitCode: 0, warnings: [], stop: null };
+  const simulated = { type: "simulated", jobId: 1, timeline: "{}", boundaries: [0], markers: [{ index: 0, kind: "job", phase: "script", loopPhase: null }], tierTracks: [], hardware: [], tickCount: 1, exitCode: 0, warnings: [], stop: null };
 
   it("accepts a valid simulated response", () => {
     expect(parseResponse(simulated)).toEqual(simulated);
@@ -176,6 +185,19 @@ describe("parseResponse", () => {
     const marker = { index: 0, kind: "warning", message: "m" };
     expect(parseResponse({ ...simulated, markers: Array.from({ length: 10_000 }, () => marker) })).not.toBeNull();
     expect(parseResponse({ ...simulated, markers: Array.from({ length: 10_001 }, () => marker) })).toBeNull();
+  });
+
+  it("accepts both new arrays filled, and rejects an oversized hardware or tierTracks array", () => {
+    const step = { alu: "cmp", bus: { kind: "read", region: "stack" }, servedBy: "l1", l1: [1, 2], l2: [1, 2] };
+    const track = { functionId: 0, functionName: "main", segments: [{ from: 0, tier: "ignition" }], deopts: [{ index: 3, reason: "kWrongMap" }] };
+    const filled = { ...simulated, tierTracks: [track], hardware: [step] };
+    expect(parseResponse(filled)).toEqual(filled);
+    expect(parseResponse({ ...simulated, hardware: Array.from({ length: 5000 }, () => step) })).not.toBeNull();
+    expect(parseResponse({ ...simulated, hardware: Array.from({ length: 5001 }, () => step) })).toBeNull();
+    expect(parseResponse({ ...simulated, tierTracks: Array.from({ length: 1000 }, () => track) })).not.toBeNull();
+    expect(parseResponse({ ...simulated, tierTracks: Array.from({ length: 1001 }, () => track) })).toBeNull();
+    expect(parseResponse({ ...simulated, hardware: [{ ...step, alu: "div" }] })).toBeNull();
+    expect(parseResponse({ ...simulated, tierTracks: undefined })).toBeNull();
   });
 
   it("rejects an unknown stop limit", () => {

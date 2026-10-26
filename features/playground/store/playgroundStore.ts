@@ -2,6 +2,8 @@ import { subscribeWithSelector } from "zustand/middleware";
 import { createStore, type Mutate, type StoreApi } from "zustand/vanilla";
 import type { BaselineCode } from "@/core/baseline/Template";
 import type { Language } from "@/core/compile/CompilationManager";
+import type { HardwareStep } from "@/core/hardware/traceHardware";
+import type { TierTrack } from "@/core/interpreter/tiering/tierTimeline";
 import type { Diagnostic } from "@/core/shared/diagnostics";
 import type { SimulationStop } from "@/core/shared/simulationHalt";
 import type { TimelineMarker } from "@/core/timeline/boundaries";
@@ -28,6 +30,10 @@ export type PlaygroundState = {
     baselines: readonly BaselineCode[] | null;
     boundaries: readonly number[];
     markers: readonly TimelineMarker[];
+    /** Modeled (D5): per-function tier segments and deopts. */
+    tierTracks: readonly TierTrack[];
+    /** Illustrative (D2): one step per tick. */
+    hardware: readonly HardwareStep[];
     /** Bumped whenever the held TimelineStore is replaced or dropped, so readers know to refetch it. */
     timelineVersion: number;
     exitCode: number | null;
@@ -85,6 +91,8 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
               baselines: null,
               boundaries: [],
               markers: [],
+              tierTracks: [],
+              hardware: [],
               timelineVersion: compile.timelineVersion + 1,
               exitCode: null,
               warnings: [],
@@ -116,6 +124,8 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
             baselines: response.baselines,
             boundaries: [],
             markers: [],
+            tierTracks: [],
+            hardware: [],
             timelineVersion: compile.timelineVersion + 1,
             exitCode: null,
             warnings: [],
@@ -150,6 +160,8 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
             message: null,
             boundaries: response.boundaries,
             markers: response.markers,
+            tierTracks: response.tierTracks,
+            hardware: response.hardware,
             timelineVersion: compile.timelineVersion + 1,
             exitCode: response.exitCode,
             warnings: response.warnings,
@@ -171,6 +183,8 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
           baselines: null,
           boundaries: [],
           markers: [],
+          tierTracks: [],
+          hardware: [],
           timelineVersion: 0,
           exitCode: null,
           warnings: [],

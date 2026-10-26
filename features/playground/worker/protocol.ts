@@ -1,6 +1,9 @@
 import type { BaselineCode } from "@/core/baseline/Template";
+import type { HardwareStep } from "@/core/hardware/traceHardware";
+import { DEOPTIMIZE_REASONS, TIERS, type TierTrack } from "@/core/interpreter/tiering/tierTimeline";
 import type { Diagnostic } from "@/core/shared/diagnostics";
 import { DIAGNOSTIC_CODES } from "@/core/shared/diagnostics";
+import { LIMITS } from "@/core/shared/limits";
 import { SIMULATION_LIMITS, type SimulationStop } from "@/core/shared/simulationHalt";
 import { z } from "@/core/shared/zod";
 import type { TimelineMarker } from "@/core/timeline/boundaries";
@@ -58,6 +61,10 @@ export type PipelineResponse =
       readonly timeline: string;
       readonly boundaries: number[];
       readonly markers: TimelineMarker[];
+      /** Modeled (D5): empty when no function was tiered. */
+      readonly tierTracks: TierTrack[];
+      /** Illustrative (D2): one step per tick. */
+      readonly hardware: HardwareStep[];
       readonly tickCount: number;
       readonly exitCode: number;
       readonly warnings: string[];
@@ -118,6 +125,29 @@ const MarkerSchema = z.discriminatedUnion("kind", [
   z.object({ index: nonNegativeInt, kind: z.literal("warning"), message: z.string() }).strict(),
 ]);
 
+const TICKS_MAX = LIMITS.ticks;
+const TIER_TRACKS_MAX = 1000;
+const TierSchema = z.enum(TIERS);
+const TierTrackSchema = z
+  .object({
+    functionId: nonNegativeInt,
+    functionName: z.string(),
+    segments: z.array(z.object({ from: nonNegativeInt, tier: TierSchema }).strict()),
+    deopts: z.array(z.object({ index: nonNegativeInt, reason: z.enum(DEOPTIMIZE_REASONS) }).strict()),
+  })
+  .strict();
+
+const AluOpSchema = z.enum(["add", "sub", "and", "or", "xor", "shl", "sar", "cmp", "test", "inc", "dec", "neg", "imul"]);
+const HardwareStepSchema = z
+  .object({
+    alu: AluOpSchema.nullable(),
+    bus: z.object({ kind: z.enum(["fetch", "read", "write"]), region: z.enum(["code", "stack", "young", "old"]) }).strict().nullable(),
+    servedBy: z.enum(["l1", "l2", "ram"]).nullable(),
+    l1: z.array(nonNegativeInt),
+    l2: z.array(nonNegativeInt),
+  })
+  .strict();
+
 const StopSchema = z.union([
   z.object({ kind: z.literal("limit"), limit: z.enum(SIMULATION_LIMITS) }).strict(),
   z.object({ kind: z.literal("unsupported"), reason: z.string() }).strict(),
@@ -142,6 +172,8 @@ export const PipelineResponseSchema = z.discriminatedUnion("type", [
       timeline: z.string().max(TIMELINE_MAX_CHARS),
       boundaries: z.array(nonNegativeInt),
       markers: z.array(MarkerSchema).max(MARKERS_MAX),
+      tierTracks: z.array(TierTrackSchema).max(TIER_TRACKS_MAX),
+      hardware: z.array(HardwareStepSchema).max(TICKS_MAX),
       tickCount: nonNegativeInt,
       exitCode: z.number().int(),
       warnings: z.array(z.string()),

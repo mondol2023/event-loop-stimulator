@@ -2,6 +2,8 @@ import { compileBaseline } from "@/core/baseline/BaselineCompiler";
 import type { BaselineCode } from "@/core/baseline/Template";
 import type { BytecodeProgram } from "@/core/bytecode/BytecodeProgram";
 import { CompilationManager } from "@/core/compile/CompilationManager";
+import { traceHardware } from "@/core/hardware/traceHardware";
+import { tierTimeline } from "@/core/interpreter/tiering/tierTimeline";
 import { TieringModel } from "@/core/interpreter/tiering/TieringModel";
 import { jobBoundaries, timelineMarkers } from "@/core/timeline/boundaries";
 import { SimulationEngine } from "@/core/timeline/SimulationEngine";
@@ -46,6 +48,7 @@ export function handleRequest(request: PipelineRequest, post: (response: Pipelin
 
     // Reading `asm` and `binary` forces the lazy views, so the posted object holds plain data only.
     const plainViews: ClientViews = { ast: views.ast, bytecode: views.bytecode, asm: views.asm, binary: views.binary };
+    const baselines = baselinesOf(program);
     post({
       type: "compiled",
       jobId,
@@ -53,7 +56,7 @@ export function handleRequest(request: PipelineRequest, post: (response: Pipelin
       strippedJs,
       views: plainViews,
       lineIndex: buildLineIndex(program, plainViews, strippedJs),
-      baselines: baselinesOf(program),
+      baselines,
     });
 
     const result = new SimulationEngine().run(program, { tiering: new TieringModel() });
@@ -68,6 +71,9 @@ export function handleRequest(request: PipelineRequest, post: (response: Pipelin
       timeline,
       boundaries: jobBoundaries(result.ticks),
       markers: timelineMarkers(result.ticks),
+      tierTracks: tierTimeline(result.ticks),
+      // Derived once here, never stored on a Tick (D1, ADR-033).
+      hardware: traceHardware(result.ticks, baselines),
       tickCount: result.tickCount,
       exitCode: result.exitCode,
       warnings: [...result.warnings],
