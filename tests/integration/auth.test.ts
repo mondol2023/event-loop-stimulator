@@ -113,10 +113,8 @@ const rawUsers = () => mongoose.connection.db!.collection("users");
 describe("register and login through the Server Actions", () => {
   it("registers, signs in, stores an argon2id hash, and logs back in", async () => {
     const email = uniqueEmail("alice");
-    const redirected = await redirectOf(
-      registerAction({ ok: false }, form({ email, password: PASSWORD, displayName: "Alice" })),
-    );
-    expect(redirected).toContain("/playground");
+    const registered = await registerAction({ ok: false }, form({ email, password: PASSWORD, displayName: "Alice" }));
+    expect(registered).toEqual({ ok: true, redirectTo: "/playground" });
 
     const current = await getCurrentUser();
     expect(current).toMatchObject({ email, displayName: "Alice", role: "user" });
@@ -127,19 +125,17 @@ describe("register and login through the Server Actions", () => {
 
     req.cookies.clear();
     expect(await getCurrentUser()).toBeNull();
-    const loggedIn = await redirectOf(loginAction({ ok: false }, form({ email, password: PASSWORD })));
-    expect(loggedIn).toContain("/playground");
+    const loggedIn = await loginAction({ ok: false }, form({ email, password: PASSWORD }));
+    expect(loggedIn).toEqual({ ok: true, redirectTo: "/playground" });
     expect((await getCurrentUser())?.email).toBe(email);
     expect((await userRepository.findByEmail(email))?.lastLoginAt).toBeInstanceOf(Date);
   });
 
   it("ignores unknown form fields such as role, and a registered user is never an admin", async () => {
     const email = uniqueEmail("sneaky");
-    await redirectOf(
-      registerAction(
-        { ok: false },
-        form({ email, password: PASSWORD, displayName: "Sneaky", role: "admin", status: "active", $ACTION_ID_x: "1" }),
-      ),
+    await registerAction(
+      { ok: false },
+      form({ email, password: PASSWORD, displayName: "Sneaky", role: "admin", status: "active", $ACTION_ID_x: "1" }),
     );
     expect((await getCurrentUser())?.role).toBe("user");
     expect((await userRepository.findByEmail(email))?.role).toBe("user");

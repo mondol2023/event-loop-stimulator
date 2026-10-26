@@ -44,4 +44,6 @@ export type AuthFormState = {
   ok: boolean;
   message?: string;
   fieldErrors?: Record<string, string[]>;
+  /** Set on a successful sign-in/up. The client form must hard-navigate (`window.location.assign`) so the next document gets its own CSP nonce. */
+  redirectTo?: string;
 };

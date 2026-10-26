@@ -70,8 +70,9 @@ export async function registerAction(_prev: AuthFormState, formData: FormData): 
 
   const result = await register(parsed.data, await getRequestContext());
   if (!result.ok) return failureState(result);
-  // redirect() throws: it must stay outside any try/catch.
-  redirect("/playground");
+  // No redirect(): that is a soft navigation, so /playground would get a fresh CSP nonce
+  // while this document keeps the old one. The client form hard-navigates to redirectTo.
+  return { ok: true, redirectTo: "/playground" };
 }
 
 export async function loginAction(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
@@ -80,7 +81,7 @@ export async function loginAction(_prev: AuthFormState, formData: FormData): Pro
 
   const result = await login(parsed.data, await getRequestContext());
   if (!result.ok) return failureState(result);
-  redirect("/playground");
+  return { ok: true, redirectTo: "/playground" };
 }
 
 export async function logoutAction(): Promise<void> {
