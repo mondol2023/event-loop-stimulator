@@ -94,10 +94,16 @@ function PhaseChip() {
   );
 }
 
+/** Owns the per-tick subscription, so the rest of the bar does not re-render on every tick. */
+function TickCounter({ length }: { length: number }) {
+  const store = usePlaygroundStore();
+  const index = useStore(store, (s) => s.playback.index);
+  return <span className="text-sm text-muted-foreground tabular-nums">{`Tick ${length === 0 ? 0 : index + 1} / ${length}`}</span>;
+}
+
 /** The transport controls, the scrubber and the narration: the region under the run views. */
 export function PlaybackBar() {
   const store = usePlaygroundStore();
-  const index = useStore(store, (s) => s.playback.index);
   const length = useStore(store, (s) => s.playback.length);
   const isPlaying = useStore(store, (s) => s.playback.isPlaying);
   const speed = useStore(store, (s) => s.playback.speed);
@@ -148,7 +154,7 @@ export function PlaybackBar() {
           ))}
         </ToggleGroup>
         <span className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground tabular-nums">{`Tick ${empty ? 0 : index + 1} / ${length}`}</span>
+          <TickCounter length={length} />
           <PhaseChip />
         </span>
         <StopNotice stop={stop} />

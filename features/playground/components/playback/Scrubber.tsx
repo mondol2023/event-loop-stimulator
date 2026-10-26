@@ -1,7 +1,7 @@
 "use client";
 
 import { TriangleAlert } from "lucide-react";
-import { type KeyboardEvent, type PointerEvent, useLayoutEffect, useRef } from "react";
+import { type KeyboardEvent, type PointerEvent, memo, useLayoutEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { cn } from "cn";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -28,7 +28,7 @@ function jobBarClass(phase: TickPhase): string {
   }
 }
 
-function Marker({ marker, length }: { marker: TimelineMarker; length: number }) {
+const Marker = memo(function Marker({ marker, length }: { marker: TimelineMarker; length: number }) {
   const label = marker.kind === "job" ? `Tick ${marker.index + 1}, ${marker.phase}` : marker.message;
   return (
     <Tooltip>
@@ -53,7 +53,7 @@ function Marker({ marker, length }: { marker: TimelineMarker; length: number }) 
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
   );
-}
+});
 
 /**
  * The timeline track: a slider over every tick, with a mark under it for each job start and each

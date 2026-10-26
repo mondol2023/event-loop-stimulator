@@ -9,6 +9,7 @@ import { ModeSpeedSync } from "@/features/preferences/ModeSpeedSync";
 import { usePlaygroundStore } from "../store/PlaygroundContext";
 import { BottomPanel, type BottomTab } from "./bottom/BottomPanel";
 import { LangToggle } from "./editor/LangToggle";
+import type { Diagnostic } from "@/core/shared/diagnostics";
 import { ProblemsList } from "./editor/ProblemsList";
 import type { SourceEditorHandle } from "./editor/SourceEditor";
 import { ExamplesList, ExamplesMenu } from "./examples/ExamplesMenu";
@@ -35,14 +36,21 @@ const PANEL = "min-h-0 flex-1 outline-none";
 
 const showBelowLg = (active: boolean): string => (active ? "flex" : "hidden lg:flex");
 
+/** Subscribes to the source and diagnostics itself, so typing re-renders this list and not the whole shell. */
+function ConnectedProblems({ onSelect }: { onSelect: (diagnostic: Diagnostic) => void }) {
+  const store = usePlaygroundStore();
+  const diagnostics = useStore(store, (s) => s.editor.diagnostics);
+  const source = useStore(store, (s) => s.editor.source);
+  return <ProblemsList diagnostics={diagnostics} source={source} onSelect={onSelect} />;
+}
+
 /**
  * The IDE: the editor on the left, V8's views of the program on the right, the run below, and the
  * playback bar under all of them (docs/design/playground-shape.md sections 7 and 10).
  */
 export function PlaygroundShell() {
   const store = usePlaygroundStore();
-  const source = useStore(store, (s) => s.editor.source);
-  const diagnostics = useStore(store, (s) => s.editor.diagnostics);
+  const sourceEmpty = useStore(store, (s) => s.editor.source === "");
   const editorRef = useRef<SourceEditorHandle>(null);
   const [segment, setSegment] = useState<Segment>("editor");
   const [codeTab, setCodeTab] = useState<CodeTab>("ast");
@@ -132,7 +140,7 @@ export function PlaygroundShell() {
                 </div>
                 <div className="relative min-h-0 flex-1">
                   <SourceEditorLazy ref={editorRef} />
-                  {source === "" ? (
+                  {sourceEmpty ? (
                     // The wrapper lets clicks through to the editor; only the list itself takes them.
                     <div className="pointer-events-none absolute inset-x-3 top-10 bottom-3 flex items-start">
                       <div className="pointer-events-auto max-h-full w-full">
@@ -142,7 +150,7 @@ export function PlaygroundShell() {
                   ) : null}
                 </div>
                 <div className="max-h-[40%] shrink-0 overflow-y-auto">
-                  <ProblemsList diagnostics={diagnostics} source={source} onSelect={(d) => editorRef.current?.focusRange(d.range)} />
+                  <ConnectedProblems onSelect={(d) => editorRef.current?.focusRange(d.range)} />
                 </div>
               </section>
             }
