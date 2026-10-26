@@ -4,7 +4,7 @@ import { Command } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { isModalOpen } from "../../keyboard/shortcuts";
-import { ReplaceExampleDialog, useChooseExample } from "../examples/ExamplesMenu";
+import { preloadReplaceExampleDialog, ReplaceExampleDialog, useChooseExample } from "../examples/ExamplesMenu";
 
 // cmdk and CodeMirror load on first use, so the first-load JS (D6 budget) does not grow; only this chord listener ships eagerly.
 const CommandPalette = lazy(() => import("./CommandPalette").then((m) => ({ default: m.CommandPalette })));
@@ -32,11 +32,15 @@ export function PaletteLauncher({ onShowHardware }: { onShowHardware(): void }) 
     function onKeyDown(e: KeyboardEvent): void {
       // e.code, so non-Latin layouts work; macOS users press Cmd (metaKey), others Ctrl.
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.code !== "KeyK") return;
-      // Another modal (the palette itself excepted) owns the keyboard, this chord included.
-      if (!openRef.current && isModalOpen()) return;
+      // The browser's own Ctrl+K (focus the search bar) never fires here, even under another modal.
       e.preventDefault();
+      // Another modal (the palette itself excepted) owns the keyboard: the palette does not open over it.
+      if (!openRef.current && isModalOpen()) return;
       e.stopPropagation();
-      if (!openRef.current) returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      if (!openRef.current) {
+        returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        preloadReplaceExampleDialog();
+      }
       setEverOpened(true);
       setOpen((o) => !o);
     }
@@ -54,6 +58,7 @@ export function PaletteLauncher({ onShowHardware }: { onShowHardware(): void }) 
         aria-keyshortcuts="Control+K Meta+K"
         onClick={(e) => {
           returnFocusRef.current = e.currentTarget;
+          preloadReplaceExampleDialog();
           setEverOpened(true);
           setOpen(true);
         }}

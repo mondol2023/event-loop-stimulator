@@ -84,9 +84,12 @@ function phaseTone(phase: TickPhase | null): string {
 function PhaseChip() {
   const { phase, loopPhase } = useLoopPhase();
   return (
-    <span className={cn("inline-flex h-6 w-32 shrink-0 items-center justify-center truncate rounded-full border px-2 font-mono text-xs", phaseTone(phase))}>
-      <span className="sr-only">Phase: </span>
-      {phaseLabel(phase, loopPhase)}
+    <span className={cn("inline-flex h-6 w-32 shrink-0 items-center justify-center rounded-full border px-2 font-mono text-xs", phaseTone(phase))}>
+      {/* The ellipsis needs a block box: text-overflow does nothing on a flex container's anonymous text. */}
+      <span className="block min-w-0 truncate">
+        <span className="sr-only">Phase: </span>
+        {phaseLabel(phase, loopPhase)}
+      </span>
     </span>
   );
 }

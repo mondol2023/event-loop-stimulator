@@ -2,7 +2,7 @@
 
 import { BookOpen } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
-import { lazy, type RefObject, Suspense, useRef, useState } from "react";
+import { Component, type ComponentType, lazy, type ReactNode, type RefObject, Suspense, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EXAMPLES, type Example, exampleForSource } from "../../examples";
 import { usePlaygroundStore } from "../../store/PlaygroundContext";
@@ -51,7 +51,7 @@ export function ExamplesMenu() {
   return (
     <>
       {/* Non-modal, so closing the menu to open the confirmation never leaves the page inert. */}
-      <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Root modal={false} onOpenChange={(open) => open && preloadReplaceExampleDialog()}>
         <DropdownMenu.Trigger asChild>
           <Button ref={triggerRef} type="button" variant="outline" size="sm">
             <BookOpen aria-hidden="true" />
@@ -85,19 +85,57 @@ export function ExamplesMenu() {
   );
 }
 
-const ReplaceExampleDialogContent = lazy(() => import("./ReplaceExampleDialog").then((m) => ({ default: m.ReplaceExampleDialogContent })));
+type DialogProps = { choice: ChooseExample; returnFocusRef?: RefObject<HTMLElement | null> | undefined };
+export type LoadReplaceDialog = () => Promise<{ ReplaceExampleDialogContent: ComponentType<DialogProps> }>;
+
+const loadReplaceDialog: LoadReplaceDialog = () => import("./ReplaceExampleDialog");
+
+// A new lazy per attempt: React keeps a rejected lazy rejected, so retrying needs a fresh one.
+const lazyDialog = (load: LoadReplaceDialog) => lazy(() => load().then((m) => ({ default: m.ReplaceExampleDialogContent })));
+
+/** Fetches the dialog's chunk ahead of need (the Examples menu or the palette opening); a failure here is retried on use. */
+export function preloadReplaceExampleDialog(): void {
+  loadReplaceDialog().catch(() => undefined);
+}
+
+/** A chunk that fails to load (offline, or a stale hash after a redeploy) lands here instead of unmounting the page. */
+class DialogLoadBoundary extends Component<{ onError(): void; children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true };
+  }
+  override componentDidCatch(): void {
+    this.props.onError();
+  }
+  override render(): ReactNode {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 /**
  * The confirmation before an example replaces the learner's own code. Its dialog code loads the first time it is
- * needed and then stays mounted, so its exit animation still runs.
+ * needed and then stays mounted, so its exit animation still runs. If the code cannot load, the browser's own
+ * confirm asks the same question, so the learner's code is never replaced without a yes; the next choice retries.
  */
-export function ReplaceExampleDialog({ choice, returnFocusRef }: { choice: ChooseExample; returnFocusRef?: RefObject<HTMLElement | null> }) {
+export function ReplaceExampleDialog({ choice, returnFocusRef, load = loadReplaceDialog }: DialogProps & { load?: LoadReplaceDialog }) {
   const [needed, setNeeded] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [{ Content }, setContent] = useState(() => ({ Content: lazyDialog(load) }));
   if (!needed && choice.pending !== null) setNeeded(true);
+  const onError = (): void => {
+    const yes = window.confirm(`Replace your code with '${choice.title}'? Your current code is not one of the examples, so it will be lost.`);
+    if (yes) choice.confirm();
+    else choice.cancel();
+    setNeeded(false);
+    setContent({ Content: lazyDialog(load) });
+    setAttempt((n) => n + 1);
+  };
   return needed ? (
-    <Suspense fallback={null}>
-      <ReplaceExampleDialogContent choice={choice} returnFocusRef={returnFocusRef} />
-    </Suspense>
+    <DialogLoadBoundary key={attempt} onError={onError}>
+      <Suspense fallback={null}>
+        <Content choice={choice} returnFocusRef={returnFocusRef} />
+      </Suspense>
+    </DialogLoadBoundary>
   ) : null;
 }
 

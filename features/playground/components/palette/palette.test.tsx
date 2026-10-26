@@ -65,4 +65,16 @@ describe("PaletteLauncher", () => {
     expect(screen.queryByPlaceholderText(/type a command/i)).toBeNull();
     modal.remove();
   });
+
+  it("still keeps the browser's Ctrl+K from firing under another modal", () => {
+    setup();
+    const modal = document.createElement("div");
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("data-state", "open");
+    document.body.append(modal);
+    const chord = new KeyboardEvent("keydown", { key: "k", code: "KeyK", ctrlKey: true, cancelable: true, bubbles: true });
+    window.dispatchEvent(chord);
+    expect(chord.defaultPrevented).toBe(true);
+    modal.remove();
+  });
 });

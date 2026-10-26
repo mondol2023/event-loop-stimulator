@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { EXAMPLES } from "../../examples";
 import { PlaygroundStoreContext } from "../../store/PlaygroundContext";
 import { createPlaygroundStore, type PlaygroundStore } from "../../store/playgroundStore";
-import { ExamplesMenu } from "./ExamplesMenu";
+import { ExamplesMenu, ReplaceExampleDialog, useChooseExample, type LoadReplaceDialog } from "./ExamplesMenu";
 import { VerifiedBadge } from "./VerifiedBadge";
 
 // Radix popper and focus scopes read these browser APIs, which jsdom lacks.
@@ -97,6 +97,59 @@ describe("ExamplesMenu", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: /nextTick vs Promise/ }));
     expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(store.getState().editor.source).toBe(NEXT_TICK.source);
+  });
+});
+
+describe("ReplaceExampleDialog when its code cannot load", () => {
+  // Offline, or a chunk hash gone stale after a redeploy.
+  const failing: LoadReplaceDialog = () => Promise.reject(new Error("ChunkLoadError"));
+
+  function Harness() {
+    const choice = useChooseExample();
+    return (
+      <>
+        <button type="button" onClick={() => choice.choose(NEXT_TICK)}>
+          choose
+        </button>
+        <ReplaceExampleDialog choice={choice} load={failing} />
+      </>
+    );
+  }
+
+  function mount(): PlaygroundStore {
+    const store = createPlaygroundStore({ source: "console.log('mine');" });
+    render(
+      <PlaygroundStoreContext.Provider value={store}>
+        <Harness />
+      </PlaygroundStoreContext.Provider>,
+    );
+    return store;
+  }
+
+  it("asks with the browser's confirm and keeps the code on No, without unmounting the page", async () => {
+    const ask = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const store = mount();
+    fireEvent.click(screen.getByRole("button", { name: "choose" }));
+    await waitFor(() => expect(ask).toHaveBeenCalledOnce());
+    expect(ask.mock.calls[0]?.[0]).toContain("Replace your code with 'nextTick vs Promise'?");
+    expect(store.getState().editor.source).toBe("console.log('mine');");
+    expect(screen.getByRole("button", { name: "choose" })).toBeTruthy();
+    // The next choice tries to load again, and asks again.
+    fireEvent.click(screen.getByRole("button", { name: "choose" }));
+    await waitFor(() => expect(ask).toHaveBeenCalledTimes(2));
+    ask.mockRestore();
+    quiet.mockRestore();
+  });
+
+  it("replaces the code only on Yes", async () => {
+    const ask = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const store = mount();
+    fireEvent.click(screen.getByRole("button", { name: "choose" }));
+    await waitFor(() => expect(store.getState().editor.source).toBe(NEXT_TICK.source));
+    ask.mockRestore();
+    quiet.mockRestore();
   });
 });
 
