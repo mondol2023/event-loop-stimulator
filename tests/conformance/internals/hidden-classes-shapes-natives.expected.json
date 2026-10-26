@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "fixture": "hidden-classes-shapes-natives",
+  "kind": "internals",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "Point { x: 1, y: 2 } Point { x: 3, y: 4 }\nprobe 1 true\n{ x: 5, y: 6 } { y: 7, x: 8 }\nprobe 2 false\nx,y x,y\nx,y y,x\ntrue\nfalse\nPoint { x: 1, y: 2 } Point { x: 3, y: 4, z: 9 }\nprobe 3 false\nfalse\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ]
+}

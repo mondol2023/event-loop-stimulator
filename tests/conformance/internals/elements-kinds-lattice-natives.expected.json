@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "fixture": "elements-kinds-lattice-natives",
+  "kind": "internals",
+  "lang": "js",
+  "target": {
+    "node": "24.19.0",
+    "v8": "13.6.233.17-node.51"
+  },
+  "nondeterministic": false,
+  "outcomes": [
+    {
+      "stdout": "[ 1, 2, 3 ]\nprobe 1 PACKED_SMI_ELEMENTS\n[ 1, 2, 3, 4.5 ] 4\nprobe 2 PACKED_DOUBLE_ELEMENTS\n[ 1, 2, 3, 4.5, <2 empty items>, 7 ] 7\nprobe 3 HOLEY_DOUBLE_ELEMENTS\n[\n  1, 2, 3, 4.5,\n  5, 6, 7\n] 7\nprobe 4 HOLEY_DOUBLE_ELEMENTS\n[\n   2,  4,  6, 9,\n  10, 12, 14\n]\n0,1,2,3,4,5,6\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ]
+}
