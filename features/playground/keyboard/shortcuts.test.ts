@@ -74,7 +74,7 @@ describe("isEditableTarget", () => {
   });
 
   it("is true for widgets that use the arrow keys themselves", () => {
-    for (const role of ["slider", "tab", "listbox", "menuitem"]) {
+    for (const role of ["slider", "separator", "tab", "listbox", "menuitem"]) {
       const el = document.createElement("div");
       el.setAttribute("role", role);
       expect(isEditableTarget(el)).toBe(true);
@@ -154,6 +154,19 @@ describe("useShortcuts", () => {
     const held = press(document.body, { key: " ", repeat: true });
     expect(held.defaultPrevented).toBe(true);
     expect(store.getState().playback.isPlaying).toBe(true);
+  });
+
+  it("does not drive playback from a key pressed on a resizable-split separator", () => {
+    const store = setup();
+    renderHook(() => useShortcuts(store));
+    const separator = document.createElement("div");
+    separator.setAttribute("role", "separator");
+    document.body.append(separator);
+    for (const key of ["ArrowRight", "ArrowLeft", "Home", "End", " "]) {
+      press(separator, { key });
+    }
+    expect(store.getState().playback.index).toBe(0);
+    expect(store.getState().playback.isPlaying).toBe(false);
   });
 
   it("steps, seeks to the ends, and ignores Ctrl chords", () => {

@@ -79,6 +79,7 @@ export function ResizableSplit({
     else if (e.key === "Enter") reset();
     else return;
     e.preventDefault();
+    e.stopPropagation();
   };
 
   return (

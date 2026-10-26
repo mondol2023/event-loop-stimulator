@@ -46,7 +46,7 @@ export function shortcutFor(e: ShortcutKeyEvent): ShortcutAction | null {
 
 const OWNS_KEYS =
   "input, textarea, select, [contenteditable]:not([contenteditable='false']), " +
-  "[role='slider'], [role='spinbutton'], [role='textbox'], [role='combobox'], [role='listbox'], " +
+  "[role='slider'], [role='separator'], [role='spinbutton'], [role='textbox'], [role='combobox'], [role='listbox'], " +
   "[role='tab'], [role='tablist'], [role='menu'], [role='menuitem'], [role='radiogroup'], [role='radio']";
 const ACTIVATES_ON_SPACE = "button, summary, [role='button'], [role='switch'], [role='checkbox']";
 

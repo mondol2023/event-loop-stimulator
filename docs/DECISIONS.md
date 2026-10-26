@@ -457,7 +457,7 @@ It allows pure npm packages.
 
 **Decision.**
 - **Space.** It is ignored on a button-like target (button, summary, `role=button|switch|checkbox`), which activates on Space itself. A repeated Space is consumed (default prevented) without toggling, so a held key neither flickers playback nor scrolls the page.
-- **Widget roles.** Inputs, contenteditable and ARIA widget roles (slider, spinbutton, textbox, combobox, listbox, tab, tablist, menu, menuitem, radiogroup, radio) own all shortcut keys, including Home and End.
+- **Widget roles.** Inputs, contenteditable and ARIA widget roles (slider, spinbutton, textbox, combobox, listbox, tab, tablist, menu, menuitem, radiogroup, radio, and the `separator` of a resizable split) own all shortcut keys, including Home and End. The split handle also stops propagation of the keys it handles, as the Scrubber does.
 - **`play()` at the last tick** restarts from tick 0.
 - **`initialJobId`.** The client starts counting from the store's current job number, so a client re-created by Fast Refresh does not restart at 1 and have the store drop its events.
 - **Failed before compiled.** A `failed` event for a job whose `compiled` has not arrived clears the previous run's views, timeline and hover, because they belong to the old source.
