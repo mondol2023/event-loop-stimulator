@@ -472,9 +472,9 @@ It allows pure npm packages.
 **Context.** Production CSP is `style-src 'self' 'nonce-…'` (ADR-012). An SSR `style="…"` attribute or an un-nonced `<style>` violates it, and such violations show only under `next start`. Task 2 spiked each widget in a production build and counted CSP console messages.
 
 **Spike outcome (widget, violation, fix).**
-- CodeMirror: one violation on load (style-mod injects a `<style>`). Fix: `EditorView.cspNonce.of(nonce)`. Zero afterwards, including typing.
+- CodeMirror: one violation on load (style-mod injects a `<style>`). Fix: `EditorView.cspNonce.of(nonce)`. Zero afterwards for ordinary typing. Task 8 found one more case: typing over a selection made Chromium copy the replaced text's computed style onto the new text as an inline `style`, a production CSP violation. `SourceEditor` now handles `beforeinput`/`insertText` over a non-empty selection itself (`replaceSelection`) and leaves composition to the browser; an e2e test covers it.
 - Motion `layoutId`: none (it styles through the CSSOM). Caveat: a `style` or `initial` prop on a server-rendered motion element would emit an SSR `style=`.
-- shadcn Tooltip (Radix): none.
+- shadcn Tooltip (Radix): none in the spike. Task 8 later found two Radix SSR attributes: `RovingFocusGroup` (ToggleGroup, TabsList) renders `style="outline:none"`, overridden by `style={{ outline: undefined }}` in the `components/ui` wrappers plus an `outline-none` class; `TabsContent` renders `style="animation-duration:0s"` on the first panel with no override, so the shell uses its own `TabPanel`.
 - cmdk list: one violation and one SSR `style=` (an inline sr-only label). Fix: mount `Command` client-only; `CommandDialog` already is.
 - shadcn Resizable (`react-resizable-panels` 4.15): six SSR `style=` attributes and six violations, with no nonce hook (see ADR-055).
 
@@ -520,7 +520,7 @@ It allows pure npm packages.
 
 **Decision.** All panes are CodeMirror 6, read-only except the editor, loaded through `next/dynamic(…, { ssr: false })` behind a fixed-height skeleton. One `highlightField` applies the playback line (`cm-sl-current`) and the hover outline (`cm-sl-hovered`), each also carrying `data-sl-highlight`. Decorations clamp to the document.
 
-**Measured.** The first Task 8 build was 337.7 KB gz; about 91 KB of that was Zod, reached through `features/preferences/prefs.ts` and `worker/protocol.ts`. Loading `PipelineClient` with `import()` after hydration, and keeping Zod out of the client layout path, brought it to 247.9 KB. Lazy chunks at Task 8 (hashed names change per build): CodeMirror about 92 KB gz (`0o-tr_krzqpms.js`), Zod with protocol parsing about 90 KB gz (`312_jvqx-zi1g.js`). The replace-example dialog is its own chunk (`examples/ReplaceExampleDialog.tsx`), loaded on first use and preloaded when the Examples menu or palette opens. Motion's engine is kept behind a dynamic boundary. The final figure and the overage are ADR-062.
+**Measured.** The first Task 8 build was 337.7 KB gz; about 91 KB of that was Zod, reached through `features/preferences/prefs.ts` and `worker/protocol.ts`. Loading `PipelineClient` with `import()` after hydration, and keeping Zod out of the client layout path, brought it to 247.9 KB. Lazy chunks at Task 8 (hashed names change per build): CodeMirror about 92 KB gz (`0o-tr_krzqpms.js`), Zod with protocol parsing about 90 KB gz (`312_jvqx-zi1g.js`). At Task 8 there was no lazy Motion chunk yet (task-8-report.md); Task 11's fix round B (commit 09780b9) loaded the event-loop view lazily to keep Motion out of the first load, and Task 14's fix round added the replace-example dialog chunk (`examples/ReplaceExampleDialog.tsx`, preloaded when the Examples menu or palette opens). The final figure and the overage are ADR-062.
 
 ## ADR-054: Diagnostics link to an in-app `/docs/subset` page (Phase 6, D7)
 

@@ -1,6 +1,6 @@
 # Silicon Loop: design system
 
-The system as shipped after Phase 6, derived from `app/globals.css`, `features/playground/**`, `features/event-loop-2d/**`, `features/preferences/**` and `components/ui/**`. The shape brief is `docs/design/playground-shape.md`; deviations are in `docs/DECISIONS.md` (ADR-048 onward). Tokens live only in `app/globals.css`, and `tests/tooling/contrast.test.ts` guards the 4.5:1 text floor in both themes.
+The system as shipped after Phase 6, derived from `app/globals.css`, `features/playground/**`, `features/event-loop-2d/**`, `features/preferences/**` and `components/ui/**`. The shape brief is `docs/design/playground-shape.md`; deviations are in `docs/DECISIONS.md` (ADR-048 onward). This file was written by hand from the shipped code; the figures come from the Task 8 and Task 14 reports and were not re-measured. Tokens live only in `app/globals.css`, and `tests/tooling/contrast.test.ts` guards the 4.5:1 text floor in both themes.
 
 ## Principles
 
@@ -89,4 +89,4 @@ Cookies `sl_mode` and `sl_theme` (Lax, one year), read by `app/layout.tsx` so fi
 
 ## States
 
-Every interactive component has default, hover, focus-visible, active, disabled, loading and error states. Loading uses fixed-height skeletons (no layout shift), never centered spinners. Touch targets are at least 44x44 px with 8 px gaps on coarse pointers; fine-pointer dense toolbars keep at least a 24x24 px hit area. Status (Idle, Compiling, Simulating, Ready, Refused, Failed) is text in `role="status"` with an icon. Narration lives in an `aria-live="polite"` region. Limit stops use `OctagonPause` and never read as a JavaScript error. Code panes highlight the current tick as a solid green-tinted line (`cm-sl-current`) and hover as an outline (`cm-sl-hovered`), both marked `data-sl-highlight`.
+Every interactive component has default, hover, focus-visible, active, disabled, loading and error states. Loading uses fixed-height skeletons (no layout shift), never centered spinners. Touch targets are at least 44x44 px with 8 px gaps on coarse pointers; fine-pointer dense toolbars keep at least a 24x24 px hit area. Status (Idle, Compiling, Simulating, Ready, Refused, Failed) is text in `role="status"` with an icon. Narration lives in an `aria-live` region that is `off` while playing and `polite` otherwise (Task 14 F19). Limit stops use `OctagonPause` and never read as a JavaScript error. Code panes highlight the current tick as a solid green-tinted line (`cm-sl-current`) and hover as an outline (`cm-sl-hovered`), both marked `data-sl-highlight`.
