@@ -36,6 +36,8 @@ Every pane and view carries one of these as a quiet badge with a one-sentence to
 | Machine-state flags | **Illustrative** | Projected only when the shown instruction is a `cmp` (`TestNull`, `TestUndefined`, `TestReferenceEqual`); `null` at every other bytecode (ADR-033) |
 | Which tier a function is in, and when it changes | **Modeled** | Invocation counts of 8 / 400 / 3000, not V8's interrupt budget and concurrent compilation; see the tiering notes below (ADR-037) |
 | CPU caches, ALU, buses (3D) | **Illustrative** | — |
+| Example badge "Matches Node vX (V8 Y)" | **Exact**, only for recorded fixtures | Shown only when the editor text equals an example's source byte for byte; `tests/conformance/examples.test.ts` checks the catalog and the simulator's stdout against the recording (ADR-049). A user program shows "Simulated by spec model". |
+| 2D event loop view | **Exact** ordering and queue contents; animation is presentation only | Rendered from the same timeline as the console. Motion, spring values and the playback rate change how it looks, never which tick comes next (ADR-044). |
 
 ## Excluded constructs
 

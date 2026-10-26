@@ -172,3 +172,28 @@ editor → PipelineClient (400 ms, jobId) → pipeline.worker (compile → run)
 - `PipelineClient` debounces edits by 400 ms, tags each job with a `jobId` and terminates the worker when a newer job supersedes one in flight (ADR-042).
 - The worker validates requests with a `.strict()` schema, runs the same `compile` and `simulate` as the tests, and posts `compiled` then `simulated` (ADR-041, ADR-045). The timeline crosses as a serialized string (ADR-040).
 - One Zustand store per `PlaygroundProvider`. The `TimelineStore` sits in a per-store `WeakMap` holder and the state carries only `timelineVersion` (ADR-046). Hooks select DTOs (ADR-043) and read ticks from the holder. The playback clock is presentation only (ADR-044).
+
+## Phase 6: the IDE
+
+```
+read:   store -> Phase 5 hooks (useTickSelectors, ...) -> components
+write:  components -> store actions (seek, play, setMode, ...) -> store
+        components -> server only via server/actions/* (none used by the playground)
+```
+
+- **Read path.** Components read through the Phase 5 hooks or `useStore(store, selector)` with a primitive or shallow selector. No component holds a `TimelineStore`; per-frame work re-renders only subscribers of the changed slice.
+- **Write path.** Components write only through store actions. The command palette, keyboard shortcuts and buttons all call the same actions (ADR-047 sets the key ownership rules).
+- **CSP rule (D1, ADR-048).** No SSR `style=` and a nonce for every injected `<style>`. `app/playground/page.tsx` reads `x-nonce` and provides it through `NonceProvider`; CodeMirror takes it via `EditorView.cspNonce`; inline-styled components mount on the client or set styles through refs. `tests/tooling/no-ssr-style.test.tsx` guards it.
+- **Lazy code.** CodeMirror panes, Motion and the replace-example dialog load on demand (ADR-053); `PipelineClient` is imported after hydration.
+- **Region map.**
+
+  | Region | Where | Code |
+  |---|---|---|
+  | Top bar (status, mode, theme, palette) | top | `features/playground/components/shell/`, `palette/` |
+  | Editor, examples, problems | left | `components/editor/`, `components/examples/` |
+  | AST, Bytecode, Machine Code | right | `components/panes/` |
+  | Event Loop (2D), Console, V8 Internals and Hardware placeholders | bottom | `components/bottom/`, `features/event-loop-2d/` |
+  | Playback bar, scrubber, narration | spine, pinned at narrow widths | `components/playback/` |
+
+  Breakpoint layouts are in `DESIGN.md`. Preferences (`sl_mode`, `sl_theme`) live in `features/preferences/` and are read by `app/layout.tsx`.
+- **Core additions.** `timelineMarkers` (ADR-051), `AsmLine.intel` (ADR-052) and `Tick.narrationWithheld` (ADR-061) are pure and tested in the Node environment.

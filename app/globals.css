@@ -4,7 +4,7 @@
 
 /*
  * Silicon Loop design tokens (PROMPT.md §8.1). This is the Phase 0 starting
- * point; DESIGN.md records the realized system after Phase 5.
+ * point; DESIGN.md records the realized system as written after Phase 6.
  *
  * Dark is the default: <html> ships with class="dark". Light (for classroom
  * projectors) is the :root base, so shadcn's `dark:` variants keep working.

@@ -466,3 +466,130 @@ It allows pure npm packages.
 **Known gap.** The pipeline worker script is served from `/_next/static` without its own CSP header (`proxy.ts` skips that path), and a worker takes its CSP from its own response, so the browser-level `unsafe-eval` ban does not apply inside the worker. The guards are the lint bans, `check-build` and Zod's `jitless` mode. Fixing it needs a server-layer headers change for the worker chunk; it is deferred.
 
 **Consequence.** Keys behave like the platform's own widgets, and the worker's "never execute" guarantee rests on static checks, not on the browser.
+
+## ADR-048: No SSR `style=`, a nonce for every injected `<style>` (Phase 6, D1)
+
+**Context.** Production CSP is `style-src 'self' 'nonce-…'` (ADR-012). An SSR `style="…"` attribute or an un-nonced `<style>` violates it, and such violations show only under `next start`. Task 2 spiked each widget in a production build and counted CSP console messages.
+
+**Spike outcome (widget, violation, fix).**
+- CodeMirror: one violation on load (style-mod injects a `<style>`). Fix: `EditorView.cspNonce.of(nonce)`. Zero afterwards, including typing.
+- Motion `layoutId`: none (it styles through the CSSOM). Caveat: a `style` or `initial` prop on a server-rendered motion element would emit an SSR `style=`.
+- shadcn Tooltip (Radix): none.
+- cmdk list: one violation and one SSR `style=` (an inline sr-only label). Fix: mount `Command` client-only; `CommandDialog` already is.
+- shadcn Resizable (`react-resizable-panels` 4.15): six SSR `style=` attributes and six violations, with no nonce hook (see ADR-055).
+
+**Decision.** `app/playground/page.tsx` reads `x-nonce` from `headers()` and passes it down through `NonceProvider`. CodeMirror instances take the nonce. Components that style inline render their styled nodes only on the client or set styles through refs. `tests/tooling/no-ssr-style.test.tsx` renders the server shell and fails on any ` style="` or `<style` without a nonce.
+
+**Consequence.** CSP never gains `'unsafe-inline'`. The guard covers the initial server tree only; widgets that mount later are covered by the nonce rule and the Phase 6 e2e.
+
+## ADR-049: The example catalog is generated from the recorded fixtures (Phase 6, D2)
+
+**Context.** The "Matches Node" badge must never claim more than a recording supports, and `features/` must not import `tests/`.
+
+**Decision.** `npm run examples:sync` writes `features/playground/examples/catalog.generated.ts` from a hand-written list (`examples.config.ts`) plus each fixture's source and `*.expected.json`. `tests/conformance/examples.test.ts` regenerates the catalog in memory and fails on drift, and fails when the simulator's stdout differs from a recorded outcome. The badge "Matches Node vX (V8 Y)" shows only when the editor text equals an example's source byte for byte. Anything else shows "Simulated by spec model".
+
+**Consequence.** A user program is never labelled as matching Node. Expectation files stay written only by `conformance:record`.
+
+## ADR-050: What each usage mode changes (Phase 6, D3)
+
+**Context.** ADR-005 names three modes; the owner confirmed the proposal on 2026-10-25 (`docs/design/playground-shape.md`).
+
+**Decision.** Self-study: user's theme, 1x type, 1x speed, dense, output live. Interview prep: 2x speed, dense, predict-first (ADR-061). Classroom: light theme (overridable), 1.125x root size, 0.5x speed, roomy. Mode and theme are the cookies `sl_mode` and `sl_theme`, read by `app/layout.tsx` so the first paint is right. Values are validated with Zod; an invalid value falls back to the default. The base rate stays 4 ticks/s at 1x (ADR-044).
+
+**Consequence.** Positions never move between modes; only sizes and defaults do.
+
+## ADR-051: The worker posts timeline markers (Phase 6, D4)
+
+**Context.** The scrubber must not scan the timeline on the main thread.
+
+**Decision.** `timelineMarkers(ticks)` in `core/timeline/boundaries.ts` returns one marker per job boundary and one per tick where a fidelity warning first appears. The `simulated` response carries `markers`.
+
+**Consequence.** Drawing the scrubber costs one pass over the markers, not the timeline.
+
+## ADR-052: The asm view carries both syntaxes (Phase 6, D5)
+
+**Context.** An AT&T/Intel toggle must not be able to change bytes.
+
+**Decision.** `AsmLine` gains `intel: string` beside the AT&T text, so the toggle is a client choice over one set of lines and bytes.
+
+**Consequence.** The view DTO is slightly larger; the bytes are identical in both syntaxes by construction.
+
+## ADR-053: Every code pane is a lazy CodeMirror 6 view (Phase 6, D6)
+
+**Context.** First-load JS was about 232 KB gz after Phase 5 against a 250 KB budget (ADR-040).
+
+**Decision.** All panes are CodeMirror 6, read-only except the editor, loaded through `next/dynamic(…, { ssr: false })` behind a fixed-height skeleton. One `highlightField` applies the playback line (`cm-sl-current`) and the hover outline (`cm-sl-hovered`), each also carrying `data-sl-highlight`. Decorations clamp to the document.
+
+**Measured.** The first Task 8 build was 337.7 KB gz; about 91 KB of that was Zod, reached through `features/preferences/prefs.ts` and `worker/protocol.ts`. Loading `PipelineClient` with `import()` after hydration, and keeping Zod out of the client layout path, brought it to 247.9 KB. Lazy chunks at Task 8 (hashed names change per build): CodeMirror about 92 KB gz (`0o-tr_krzqpms.js`), Zod with protocol parsing about 90 KB gz (`312_jvqx-zi1g.js`). The replace-example dialog is its own chunk (`examples/ReplaceExampleDialog.tsx`), loaded on first use and preloaded when the Examples menu or palette opens. Motion's engine is kept behind a dynamic boundary. The final figure and the overage are ADR-062.
+
+## ADR-054: Diagnostics link to an in-app `/docs/subset` page (Phase 6, D7)
+
+**Context.** `Diagnostic.docs` points at `docs/SUPPORTED_SUBSET.md`, which a learner cannot open in the app.
+
+**Decision.** `/docs/subset` renders the excluded-construct table from `core/frontend/subset/excluded.ts`, the same source as `npm run docs:subset`. Each row has an anchor id, and one function maps `docs/SUPPORTED_SUBSET.md` to `/docs/subset#<code>`.
+
+**Consequence.** The page and the docs cannot drift apart.
+
+## ADR-055: Resizable panes use an in-house `ResizableSplit` (Phase 6, D8)
+
+**Context.** Task 2's spike showed shadcn `Resizable` emitting six SSR `style=` attributes with no nonce hook. A client-only mount is clean but blanks the shell in SSR and flashes in on hydration.
+
+**Decision.** `features/playground/components/ResizableSplit.tsx` sets sizes through refs (CSSOM), with keyboard-operable separators and double-click reset. No `react-resizable-panels` dependency.
+
+**Consequence.** The shell server-renders without a style attribute.
+
+## ADR-056: Panes use raw CodeMirror 6 packages, not `@uiw/react-codemirror` (Phase 6)
+
+**Context.** PROMPT.md names `@uiw/react-codemirror`. The panes need a shared highlight field, a nonce extension (ADR-048) and exact control of mount and teardown.
+
+**Decision.** Panes use the `@codemirror/*` packages directly. The wrapper was dropped in Task 7's fix round.
+
+**Consequence.** We own the view lifecycle, which is small and covered by `highlightField.test.ts`.
+
+## ADR-057: The hover-sync e2e is adapted (Phase 6)
+
+**Context.** The plan's e2e expects hover to sync across the source, AST, bytecode and asm panes. Those panes are never co-visible in one viewport state.
+
+**Decision.** The e2e asserts hover sync across the panes that can be shown together, and the line mapping is covered by unit tests. It does not claim four-way sync in one frame.
+
+**Consequence.** Cross-pane hover is verified per visible pane set, not all at once.
+
+## ADR-058: The palette's "Run" replays from the first tick (Phase 6)
+
+**Context.** Compilation is automatic (ADR-042), so "Run" has nothing new to compile when no edit is pending.
+
+**Decision.** "Run" flushes any pending debounce (`runNow`). If nothing was waiting and the run on screen is ready, it seeks to the first tick and plays.
+
+**Consequence.** "Run" always starts a visible playback.
+
+## ADR-059: Transport icons deviate from the brief (Phase 6, review item R3)
+
+**Context.** The shape brief (§10.4) maps First and Previous job to different icons than media-player convention.
+
+**Decision.** First uses `SkipBack` and Previous job uses `ChevronsLeft`. Every button keeps its `aria-label`, tooltip and `Kbd` hint.
+
+**Consequence.** The icon set differs from `docs/design/playground-shape.md` by design.
+
+## ADR-060: The 375 px "More playback" popover is deferred to Phase 7 (Phase 6, review item F17)
+
+**Context.** The brief moves First, Last and speed into a popover at 375 px. `components/ui` has no popover primitive, and adding Radix Popover grows first-load JS (ADR-062).
+
+**Decision.** At 375 px the controls fit one row and speed plus tick take a second; narration keeps its fixed two lines. The popover is revisited in Phase 7's mobile pass.
+
+**Consequence.** The compact bar uses two rows.
+
+## ADR-061: Interview prep is predict-first; console and narration are withheld in core (Phase 6)
+
+**Context.** Narration describes what the program printed, so hiding only the console would leak the answer.
+
+**Decision.** Each `Tick` carries `narration` and `narrationWithheld` (the narration with the program's printed text left out), built in `core/timeline`. The UI picks one by mode and Reveal state, and the console shows "Predict the output, then reveal" until Reveal or the last tick. No regex redaction is applied.
+
+**Consequence.** Withholding is structural and deterministic. Panes and the 2D view stay live, because stepping is how the learner checks the prediction.
+
+## ADR-062: First-load JS is over the 250 KB budget (Phase 6, owner decision needed)
+
+**Context.** ADR-040 sets a 250 KB gz first-load budget for `/playground`. Measured as gzip -9 over every `<script src>` in the served HTML of `next start`: 247.9 KB at Task 8, 253.3 KB before Task 14's batch, and 252.8 KB at the end of Task 14 (modern browsers 214.2 KB, plus the `noModule` polyfill chunk).
+
+**Decision.** Phase 6 ships 2.8 KB over the budget when the `noModule` chunk is counted, and under it for modern browsers. Whether the budget counts `noModule` is an owner decision. Automated enforcement is Phase 9.
+
+**Consequence.** New first-load code in later phases must be lazy or offset by savings.

@@ -19,6 +19,7 @@ A V8 engine and event-loop visualizer. The spec is `PROMPT.md`: run one phase pe
 | `npm run conformance:differential -- --runs 1000` | Generate N programs and compare the simulator with real Node; refuses unless the runtime equals `docs/TARGET.md`. `--seed S` replays a run |
 | `npm run asm:record` | Encode every x64 form the baseline compiler emits with `llvm-mc` (falling back to `clang`) and write `tests/conformance/asm/encodings.expected.json`; refuses only if neither is installed |
 | `npm run conformance:vendor-test262` | Re-vendor the in-subset test262 tests into `vendor/test262/` |
+| `npm run examples:sync` | Regenerate `features/playground/examples/catalog.generated.ts` from the recorded fixtures (a test fails on drift) |
 | `npm run docs:subset` | Regenerate the excluded-construct tables in `docs/SUPPORTED_SUBSET.md` and `docs/FIDELITY.md` from `core/frontend/subset/excluded.ts` |
 | `npm run seed` | Upsert Role docs and indexes; promotes `ADMIN_BOOTSTRAP_EMAIL` only if that user already registered |
 | `npm run e2e` | Playwright (builds + starts on :3100) |
@@ -47,17 +48,12 @@ A phase is done only when lint, typecheck, test and build all pass, with the out
 - `app/`: routing only. It composes `features/` and `server/`.
 - `server/`: every file starts with `import "server-only"`.
 - Nothing imports `app/` (except `tests/integration` importing `app/api/**` handlers), `tests/` or `scripts/`. Only `server/repositories/**` and `server/db/**` import Mongoose models.
-
-Proof: `tests/tooling/eslint-boundaries.test.ts`. Extend it whenever you change a rule.
+- Proof: `tests/tooling/eslint-boundaries.test.ts`. Extend it whenever you change a rule.
 
 ## Conventions
 
 - **Next.js 16.** Read `node_modules/next/dist/docs/` before using an API. Request interception is `proxy.ts`, not middleware. Use only async `params`/`searchParams`/`cookies()`/`headers()`.
 - **Env.** `server/env.ts` validates it on boot via `instrumentation.ts`. Use `getEnv()`; never read `process.env` in server code.
 - **Types.** `.strict()` Zod objects at every boundary. Use `Result<T, Diagnostic[]>` in `core/`, and name things after V8 and the spec (`BytecodeArray`, `FeedbackVector`).
-- **Styling.**
-  - Tailwind v4 tokens live in `app/globals.css`. Dark is the default (`<html class="dark">`).
-  - Use semantic tokens (`bg-panel`, `text-microtask`, `text-warning`) and never raw hex.
-  - `tests/tooling/contrast.test.ts` guards the 4.5:1 contrast floor.
-- **Animation.** `motion` only (`motion/react`), with no GSAP.
-- **Icons.** Lucide only.
+- **Styling.** Tailwind v4 tokens live in `app/globals.css` (see `DESIGN.md`); dark is the default. Use semantic tokens (`bg-panel`, `text-microtask`), never raw hex. `tests/tooling/contrast.test.ts` guards the 4.5:1 floor.
+- **Animation and icons.** `motion/react` only (no GSAP); Lucide only.
