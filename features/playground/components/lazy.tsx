@@ -20,5 +20,8 @@ export const EventLoopViewLazy = dynamic(() => import("@/features/event-loop-2d/
 // The V8 Internals tab loads with its tab, not with the page.
 export const V8InternalsViewLazy = dynamic(() => import("@/features/v8-internals/components/V8InternalsView").then((m) => m.V8InternalsView), { ssr: false, loading: PaneSkeleton });
 
+// The Hardware tab: the 3D canvas and the SVG board are chunks of their own, behind this one (D5).
+export const HardwareViewLazy = dynamic(() => import("@/features/hardware-3d/HardwareView").then((m) => m.HardwareView), { ssr: false, loading: PaneSkeleton });
+
 // Rendered after hydration only, and its chunk is not part of the first load.
 export const CoachMarksLazy = dynamic(() => import("./onboarding/CoachMarks").then((m) => m.CoachMarks), { ssr: false });
