@@ -48,7 +48,7 @@ export function IcTable() {
   useEffect(() => {
     const row = bodyRef.current?.querySelector('tr[aria-selected="true"]');
     if (row && typeof row.scrollIntoView === "function") row.scrollIntoView({ block: "nearest" });
-  }, [focusSlot, rows.length]);
+  }, [focusSlot]);
 
   return (
     <Panel label="Inline caches" summary={`${total} ${total === 1 ? "slot" : "slots"}`} badge={<TruthBadge level={weakest} />}>

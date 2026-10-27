@@ -42,7 +42,7 @@ const highlightTheme = EditorView.theme({
   },
   ".cm-sl-slot-link:hover": { textDecorationStyle: "solid" },
   ".cm-sl-slot-link:focus-visible": { outline: "2px solid var(--ring)", outlineOffset: "1px" },
-  ".tok-keyword,.tok-operatorKeyword, .tok-modifier": { color: "var(--microtask)" },
+  ".tok-keyword, .tok-operatorKeyword, .tok-modifier": { color: "var(--microtask)" },
   ".tok-string, .tok-string2": { color: "var(--webapi)" },
   ".tok-number, .tok-bool, .tok-null": { color: "var(--macrotask)" },
   ".tok-comment": { color: "var(--muted-foreground)", fontStyle: "italic" },

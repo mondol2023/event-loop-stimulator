@@ -77,7 +77,8 @@ export function ElementsLattice() {
               );
             })}
           </svg>
-          <ol className="absolute inset-0 m-0 list-none p-0">
+          {/* role="list": Safari drops list semantics from list-style: none. */}
+          <ol role="list" className="absolute inset-0 m-0 list-none p-0">
             {nodes.map((node) => (
               <li
                 key={node.kind}

@@ -1,19 +1,91 @@
 import type { Extension, Text } from "@codemirror/state";
+import type { Opcode } from "@/core/bytecode/bytecodes";
 import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 
 // The feedback slot operand of a bytecode line becomes a link to its row in the IC table (PROMPT §8.3).
 // The slot is the last `[n]` operand, and only of the opcodes that own a feedback slot: `[n]` is also a
 // constant-pool or context index elsewhere, and linking those would send the learner to a row that is not theirs.
 
-const OWNS_FEEDBACK_SLOT = new RegExp(
-  "^(?:LdaGlobal|LdaGlobalInsideTypeof|StaGlobal|GetNamedProperty|GetNamedPropertyFromSuper|GetKeyedProperty|GetEnumeratedKeyedProperty" +
-    "|SetNamedProperty|DefineNamedOwnProperty|SetKeyedProperty|DefineKeyedOwnProperty|StaInArrayLiteral|DefineKeyedOwnPropertyInLiteral" +
-    "|(?:Add|Sub|Mul|Div|Mod|Exp|BitwiseOr|BitwiseXor|BitwiseAnd|ShiftLeft|ShiftRight|ShiftRightLogical)(?:Smi)?" +
-    "|Inc|Dec|Negate|BitwiseNot|TypeOf|ToNumber|ToNumeric|Call[A-Za-z0-9]*|Construct[A-Za-z0-9]*" +
-    "|Test(?:Equal|EqualStrict|LessThan|GreaterThan|LessThanOrEqual|GreaterThanOrEqual|InstanceOf|In)" +
-    "|CreateRegExpLiteral|CreateArrayLiteral|CreateEmptyArrayLiteral|CreateObjectLiteral|CloneObject|GetTemplateObject|CreateClosure" +
-    "|ForInPrepare|ForInNext|GetIterator)$",
-);
+// Each of these ends in the Idx operand that is its feedback slot (core/bytecode/bytecodes.ts); `satisfies` fails the build on a misspelt or removed opcode.
+const FEEDBACK_SLOT_OPCODES = [
+  "LdaGlobal",
+  "LdaGlobalInsideTypeof",
+  "StaGlobal",
+  "GetNamedProperty",
+  "GetNamedPropertyFromSuper",
+  "GetKeyedProperty",
+  "GetEnumeratedKeyedProperty",
+  "SetNamedProperty",
+  "DefineNamedOwnProperty",
+  "SetKeyedProperty",
+  "DefineKeyedOwnProperty",
+  "StaInArrayLiteral",
+  "DefineKeyedOwnPropertyInLiteral",
+  "Add",
+  "Sub",
+  "Mul",
+  "Div",
+  "Mod",
+  "Exp",
+  "BitwiseOr",
+  "BitwiseXor",
+  "BitwiseAnd",
+  "ShiftLeft",
+  "ShiftRight",
+  "ShiftRightLogical",
+  "AddSmi",
+  "SubSmi",
+  "MulSmi",
+  "DivSmi",
+  "ModSmi",
+  "ExpSmi",
+  "BitwiseOrSmi",
+  "BitwiseXorSmi",
+  "BitwiseAndSmi",
+  "ShiftLeftSmi",
+  "ShiftRightSmi",
+  "ShiftRightLogicalSmi",
+  "Inc",
+  "Dec",
+  "Negate",
+  "BitwiseNot",
+  "TypeOf",
+  "ToNumber",
+  "ToNumeric",
+  "CallAnyReceiver",
+  "CallProperty",
+  "CallProperty0",
+  "CallProperty1",
+  "CallProperty2",
+  "CallUndefinedReceiver",
+  "CallUndefinedReceiver0",
+  "CallUndefinedReceiver1",
+  "CallUndefinedReceiver2",
+  "CallWithSpread",
+  "Construct",
+  "ConstructWithSpread",
+  "ConstructForwardAllArgs",
+  "TestEqual",
+  "TestEqualStrict",
+  "TestLessThan",
+  "TestGreaterThan",
+  "TestLessThanOrEqual",
+  "TestGreaterThanOrEqual",
+  "TestInstanceOf",
+  "TestIn",
+  "CreateRegExpLiteral",
+  "CreateArrayLiteral",
+  "CreateEmptyArrayLiteral",
+  "CreateObjectLiteral",
+  "CloneObject",
+  "GetTemplateObject",
+  "CreateClosure",
+  "ForInPrepare",
+  "ForInNext",
+  "GetIterator",
+] as const satisfies readonly Opcode[];
+
+export const OWNS_FEEDBACK_SLOT: ReadonlySet<string> = new Set(FEEDBACK_SLOT_OPCODES);
 
 export type SlotLink = {
   /** 0-based line of the pane document. */
@@ -34,12 +106,14 @@ export function slotLinksOf(functions: readonly LinkableFunction[]): SlotLink[] 
   let line = 0;
   for (const fn of functions) {
     for (const l of fn.lines) {
-      const match = /^(\w+)\b.*(\[(\d+)\])$/.exec(l.text);
+      // Greedy, so it is the last `[n]`; flags print as `#n` and may follow it (CreateArrayLiteral [0], [0], #37).
+      const match = /^(\w+)\b.*(\[(\d+)\])((?:, #\d+)*)$/.exec(l.text);
       const opcode = match?.[1];
       const operand = match?.[2];
       const slot = match?.[3];
-      if (opcode !== undefined && operand !== undefined && slot !== undefined && OWNS_FEEDBACK_SLOT.test(opcode)) {
-        const from = String(l.offset).padStart(4).length + 2 + l.text.length - operand.length;
+      const trailing = match?.[4] ?? "";
+      if (opcode !== undefined && operand !== undefined && slot !== undefined && OWNS_FEEDBACK_SLOT.has(opcode)) {
+        const from = String(l.offset).padStart(4).length + 2 + l.text.length - trailing.length - operand.length;
         links.push({ line, from, to: from + operand.length, functionId: fn.functionId, slot: Number(slot), text: operand });
       }
       line++;

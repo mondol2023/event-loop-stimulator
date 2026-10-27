@@ -10,6 +10,7 @@ import { PreferencesContext } from "@/features/preferences/PreferencesProvider";
 import type { UsageMode } from "@/features/preferences/modes";
 import { PlaygroundStoreContext } from "@/features/playground/store/PlaygroundContext";
 import { createPlaygroundStore, type PlaygroundStore } from "@/features/playground/store/playgroundStore";
+import { getTimeline } from "@/features/playground/store/timelineHolder";
 import { fixtureRun, runSource } from "@/features/playground/test/fixtureTimeline";
 import { ElementsLattice } from "./components/ElementsLattice";
 import { FrameInspector } from "./components/FrameInspector";
@@ -91,7 +92,16 @@ describe("FrameInspector", () => {
   // Review Focus 5: predict-first must not leak the printed text through the frame.
   it("hides the string being printed in interview mode until the learner reveals", () => {
     const store = readyStore("nexttick-vs-promise");
-    seek(store, 1);
+    // The tick where the script's first console.log has loaded "sync 1" into a register: the first the frame could leak it.
+    // (consoleCallTick lives in tests/conformance, which features/ may not import, so it is found in the held timeline.)
+    const timeline = getTimeline(store);
+    if (!timeline) throw new Error("the store holds no timeline");
+    const holdsSync1 = (i: number): boolean => timeline.at(i).callStack.at(-1)?.registers.some((r) => r.kind === "string" && r.value === "sync 1") ?? false;
+    const leakTick = Array.from({ length: timeline.length }, (_, i) => i).find(holdsSync1);
+    if (leakTick === undefined) throw new Error("no tick holds the string");
+    expect(leakTick).toBeGreaterThan(0);
+    expect(holdsSync1(leakTick - 1)).toBe(false);
+    seek(store, leakTick);
     render(
       ui(
         store,
