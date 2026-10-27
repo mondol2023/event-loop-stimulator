@@ -12,6 +12,7 @@ import { frameloopMode } from "./board/frameloop";
 import { RAM_CELL_COUNT, REGION_CELLS, REGION_OFFSET, boardLayout, compositionFor, type BoardLayout, type Vec2 } from "./board/layout";
 import { pathLength, pointAlong } from "./board/pulsePath";
 import { ramCell, ramFill } from "./board/ramFill";
+import { servedFlash } from "./board/served";
 import { REGISTER_NAMES, roleOf } from "./board/registerRoles";
 import { instructionText, readout } from "./readout";
 
@@ -104,6 +105,15 @@ describe("CellPaint", () => {
     paint.paint(0, new Color("#0000ff"));
     paint.commit();
     expect(mesh.instanceColor?.version).toBe(version + 2);
+  });
+});
+
+describe("servedFlash", () => {
+  it("gives every answered access a hit or miss word on a cache level, and a miss also lights RAM", () => {
+    expect(servedFlash("l1")).toEqual({ l1: "hit", l2: null, ram: false });
+    expect(servedFlash("l2")).toEqual({ l1: null, l2: "hit", ram: false });
+    expect(servedFlash("ram")).toEqual({ l1: "miss", l2: "miss", ram: true });
+    expect(servedFlash(null)).toEqual({ l1: null, l2: null, ram: false });
   });
 });
 

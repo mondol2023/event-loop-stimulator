@@ -102,10 +102,10 @@ export function createLabel(theme: BoardTheme, spec: { width: number; height: nu
 export const css = (color: { getStyle(): string }): string => color.getStyle();
 
 export type TextLine = { text: string; size: number; tone: ColorToken; mono?: boolean; bold?: boolean };
-export type TextLabel = Label & { set(lines: readonly TextLine[]): void };
+export type TextLabel = Label & { set(lines: readonly TextLine[]): void; show(visible: boolean): void };
 
 /** A label of centred lines of text, stacked top to bottom and shrunk to fit its width; `set` redraws it. */
-export function createTextLabel(theme: BoardTheme, width: number, height: number): TextLabel {
+export function createTextLabel(theme: BoardTheme, width: number, height: number, name = ""): TextLabel {
   let lines: readonly TextLine[] = [];
   const label = createLabel(theme, {
     width,
@@ -119,11 +119,17 @@ export function createTextLabel(theme: BoardTheme, width: number, height: number
       });
     },
   });
+  label.sprite.name = name;
   return {
     ...label,
     set(next) {
       lines = next;
+      // The drawn words are also on the sprite, so a scene test can read what the texture says.
+      label.sprite.userData.text = next.map((l) => l.text).join(" ");
       label.redraw();
+    },
+    show(visible) {
+      label.sprite.visible = visible;
     },
   };
 }

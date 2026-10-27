@@ -26,6 +26,9 @@ const CAMERA_DISTANCE = 60;
 const FIT_MARGIN = 1.04;
 const COMPACT_HEIGHT_PX = 160;
 
+// A stable reference: R3F's configure rebuilds the default camera when this prop changes, which would drop the fitted zoom.
+const CAMERA = { position: [0, CAMERA_DISTANCE * Math.sin(TILT), CAMERA_DISTANCE * Math.cos(TILT)], zoom: 20, near: 0.1, far: 200 } as const;
+
 type FrameRef = { readonly current: HardwareFrame | null };
 
 function Scene({ frame, reduced }: { frame: FrameRef; reduced: { readonly current: boolean } }) {
@@ -157,7 +160,7 @@ export default function HardwareCanvas() {
       flat
       dpr={[1, 2]}
       frameloop="demand"
-      camera={{ position: [0, CAMERA_DISTANCE * Math.sin(TILT), CAMERA_DISTANCE * Math.cos(TILT)], zoom: 20, near: 0.1, far: 200 }}
+      camera={CAMERA}
       onCreated={onCreated}
     >
       <Scene frame={frame} reduced={reduced} />

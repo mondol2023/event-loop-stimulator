@@ -14,6 +14,9 @@ import { useShapeGeometry, useWhiteMaterial } from "./sharedResources";
 import { useTextLabel } from "./useTextLabel";
 
 type Level = "l1" | "l2";
+
+/** How far right of a level's title the hit/miss cue sits, in board units. */
+const CUE_OFFSET = 3.1;
 type GridProps = SceneProps & { level: Level; grid: Grid; title: string; titleAt: readonly [number, number] };
 
 /** One cache level: a cell per line slot, the resident lines lit, and the served cell flashing green (hit) or red (miss). */
@@ -23,6 +26,9 @@ function CacheGrid({ frame, theme, reduced, level, grid, title, titleAt }: GridP
   const white = useWhiteMaterial();
   const mesh = useRef<InstancedMesh>(null);
   const label = useTextLabel(theme, 4.4, 0.7);
+  // Colour never stands alone: while a cell flashes, this sprite says "hit" or "miss" beside the level's title.
+  const cue = useTextLabel(theme, 1.8, 0.7, `cache-cue-${level}`);
+  const served = useRef<number | null>(null);
   const flashes = useMemo(() => new Flashes(count, CACHE_FLASH_SECONDS), [count]);
   const occupied = useRef(new Uint8Array(count));
   const kinds = useRef<(CacheFlash | null)[]>(Array.from({ length: count }, () => null));
@@ -52,6 +58,8 @@ function CacheGrid({ frame, theme, reduced, level, grid, title, titleAt }: GridP
     label.set([{ text: title, size: 0.5, tone: "mutedForeground", mono: true }]);
   }, [label, title]);
 
+  useEffect(() => cue.show(false), [cue]);
+
   useEffect(
     () =>
       theme.subscribe(() => {
@@ -74,13 +82,18 @@ function CacheGrid({ frame, theme, reduced, level, grid, title, titleAt }: GridP
       flashes.clear();
       kinds.current.fill(null);
       const flash = servedFlash(hw?.servedBy ?? null)[level];
-      const served = cells.at(-1);
-      if (flash && served !== undefined) {
-        flashes.start(served);
-        kinds.current[served] = flash;
+      const cell = cells.at(-1);
+      served.current = null;
+      if (flash && cell !== undefined) {
+        flashes.start(cell);
+        kinds.current[cell] = flash;
+        served.current = cell;
+        cue.set([{ text: flash, size: 0.5, tone: flash === "hit" ? "current" : "destructive", mono: true, bold: true }]);
       }
     }
     const animating = flashes.advance(delta, reduced.current);
+    // Shown for as long as the flash is (held until the next tick under reduced motion).
+    cue.show(served.current !== null && flashes.level(served.current) > 0);
     if (!changed && !animating && !repaint.current) return;
     repaint.current = false;
     const p = paint.current;
@@ -100,6 +113,7 @@ function CacheGrid({ frame, theme, reduced, level, grid, title, titleAt }: GridP
     <group>
       <instancedMesh ref={mesh} args={[box, white, count]} />
       <primitive object={label.sprite} position={[titleAt[0], titleAt[1], Z.label]} />
+      <primitive object={cue.sprite} position={[titleAt[0] + CUE_OFFSET, titleAt[1], Z.label]} />
     </group>
   );
 }

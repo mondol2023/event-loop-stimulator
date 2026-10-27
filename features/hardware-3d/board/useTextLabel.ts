@@ -3,8 +3,8 @@ import type { BoardTheme } from "./boardColors";
 import { createTextLabel, type TextLabel } from "./labels";
 
 /** A text sprite that lives as long as the component; the caller sets its lines. */
-export function useTextLabel(theme: BoardTheme, width: number, height: number): TextLabel {
-  const label = useMemo(() => createTextLabel(theme, width, height), [theme, width, height]);
+export function useTextLabel(theme: BoardTheme, width: number, height: number, name = ""): TextLabel {
+  const label = useMemo(() => createTextLabel(theme, width, height, name), [theme, width, height, name]);
   useEffect(() => () => label.dispose(), [label]);
   return label;
 }

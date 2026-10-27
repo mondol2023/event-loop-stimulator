@@ -155,6 +155,8 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  // jsdom has no matchMedia; a test that defined one must not leak it (reduced motion) into the next.
+  Reflect.deleteProperty(window, "matchMedia");
 });
 
 describe("the 3D board is driven by refs", () => {
@@ -272,5 +274,59 @@ describe("pulses and reduced motion", () => {
     await advance();
     await advance();
     expect({ x: g.position.x, y: g.position.y }).toEqual(settled);
+  });
+});
+
+describe("the hit and miss cue (colour never stands alone)", () => {
+  function cue(level: "l1" | "l2"): { visible: boolean; text: unknown } {
+    let found: { visible: boolean; userData: { text?: unknown } } | undefined;
+    harness.state?.scene.traverse((o) => {
+      if (o.name === `cache-cue-${level}`) found = o;
+    });
+    if (!found) throw new Error(`no cue for ${level}`);
+    return { visible: found.visible, text: found.userData.text };
+  }
+  function servedTick(store: ReturnType<typeof loadedStore>, level: "l1" | "l2" | "ram"): number {
+    const index = store.getState().compile.hardware.findIndex((h) => h.servedBy === level);
+    if (index < 0) throw new Error(`no ${level} access in the trace`);
+    return index;
+  }
+
+  it("says hit beside the level that served, and miss beside both caches on a miss", async () => {
+    const store = loadedStore();
+    await mountBoard(store);
+    await act(async () => store.getState().seek(servedTick(store, "l1")));
+    await advance();
+    expect(cue("l1")).toEqual({ visible: true, text: "hit" });
+    expect(cue("l2").visible).toBe(false);
+
+    await act(async () => store.getState().seek(servedTick(store, "ram")));
+    await advance();
+    expect(cue("l1")).toEqual({ visible: true, text: "miss" });
+    expect(cue("l2")).toEqual({ visible: true, text: "miss" });
+  });
+
+  it("hides the cue when the flash has faded", async () => {
+    const store = loadedStore();
+    await mountBoard(store);
+    await act(async () => store.getState().seek(servedTick(store, "l1")));
+    await advance();
+    expect(cue("l1").visible).toBe(true);
+    // The canvas runs on demand here, so the frame delta is real elapsed time: wait out the 0.3 s flash.
+    await new Promise((r) => setTimeout(r, 450));
+    await advance();
+    expect(cue("l1").visible).toBe(false);
+  });
+
+  it("shows the cue at once and keeps it under reduced motion", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduced-motion"), addEventListener: () => {}, removeEventListener: () => {} }));
+    Object.defineProperty(window, "matchMedia", { configurable: true, value: window.matchMedia });
+    const store = loadedStore();
+    await mountBoard(store);
+    await act(async () => store.getState().seek(servedTick(store, "l1")));
+    await advance();
+    await new Promise((r) => setTimeout(r, 450));
+    await advance();
+    expect(cue("l1")).toEqual({ visible: true, text: "hit" });
   });
 });
