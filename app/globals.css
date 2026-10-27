@@ -14,6 +14,7 @@
  * Saturated accents mean state only:
  *   primary = run / current tick (green) · microtask = violet
  *   macrotask = amber · webapi = cyan · destructive = error (red)
+ *   bus-read = blue, bus-write = pink: the hardware board's memory-bus pulses (direction also shown by arrowheads)
  *   warning = fidelity warning, e.g. "Order not guaranteed in real Node" (yellow;
  *   lemon rather than amber so it never reads as a macrotask)
  * Color is never the only signal: each accent ships with a label or icon.
@@ -52,6 +53,8 @@
   --color-microtask: var(--microtask);
   --color-macrotask: var(--macrotask);
   --color-webapi: var(--webapi);
+  --color-bus-read: var(--bus-read);
+  --color-bus-write: var(--bus-write);
   --color-current: var(--primary);
 
   --color-chart-1: var(--chart-1);
@@ -120,6 +123,8 @@
   --microtask: #6d28d9;
   --macrotask: #b45309;
   --webapi: #0e7490;
+  --bus-read: #1d4ed8;
+  --bus-write: #be185d;
   --destructive: #b91c1c;
   --warning: #854d0e;
 
@@ -164,6 +169,8 @@
   --microtask: #a78bfa;
   --macrotask: #fbbf24;
   --webapi: #22d3ee;
+  --bus-read: #60a5fa;
+  --bus-write: #f472b6;
   --destructive: #f87171;
   --warning: #fde047;
 }

@@ -29,9 +29,12 @@ const light = tokens(":root");
 const themes = { light, dark: new Map([...light, ...tokens(".dark")]) };
 
 const SURFACES = ["background", "panel", "card"];
-const TEXT_ON_SURFACES = ["foreground", "muted-foreground", "primary", "microtask", "macrotask", "webapi", "destructive", "warning"];
+const TEXT_ON_SURFACES = ["foreground", "muted-foreground", "primary", "microtask", "macrotask", "webapi", "destructive", "warning", "bus-read", "bus-write"];
 const PAIRS: [string, string][] = [
   ...SURFACES.flatMap((s) => TEXT_ON_SURFACES.map((t): [string, string] => [t, s])),
+  // The hardware board draws bus legends on its die and substrate (secondary) as well.
+  ["bus-read", "secondary"],
+  ["bus-write", "secondary"],
   ["primary-foreground", "primary"],
   ["secondary-foreground", "secondary"],
   ["muted-foreground", "muted"],

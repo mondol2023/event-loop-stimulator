@@ -19,6 +19,9 @@ export type PipelineStatus = "idle" | "compiling" | "simulating" | "ready" | "re
 export const PLAYBACK_SPEEDS = [0.25, 0.5, 1, 2, 4, 8] as const;
 export type PlaybackSpeed = (typeof PLAYBACK_SPEEDS)[number];
 
+/** The assembly syntax the Machine Code pane shows; the Hardware board's readout follows it. */
+export type AsmSyntax = "att" | "intel";
+
 export type PlaygroundState = {
   editor: { source: string; lang: Language; diagnostics: readonly Diagnostic[] };
   compile: {
@@ -45,6 +48,7 @@ export type PlaygroundState = {
   hover: { pane: Pane | null; line: number | null };
   /** The feedback slot a bytecode operand linked to; the V8 Internals IC table selects its row (PROMPT §8.3). */
   focusSlot: { functionId: FunctionId; slot: number } | null;
+  asmSyntax: AsmSyntax;
   setSource(source: string): void;
   setLang(lang: Language): void;
   applyPipelineEvent(e: PipelineEvent): void;
@@ -58,6 +62,7 @@ export type PlaygroundState = {
   setHover(pane: Pane | null, line: number | null): void;
   clearHover(): void;
   focusFeedbackSlot(v: { functionId: FunctionId; slot: number }): void;
+  setAsmSyntax(syntax: AsmSyntax): void;
 };
 
 export type PlaygroundStore = Mutate<StoreApi<PlaygroundState>, [["zustand/subscribeWithSelector", never]]>;
@@ -200,6 +205,7 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
         playback: { ...EMPTY_PLAYBACK, speed: initial.speed ?? 1 },
         hover: { pane: null, line: null },
         focusSlot: null,
+        asmSyntax: "att",
 
         setSource: (source) => set((s) => ({ editor: { ...s.editor, source } })),
         setLang: (lang) => set((s) => ({ editor: { ...s.editor, lang } })),
@@ -265,6 +271,7 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
         clearHover: () => set({ hover: { pane: null, line: null } }),
         // A fresh object each time, so choosing the same slot again still tells the shell to reopen the tab.
         focusFeedbackSlot: (v) => set({ focusSlot: { functionId: v.functionId, slot: v.slot } }),
+        setAsmSyntax: (asmSyntax) => set({ asmSyntax }),
       };
     }),
   );

@@ -11,7 +11,7 @@ function BoardSkeleton() {
 }
 
 // D5: each board is its own chunk, so the 2D path never loads three.
-const HardwareCanvas = dynamic(() => import("./HardwareCanvas"), { ssr: false, loading: BoardSkeleton });
+const HardwareCanvas = dynamic(() => import("./board/HardwareCanvas"), { ssr: false, loading: BoardSkeleton });
 const SvgBoard = dynamic(() => import("./SvgBoard"), { ssr: false, loading: BoardSkeleton });
 
 function noticeFor(reason: HardwareViewReason): string | null {

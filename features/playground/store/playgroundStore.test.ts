@@ -247,3 +247,14 @@ describe("focusSlot", () => {
     expect(store.getState().focusSlot).toBeNull();
   });
 });
+
+describe("asmSyntax", () => {
+  it("defaults to AT&T, is set by setAsmSyntax, and survives a recompile", () => {
+    const store = readyStore();
+    expect(store.getState().asmSyntax).toBe("att");
+    store.getState().setAsmSyntax("intel");
+    expect(store.getState().asmSyntax).toBe("intel");
+    store.getState().applyPipelineEvent({ kind: "response", response: { ...run.compiled, jobId: 2 } });
+    expect(store.getState().asmSyntax).toBe("intel");
+  });
+});

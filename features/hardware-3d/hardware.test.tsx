@@ -7,7 +7,7 @@ const webgl = vi.hoisted(() => ({ available: true }));
 
 vi.mock("./webgl", () => ({ hasWebGL: () => webgl.available }));
 // The real canvas pulls in three; the test only needs an element that can lose its context.
-vi.mock("./HardwareCanvas", () => ({ default: () => <canvas data-testid="hw-canvas" /> }));
+vi.mock("./board/HardwareCanvas", () => ({ default: () => <canvas data-testid="hw-canvas" /> }));
 vi.mock("./SvgBoard", () => ({ default: () => <svg role="img" aria-label="2D hardware board" /> }));
 // next/dynamic needs Next's loadable runtime; React.lazy is the same contract for these tests.
 vi.mock("next/dynamic", () => ({
