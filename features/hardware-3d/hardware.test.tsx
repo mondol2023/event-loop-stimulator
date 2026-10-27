@@ -27,6 +27,7 @@ vi.mock("next/dynamic", () => ({
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }));
 
 import { machineStateAt } from "@/core/baseline/machineState";
+import { requestHwToggle } from "./toggleRequest";
 import { PlaygroundStoreContext } from "../playground/store/PlaygroundContext";
 import { createPlaygroundStore } from "../playground/store/playgroundStore";
 import { getTimeline } from "../playground/store/timelineHolder";
@@ -98,6 +99,15 @@ describe("HardwareView", () => {
     expect(screen.getByText("3D unavailable; showing the 2D board")).toBeTruthy();
     expect(screen.getByRole("button", { name: "2D" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.queryByTestId("hw-canvas")).toBeNull();
+  });
+
+  it("flips between 3D and 2D when the palette requests a toggle", async () => {
+    render(withStore(createPlaygroundStore(), <HardwareView />));
+    await screen.findByTestId("hw-canvas");
+    act(() => requestHwToggle());
+    expect(await screen.findByRole("group", { name: "2D hardware board" })).toBeTruthy();
+    act(() => requestHwToggle());
+    await waitFor(() => expect(screen.getByTestId("hw-canvas")).toBeTruthy());
   });
 
   it("keeps the toggle working for the session when localStorage throws", async () => {

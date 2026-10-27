@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { HW_TOGGLE_EVENT } from "./toggleRequest";
 import { hasWebGL } from "./webgl";
 
 export type HardwareViewMode = "3d" | "2d";
@@ -65,6 +66,12 @@ export function useHwViewMode(): {
   }, []);
 
   const reportContextLost = useCallback(() => setState({ mode: "2d", reason: "context-lost" }), []);
+
+  useEffect(() => {
+    const onToggle = (): void => setMode(state.mode === "3d" ? "2d" : "3d");
+    window.addEventListener(HW_TOGGLE_EVENT, onToggle);
+    return () => window.removeEventListener(HW_TOGGLE_EVENT, onToggle);
+  }, [setMode, state.mode]);
 
   return { mode: state.mode, reason: state.reason, setMode, reportContextLost };
 }

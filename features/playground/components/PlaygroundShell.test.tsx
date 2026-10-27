@@ -18,6 +18,7 @@ vi.mock("./lazy", async () => {
     SourceEditorLazy: nothing,
     AstPaneLazy: nothing,
     MachineCodePaneLazy: nothing,
+    HardwareViewLazy: nothing,
     EventLoopViewLazy: nothing,
     CoachMarksLazy: nothing,
   };

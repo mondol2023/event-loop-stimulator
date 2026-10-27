@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { useShortcuts } from "../../keyboard/useShortcuts";
 import { PlaygroundStoreContext } from "../../store/PlaygroundContext";
 import { createPlaygroundStore, PLAYBACK_SPEEDS, type PlaygroundStore } from "../../store/playgroundStore";
@@ -220,6 +220,43 @@ describe("PlaybackBar", () => {
     expect(store.getState().compile.stop).not.toBeNull();
     mount(store, <PlaybackBar />);
     expect(screen.getByText("Simulation limit reached — real Node would continue")).toBeTruthy();
+  });
+});
+
+describe("PlaybackBar at 375 px (ADR-060)", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const phone = (): void => {
+    // Radix Popper measures with ResizeObserver, which jsdom lacks.
+    vi.stubGlobal("ResizeObserver", class { observe(): void {} unobserve(): void {} disconnect(): void {} });
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("max-width"), media: query, addEventListener: () => undefined, removeEventListener: () => undefined }));
+  };
+
+  it("moves First, Last and speed into a More playback popover that Tab reaches", async () => {
+    phone();
+    const store = readyStore();
+    mount(store, <PlaybackBar />);
+    expect(screen.queryByRole("button", { name: "First tick" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "2×" })).toBeNull();
+    // The five core controls and the tick counter stay on the bar.
+    for (const name of ["Previous job", "Step back", "Play", "Step forward", "Next job"]) expect(screen.getByRole("button", { name })).toBeTruthy();
+    expect(screen.getByText(/^Tick 1 \//)).toBeTruthy();
+
+    const more = await screen.findByRole("button", { name: "More playback" });
+    expect(more.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(more);
+
+    const first = await screen.findByRole("button", { name: "First tick" });
+    const last = screen.getByRole("button", { name: "Last tick" });
+    const speeds = screen.getByRole("radiogroup", { name: "Playback speed" });
+    for (const el of [first, last]) expect(el.tabIndex).toBeGreaterThanOrEqual(0);
+    // Radix makes the group one roving tab stop: Tab lands on it and hands focus to the selected speed.
+    expect(speeds.tabIndex).toBe(0);
+
+    fireEvent.click(within(speeds).getByRole("radio", { name: "4×" }));
+    expect(store.getState().playback.speed).toBe(4);
+    fireEvent.click(last);
+    expect(store.getState().playback.index).toBe(store.getState().playback.length - 1);
   });
 });
 

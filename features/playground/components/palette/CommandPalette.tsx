@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { useStore } from "zustand";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { usePreferences } from "@/features/preferences/usePreferences";
@@ -9,17 +9,6 @@ import { usePlaygroundStore, useRunNow } from "../../store/PlaygroundContext";
 import { MODES } from "../shell/TopBarControls";
 
 type Page = "root" | "examples" | "mode" | "tick";
-
-// The Hardware tab, and so "Toggle 3D", exists from md (768 px) up. Without matchMedia (jsdom) it counts as wide.
-const WIDE = "(min-width: 768px)";
-const hasMatchMedia = (): boolean => typeof window.matchMedia === "function";
-function subscribeWide(onChange: () => void): () => void {
-  if (!hasMatchMedia()) return () => undefined;
-  const query = window.matchMedia(WIDE);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-const isWide = (): boolean => !hasMatchMedia() || window.matchMedia(WIDE).matches;
 
 function Current() {
   return <span className="ml-auto text-xs text-muted-foreground">current</span>;
@@ -37,8 +26,6 @@ export function CommandPalette({ open, onOpenChange, onChooseExample, onShowHard
   const store = usePlaygroundStore();
   const runNow = useRunNow();
   const { theme, mode, setTheme, setMode } = usePreferences();
-  // The palette is client-only (lazy), so the server snapshot is never rendered.
-  const wide = useSyncExternalStore(subscribeWide, isWide, () => true);
   const hasStripped = useStore(store, (s) => s.compile.strippedJs !== null);
   const [page, setPage] = useState<Page>("root");
   const [search, setSearch] = useState("");
@@ -105,7 +92,7 @@ export function CommandPalette({ open, onOpenChange, onChooseExample, onShowHard
               </CommandItem>
               <CommandItem onSelect={() => go("examples")}>Examples ›</CommandItem>
               <CommandItem onSelect={() => go("tick")}>Go to tick…</CommandItem>
-              {wide ? <CommandItem onSelect={run(onShowHardware)}>Toggle 3D</CommandItem> : null}
+              <CommandItem onSelect={run(onShowHardware)}>Toggle 3D</CommandItem>
               <CommandItem disabled={!hasStripped} onSelect={run(onShowStrippedJs)}>
                 Show stripped JS
               </CommandItem>

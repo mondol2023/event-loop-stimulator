@@ -4,10 +4,8 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EventLoopViewLazy, V8InternalsViewLazy } from "../lazy";
+import { EventLoopViewLazy, HardwareViewLazy, V8InternalsViewLazy } from "../lazy";
 import { TabPanel, tabTriggerProps } from "../shell/TabPanel";
-import { TruthBadge } from "../TruthBadge";
-import { PlaceholderPanel } from "./PlaceholderPanel";
 
 export type BottomTab = "event-loop" | "v8" | "hardware";
 export const isBottomTab = (v: string): v is BottomTab => v === "event-loop" || v === "v8" || v === "hardware";
@@ -35,8 +33,8 @@ export function BottomPanel({ tab, onTabChange, collapsed, onCollapsedChange }: 
           <TabsTrigger value="v8" {...tabTriggerProps(group, "v8")}>
             V8 Internals
           </TabsTrigger>
-          {/* The 3D view needs room; it is not offered on phones. */}
-          <TabsTrigger value="hardware" {...tabTriggerProps(group, "hardware")} className="hidden md:inline-flex">
+          {/* Phones get the 2D board (D5), so the tab is offered at every width. */}
+          <TabsTrigger value="hardware" {...tabTriggerProps(group, "hardware")}>
             Hardware
           </TabsTrigger>
         </TabsList>
@@ -64,16 +62,7 @@ export function BottomPanel({ tab, onTabChange, collapsed, onCollapsedChange }: 
           <V8InternalsViewLazy />
         </TabPanel>
         <TabPanel group={group} value="hardware" active={tab === "hardware"} className={PANEL}>
-          <PlaceholderPanel title="Hardware" badge={<TruthBadge level="illustrative" />}>
-            <p>
-              Phase 7 adds a view of the x64 machine behind the baseline code: the general-purpose registers, the cache hierarchy and the instruction pipeline, stepped alongside
-              the machine code pane.
-            </p>
-            <p>
-              It is not here yet because it needs per-instruction machine state from the simulator. When it arrives it will be an illustration of where the work happens, not a
-              measurement.
-            </p>
-          </PlaceholderPanel>
+          <HardwareViewLazy />
         </TabPanel>
       </div>
     </Tabs>
