@@ -3,6 +3,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseExpectation } from "../../scripts/conformance/expectation.mts";
+import { latticeModel } from "../../features/v8-internals/model/latticeModel";
+import { transitionLayout } from "../../features/v8-internals/model/transitionLayout";
+import type { ElementsKind } from "@/core/runtime/objects/ElementsKind";
 import { consoleCallTick, recordRun, stripProbes } from "./helpers/consoleCallArgs";
 
 // The internals examples (Phase 7) explain Maps and elements kinds with the simulator's own model. Each has a natives
@@ -64,7 +67,22 @@ describe("hidden-classes-shapes: the timeline's Maps agree with %HaveSameMap on 
     });
   }
 
-  it.todo("the view agrees: transitionLayout(tick.v8.maps) contains both mapIds (Task 4)");
+  it("the view agrees: transitionLayout(tick.v8.maps) contains both mapIds", () => {
+    const { tick, args } = consoleCallTick(run, 24);
+    const [first, second] = args;
+    if (first?.kind !== "object" || second?.kind !== "object") throw new Error("expected two object arguments");
+    const ids = transitionLayout(tick.v8.maps as never).nodes.map((n) => n.id);
+    expect(ids).toContain(first.mapId);
+    expect(ids).toContain(second.mapId);
+  });
+
+  it("the y-then-x branch is a sibling of the x-then-y branch", () => {
+    const last = run.ticks.at(-1);
+    if (!last) throw new Error("no ticks");
+    const { edges } = transitionLayout(last.v8.maps as never);
+    const parents = (key: string) => new Set(edges.filter((e) => e.key === key).map((e) => e.from));
+    expect([...parents("y")].some((p) => parents("x").has(p))).toBe(true);
+  });
 });
 
 describe("elements-kinds-lattice: the timeline's elements kinds agree with the recorded kind() on real node", () => {
@@ -81,5 +99,14 @@ describe("elements-kinds-lattice: the timeline's elements kinds agree with the r
     });
   }
 
-  it.todo("the view agrees: latticeModel(kind) highlights the recorded kind (Task 4)");
+  it("the view agrees: latticeModel(kind) highlights the recorded kind", () => {
+    for (const probe of probesOf(twin)) {
+      const { tick, args } = consoleCallTick(run, probe.exampleLine);
+      const list = args[0];
+      if (list?.kind !== "object") throw new Error("expected the array as the first argument");
+      const kind = tick.v8.elementsKinds[list.id] as ElementsKind;
+      expect(kind).toBe(recorded.get(probe.n));
+      expect(latticeModel(kind).nodes.filter((n) => n.current).map((n) => n.kind)).toEqual([kind]);
+    }
+  });
 });
