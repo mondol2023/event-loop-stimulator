@@ -9,25 +9,9 @@ import { Flashes } from "./flashes";
 import type { TextLabel } from "./labels";
 import { FLASH_SECONDS, Z, type SceneProps } from "./sceneTypes";
 import { REGISTER_NAMES, roleOf } from "./registerRoles";
+import { NO_VALUE, registerText } from "./registerText";
 import { useShapeGeometry, useWhiteMaterial } from "./sharedResources";
 import { useTextLabelSet } from "./useTextLabel";
-
-const NO_VALUE = "—";
-
-/** The four registers the machine model keeps; every other register has no modelled value. */
-function registerText(name: string, frame: HardwareFrame | null): string {
-  const registers = frame?.machine?.registers;
-  if (!registers) return NO_VALUE;
-  switch (name) {
-    case "rax":
-    case "rsi":
-    case "rbp":
-    case "rsp":
-      return `0x${registers[name].toString(16)}`;
-    default:
-      return NO_VALUE;
-  }
-}
 
 /** 16 register tiles in one InstancedMesh, each with its name and V8 role (drawn once) and its hex value (redrawn when it changes). */
 export function RegisterBank({ frame, theme, layout, reduced, compact }: SceneProps) {
