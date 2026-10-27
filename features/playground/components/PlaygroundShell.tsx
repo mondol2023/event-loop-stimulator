@@ -73,14 +73,18 @@ export function PlaygroundShell() {
     [store],
   );
   const codeGroup = useId();
-  // "Toggle 3D": open the Hardware tab first; once it is showing, the same command flips the board between 3D and 2D.
+  // "Toggle 3D": open the Hardware tab first; once the board is on screen, the same command flips it between 3D and 2D.
   const showHardware = (): void => {
-    if (bottomTab === "hardware" && !collapsed) {
+    // From lg all regions show and only `collapsed` hides the run panel; below lg only the Run segment shows it.
+    const lg = window.matchMedia("(min-width: 1024px)").matches;
+    const onScreen = lg ? !collapsed : segment === "run";
+    if (bottomTab === "hardware" && onScreen) {
       requestHwToggle();
       return;
     }
     setBottomTab("hardware");
     setCollapsed(false);
+    setSegment("run");
   };
 
   return (

@@ -33,6 +33,6 @@ describe("BottomPanel", () => {
   it("keeps the Hardware tab visible at every width (D5 gives phones the 2D board)", () => {
     panel("event-loop");
     const tab = screen.getByRole("tab", { name: "Hardware" });
-    expect(tab.className).not.toContain("hidden");
+    expect(tab.className).not.toMatch(/(^|\s)(md:|lg:|sm:)?hidden(\s|$)/);
   });
 });

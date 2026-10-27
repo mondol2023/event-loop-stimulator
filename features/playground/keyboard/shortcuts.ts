@@ -56,7 +56,8 @@ function closestMatch(t: EventTarget | null, selector: string): boolean {
   return (t as Element).closest(selector) !== null;
 }
 
-const OPEN_MODAL = "[role='dialog'][data-state='open'], [role='alertdialog'][data-state='open']";
+// A non-modal Radix popover (the "More playback" menu) also renders role=dialog, but it leaves the page's keys alone.
+const OPEN_MODAL = "[role='dialog'][data-state='open']:not([data-slot='popover-content']), [role='alertdialog'][data-state='open']";
 
 /** A Radix modal is open: keys belong to it, not to the page behind it. */
 export function isModalOpen(): boolean {
