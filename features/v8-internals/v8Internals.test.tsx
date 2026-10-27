@@ -2,8 +2,9 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import type { TierTrack } from "@/core/interpreter/tiering/tierTimeline";
 import { TRUTH_TOOLTIPS } from "@/core/shared/fidelity";
-import type { FunctionId } from "@/core/shared/ids";
+import { asFunctionId, type FunctionId } from "@/core/shared/ids";
 import { ConsolePanel } from "@/features/event-loop-2d/ConsolePanel";
 import { BytecodePane } from "@/features/playground/components/panes/BytecodePane";
 import { PreferencesContext } from "@/features/preferences/PreferencesProvider";
@@ -12,9 +13,13 @@ import { PlaygroundStoreContext } from "@/features/playground/store/PlaygroundCo
 import { createPlaygroundStore, type PlaygroundStore } from "@/features/playground/store/playgroundStore";
 import { getTimeline } from "@/features/playground/store/timelineHolder";
 import { fixtureRun, runSource } from "@/features/playground/test/fixtureTimeline";
+import type { GcEvent } from "@/core/timeline/Tick";
 import { ElementsLattice } from "./components/ElementsLattice";
 import { FrameInspector } from "./components/FrameInspector";
+import { HeapStrip, HeapStripView } from "./components/HeapStrip";
+import { HiddenClassGraph } from "./components/HiddenClassGraph";
 import { IcTable } from "./components/IcTable";
+import { TierTimeline } from "./components/TierTimeline";
 import { V8InternalsView } from "./components/V8InternalsView";
 
 afterEach(cleanup);
@@ -258,14 +263,219 @@ describe("ElementsLattice", () => {
   });
 });
 
+const timelineOf = (store: PlaygroundStore) => {
+  const timeline = getTimeline(store);
+  if (!timeline) throw new Error("the store holds no timeline");
+  return timeline;
+};
+const mapIdsOf = (root: HTMLElement): number[] =>
+  [...root.querySelectorAll("svg text")].flatMap((t) => /^Map#(\d+)$/.exec(t.textContent ?? "")?.[1] ?? []).map(Number);
+
+describe("HiddenClassGraph", () => {
+  it("draws a node for every Map the held tick lists, and the Table view lists the same ids", () => {
+    const store = readyStore("hidden-classes-shapes");
+    seek(store, last(store));
+    const maps = timelineOf(store).at(last(store)).v8.maps;
+    render(ui(store, <HiddenClassGraph />));
+    const region = panel("Hidden classes");
+    const drawn = mapIdsOf(region);
+    expect(drawn.length).toBeGreaterThan(0);
+    for (const m of maps) expect(drawn).toContain(m.id);
+    // a and b share Point's Map with x and y until b.z = 9 moves b to its child with z.
+    const withKeys = (keys: string): number | undefined => maps.find((m) => m.fields.map((f) => f.key).join() === keys)?.id;
+    expect(drawn).toContain(withKeys("x,y"));
+    expect(drawn).toContain(withKeys("x,y,z"));
+    expect(new Set(drawn).size).toBe(drawn.length);
+
+    const toggle = within(region).getByRole("button", { name: "Table" });
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(toggle);
+    expect(within(region).getByRole("button", { name: "Table" }).getAttribute("aria-pressed")).toBe("true");
+    const table = within(region).getByRole("table");
+    const ids = within(table)
+      .getAllByRole("row")
+      .slice(1)
+      .map((r) => Number(/^Map#(\d+)$/.exec(within(r).getAllByRole("cell")[0]?.textContent ?? "")?.[1]));
+    expect([...ids].sort((a, b) => a - b)).toEqual([...drawn].sort((a, b) => a - b));
+    expect(region.querySelector('svg[role="img"]')).toBeNull();
+    fireEvent.click(within(region).getByRole("button", { name: "Graph" }));
+    expect(within(region).queryByRole("table")).toBeNull();
+  });
+
+  it("labels each edge with the key it added", () => {
+    const store = readyStore("hidden-classes-shapes");
+    seek(store, last(store));
+    render(ui(store, <HiddenClassGraph />));
+    const labels = [...panel("Hidden classes").querySelectorAll("svg [data-edge-label]")].map((t) => t.textContent);
+    expect(labels).toContain("z");
+    expect(labels).toContain("x");
+  });
+
+  it("marks the Map that changed on this tick current, once, with the word", () => {
+    const store = readyStore("hidden-classes-shapes");
+    const timeline = timelineOf(store);
+    const tick = Array.from({ length: timeline.length }, (_, i) => i).find((i) => timeline.at(i).v8.changedMapId !== undefined);
+    if (tick === undefined) throw new Error("no tick changes a Map");
+    seek(store, tick);
+    const { container } = render(ui(store, <HiddenClassGraph />));
+    const current = container.querySelectorAll('[aria-current="true"]');
+    expect(current).toHaveLength(1);
+    expect(current[0]?.textContent).toContain(`Map#${timeline.at(tick).v8.changedMapId}`);
+    expect(current[0]?.textContent).toContain("current");
+  });
+
+  it("names dictionary and deprecated Maps in words, in both views", () => {
+    const store = storeFrom(runSource("const o = {a:1,b:2,c:3};\ndelete o.a;\nconst p = {x: 1};\np.x = 1.5;\nconsole.log(o, p);", 1));
+    seek(store, last(store));
+    render(ui(store, <HiddenClassGraph />));
+    const region = panel("Hidden classes");
+    expect(within(region).getAllByText("dictionary").length).toBeGreaterThan(0);
+    expect(within(region).getAllByText("deprecated").length).toBeGreaterThan(0);
+    fireEvent.click(within(region).getByRole("button", { name: "Table" }));
+    expect(within(within(region).getByRole("table")).getAllByText(/dictionary/).length).toBeGreaterThan(0);
+    expect(within(within(region).getByRole("table")).getAllByText(/deprecated/).length).toBeGreaterThan(0);
+  });
+
+  it("says how many Maps the 128 cap left off", () => {
+    const source = Array.from({ length: 140 }, (_, n) => `${n === 0 ? "const o = {};\n" : ""}o.p${n} = 1;`).join("\n");
+    const store = storeFrom(runSource(source, 1));
+    seek(store, last(store));
+    render(ui(store, <HiddenClassGraph />));
+    expect(within(panel("Hidden classes")).getByText(/^\+\d+ more Maps$/)).toBeTruthy();
+  });
+
+  it("teaches before any object exists, and badges the panel Verified model", () => {
+    render(ui(createPlaygroundStore(), <HiddenClassGraph />));
+    expect(screen.getByText("No objects yet: hidden classes appear when your code creates one.")).toBeTruthy();
+    expect(panelBadge("Hidden classes")).toContain(TRUTH_TOOLTIPS["verified-model"]);
+  });
+});
+
+describe("HeapStrip", () => {
+  // The default young generation is 16 KB, so a few hundred short-lived objects force a scavenge.
+  const GC_SOURCE = "const keep = [];\nfor (let i = 0; i < 400; i++) { keep.push({ i }); const scratch = { t: i, u: [i] }; }\nconsole.log(keep.length);";
+  const gcStore = (): { store: PlaygroundStore; gcTick: number } => {
+    const store = storeFrom(runSource(GC_SOURCE, 1));
+    const timeline = timelineOf(store);
+    const gcTick = Array.from({ length: timeline.length }, (_, i) => i).find((i) => timeline.at(i).phase === "gc");
+    if (gcTick === undefined) throw new Error("the program did not collect");
+    return { store, gcTick };
+  };
+
+  it("labels the scavenge, with its counts, on and after the tick that collected", () => {
+    const { store, gcTick } = gcStore();
+    seek(store, gcTick);
+    render(ui(store, <HeapStrip />));
+    const region = panel("Heap");
+    expect(within(region).getByText("scavenge")).toBeTruthy();
+    expect(within(region).getByText(/freed 450/)).toBeTruthy();
+    for (const lane of ["Young · from", "Young · to", "Old"]) expect(within(region).getByText(lane)).toBeTruthy();
+    cleanup();
+    seek(store, gcTick + 5);
+    render(ui(store, <HeapStrip />));
+    expect(within(panel("Heap")).getByText("scavenge")).toBeTruthy();
+  });
+
+  it("says no collection has happened yet, before the first one", () => {
+    const { store, gcTick } = gcStore();
+    seek(store, gcTick - 1);
+    render(ui(store, <HeapStrip />));
+    const region = panel("Heap");
+    expect(within(region).queryByText("scavenge")).toBeNull();
+    expect(within(region).getByText(/No garbage collection so far/)).toBeTruthy();
+  });
+
+  it("badges the panel Illustrative and always shows the estimates caption", () => {
+    const { store, gcTick } = gcStore();
+    seek(store, gcTick);
+    render(ui(store, <HeapStrip />));
+    expect(panelBadge("Heap")).toContain(TRUTH_TOOLTIPS.illustrative);
+    expect(within(panel("Heap")).getByText(/Sizes are estimates; GC never changes your program's output\./)).toBeTruthy();
+  });
+
+  it("says nothing is allocated before a run", () => {
+    render(ui(createPlaygroundStore(), <HeapStrip />));
+    expect(screen.getByText("Nothing allocated yet.")).toBeTruthy();
+  });
+
+  it("labels promoted cells when a scavenge moved objects to Old", () => {
+    const lastGc: GcEvent = { type: "scavenge", freedObjects: 10, freedBytes: 0, survivedObjects: 5, promotedObjects: 3, fromSpace: "0x1", toSpace: "0x2", durationMs: 1, illustrative: true };
+    const region = { objectCount: 4, usedBytes: 512, capacityBytes: 1024 };
+    render(<HeapStripView heap={{ young: region, old: region, lastGc }} fresh />);
+    expect(screen.getByText("promoted")).toBeTruthy();
+    expect(screen.getByText(/promoted 3/)).toBeTruthy();
+  });
+});
+
+describe("TierTimeline", () => {
+  const track = (n: number, extra: Partial<TierTrack> = {}): TierTrack => ({
+    functionId: asFunctionId(n),
+    functionName: `fn${n}`,
+    segments: [
+      { from: 0, tier: "ignition" },
+      { from: 4, tier: "sparkplug" },
+    ],
+    deopts: [],
+    ...extra,
+  });
+  const withTracks = (tracks: TierTrack[]): PlaygroundStore => {
+    const store = readyStore("hidden-classes-shapes");
+    store.setState((s) => ({ compile: { ...s.compile, tierTracks: tracks } }));
+    return store;
+  };
+
+  it("caps at 50 rows with Show all N", () => {
+    const store = withTracks(Array.from({ length: 80 }, (_, n) => track(n + 1)));
+    render(ui(store, <TierTimeline />));
+    const region = panel("V8 would typically tier up here");
+    expect(within(region).getAllByRole("listitem")).toHaveLength(50);
+    fireEvent.click(within(region).getByRole("button", { name: "Show all 80" }));
+    expect(within(region).getAllByRole("listitem")).toHaveLength(80);
+    expect(within(region).queryByRole("button", { name: /^Show all/ })).toBeNull();
+  });
+
+  it("explains the function never got hot when there are no tracks", () => {
+    render(ui(withTracks([]), <TierTimeline />));
+    expect(screen.getByText(/No function got hot enough to tier up/)).toBeTruthy();
+    expect(within(panel("V8 would typically tier up here")).queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("badges the panel Modeled and spells out the tier order", () => {
+    render(ui(withTracks([track(1)]), <TierTimeline />));
+    expect(panelBadge("V8 would typically tier up here")).toContain(TRUTH_TOOLTIPS.modeled);
+    expect(screen.getByText("Ignition → Sparkplug → Maglev → TurboFan")).toBeTruthy();
+  });
+
+  it("marks a deopt with its reason in words and a playhead at the current tick", () => {
+    const store = withTracks([track(1, { deopts: [{ index: 6, reason: "kWrongMap" }] })]);
+    seek(store, 2);
+    const { container } = render(ui(store, <TierTimeline />));
+    const marker = screen.getByRole("img", { name: "Deoptimized: wrong map" });
+    expect(marker.getAttribute("tabindex")).toBe("0");
+    expect(marker.querySelector("title")?.textContent).toBe("wrong map");
+    expect(container.querySelectorAll("[data-playhead]")).toHaveLength(1);
+  });
+
+  it("summarises functions and deopts in the header", () => {
+    render(ui(withTracks([track(1, { deopts: [{ index: 6, reason: "kOverflow" }] }), track(2)]), <TierTimeline />));
+    expect(within(panel("V8 would typically tier up here")).getByText("2 functions · 1 deopt")).toBeTruthy();
+  });
+});
+
 describe("V8InternalsView", () => {
-  it("composes the panels and leaves named slots for the later ones", () => {
+  it("composes the panels into their named slots", () => {
     const store = readyStore("hidden-classes-shapes");
     seek(store, last(store));
     const { container } = render(ui(store, <V8InternalsView />));
     expect(panel("Frame")).toBeTruthy();
     expect(panel("Inline caches")).toBeTruthy();
     expect(panel("Elements kinds")).toBeTruthy();
-    for (const slot of ["hidden-classes", "heap", "tiers"]) expect(container.querySelector(`[data-slot="${slot}"]`)).not.toBeNull();
+    for (const [slot, name] of [
+      ["hidden-classes", "Hidden classes"],
+      ["heap", "Heap"],
+      ["tiers", "V8 would typically tier up here"],
+    ] as const) {
+      expect(within(container.querySelector(`[data-slot="${slot}"]`) as HTMLElement).getByRole("region", { name })).toBeTruthy();
+    }
   });
 });

@@ -4,12 +4,15 @@ import { useStore } from "zustand";
 import { usePlaygroundStore } from "@/features/playground/store/PlaygroundContext";
 import { ElementsLattice } from "./ElementsLattice";
 import { FrameInspector } from "./FrameInspector";
+import { HeapStrip } from "./HeapStrip";
+import { HiddenClassGraph } from "./HiddenClassGraph";
 import { IcTable } from "./IcTable";
+import { TierTimeline } from "./TierTimeline";
 
 /**
  * The V8 Internals tab: three columns that follow the tab's own width (container query), from the current
- * instruction outward (docs/design/internals-hardware-shape.md §3). The empty `data-slot` boxes are where the
- * hidden-class graph, the heap strip and the tier timeline mount; they take no room until they hold a panel.
+ * instruction outward (docs/design/internals-hardware-shape.md §3). The named `data-slot` boxes let the layout
+ * and the tests address the hidden-class graph, the heap strip and the tier timeline.
  */
 export function V8InternalsView() {
   const store = usePlaygroundStore();
@@ -26,13 +29,19 @@ export function V8InternalsView() {
           <FrameInspector />
         </div>
         <div data-slot="column-b" className="flex min-w-0 flex-col gap-2">
-          <div data-slot="hidden-classes" className="empty:hidden" />
+          <div data-slot="hidden-classes">
+            <HiddenClassGraph />
+          </div>
           <IcTable />
-          <div data-slot="tiers" className="empty:hidden" />
+          <div data-slot="tiers">
+            <TierTimeline />
+          </div>
         </div>
         <div data-slot="column-c" className="flex min-w-0 flex-col gap-2">
           <ElementsLattice />
-          <div data-slot="heap" className="empty:hidden" />
+          <div data-slot="heap">
+            <HeapStrip />
+          </div>
         </div>
       </div>
     </div>

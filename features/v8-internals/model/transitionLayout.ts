@@ -1,5 +1,8 @@
-import type { MapSnapshot } from "@/core/timeline/Tick";
+import type { DeepReadonly, MapSnapshot as MutableMapSnapshot } from "@/core/timeline/Tick";
 import type { MapId } from "@/core/shared/ids";
+
+// The held ticks are deeply readonly, so the layout reads Maps that way.
+type MapSnapshot = DeepReadonly<MutableMapSnapshot>;
 
 export type TransitionNode = { id: MapId; x: number; y: number; label: string; dictionary: boolean; deprecated: boolean; current: boolean };
 export type TransitionEdge = { from: MapId; to: MapId; key: string };
