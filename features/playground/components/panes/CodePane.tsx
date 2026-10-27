@@ -1,5 +1,6 @@
 "use client";
 
+import type { Extension } from "@codemirror/state";
 import type { ReactNode } from "react";
 import type { Pane } from "@/core/views/lineIndex";
 import { TruthBadge, type TruthBadgeLevel } from "../TruthBadge";
@@ -14,11 +15,13 @@ export type CodePaneProps = {
   headers?: readonly PaneHeader[];
   /** Controls shown beside the label (view toggles). */
   actions?: ReactNode;
+  /** Extra CodeMirror behavior for this pane; must be memoized by the caller. */
+  extension?: Extension;
 };
 
 /** A read-only, synchronized view of one compiled representation of the program. */
-export function CodePane({ pane, doc, label, truth, headers, actions }: CodePaneProps) {
-  const { host } = useCodeView({ pane, doc, label, readOnly: true, ...(headers ? { headers } : {}) });
+export function CodePane({ pane, doc, label, truth, headers, actions, extension }: CodePaneProps) {
+  const { host } = useCodeView({ pane, doc, label, readOnly: true, ...(headers ? { headers } : {}), ...(extension ? { dynamic: extension } : {}) });
   return (
     <section aria-label={label} className="flex h-full min-h-0 flex-col bg-panel">
       <header className="flex min-h-9 shrink-0 items-center gap-2 border-b border-border px-3">

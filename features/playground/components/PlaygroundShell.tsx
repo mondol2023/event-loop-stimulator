@@ -66,6 +66,20 @@ export function PlaygroundShell() {
     query.addEventListener("change", onChange);
     return () => query.removeEventListener("change", onChange);
   }, []);
+  // A bytecode operand that links to a feedback slot opens the inline-cache table (PROMPT §8.3); below lg it also leaves the Code segment for Run.
+  useEffect(
+    () =>
+      store.subscribe(
+        (s) => s.focusSlot,
+        (slot) => {
+          if (!slot) return;
+          setBottomTab("v8");
+          setCollapsed(false);
+          setSegment("run");
+        },
+      ),
+    [store],
+  );
   const codeGroup = useId();
   // The palette offers this only from md (768 px) up, where the Hardware tab exists.
   const showHardware = (): void => {

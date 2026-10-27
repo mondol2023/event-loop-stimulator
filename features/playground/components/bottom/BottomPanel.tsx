@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EventLoopViewLazy } from "../lazy";
+import { EventLoopViewLazy, V8InternalsViewLazy } from "../lazy";
 import { TabPanel, tabTriggerProps } from "../shell/TabPanel";
 import { TruthBadge } from "../TruthBadge";
 import { PlaceholderPanel } from "./PlaceholderPanel";
@@ -61,13 +61,7 @@ export function BottomPanel({ tab, onTabChange, collapsed, onCollapsedChange }: 
           <EventLoopViewLazy />
         </TabPanel>
         <TabPanel group={group} value="v8" active={tab === "v8"} className={PANEL}>
-          <PlaceholderPanel title="V8 Internals">
-            <p>
-              Phase 7 adds V8&apos;s own state for the running program: hidden classes (maps) and how objects transition between them, inline caches and their monomorphic to
-              megamorphic states, the feedback vector each function owns, and the garbage collector&apos;s heap and its collections.
-            </p>
-            <p>This panel stays empty until then because each of those needs the simulator to record V8 heap and feedback state per tick, which the timeline does not carry yet.</p>
-          </PlaceholderPanel>
+          <V8InternalsViewLazy />
         </TabPanel>
         <TabPanel group={group} value="hardware" active={tab === "hardware"} className={PANEL}>
           <PlaceholderPanel title="Hardware" badge={<TruthBadge level="illustrative" />}>

@@ -36,7 +36,8 @@ function specFor(level: TruthBadgeLevel): BadgeSpec {
 }
 
 // Own provider so the badge works standalone (tests) and inside the app.
-export function TruthBadge({ level }: { level: TruthBadgeLevel }) {
+// `compact` drops the visible word for table rows; the accessible name keeps it.
+export function TruthBadge({ level, compact = false }: { level: TruthBadgeLevel; compact?: boolean }) {
   const { label, tooltip, Icon, dashed } = specFor(level);
   // Radix ignores touch pointers, so a tap toggles the tooltip by hand.
   const [open, setOpen] = useState(false);
@@ -55,7 +56,7 @@ export function TruthBadge({ level }: { level: TruthBadgeLevel }) {
             )}
           >
             <Icon aria-hidden="true" className="size-3" />
-            {label}
+            {compact ? null : label}
           </button>
         </TooltipTrigger>
         <TooltipContent>{tooltip}</TooltipContent>

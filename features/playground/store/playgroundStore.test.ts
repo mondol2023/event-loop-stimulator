@@ -233,3 +233,17 @@ describe("initial options", () => {
     expect(createPlaygroundStore().getState().playback.speed).toBe(1);
   });
 });
+
+describe("focusSlot", () => {
+  it("is set by focusFeedbackSlot as a new object each time, and cleared by a recompile", () => {
+    const store = readyStore();
+    expect(store.getState().focusSlot).toBeNull();
+    store.getState().focusFeedbackSlot({ functionId: 0 as never, slot: 3 });
+    const first = store.getState().focusSlot;
+    expect(first).toEqual({ functionId: 0, slot: 3 });
+    store.getState().focusFeedbackSlot({ functionId: 0 as never, slot: 3 });
+    expect(store.getState().focusSlot).not.toBe(first);
+    store.getState().applyPipelineEvent({ kind: "response", response: { ...run.compiled, jobId: 2 } });
+    expect(store.getState().focusSlot).toBeNull();
+  });
+});

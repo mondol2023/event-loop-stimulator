@@ -1,4 +1,4 @@
-import type { FrameSnapshot, ValueSnapshot } from "@/core/timeline/Tick";
+import type { DeepReadonly, FrameSnapshot, ValueSnapshot } from "@/core/timeline/Tick";
 
 export type FrameRow = {
   name: "acc" | `r${number}`;
@@ -7,7 +7,7 @@ export type FrameRow = {
   tagged: string | null;
 };
 
-function describe(value: ValueSnapshot, predictFirst: boolean): Omit<FrameRow, "name"> {
+function describe(value: DeepReadonly<ValueSnapshot>, predictFirst: boolean): Omit<FrameRow, "name"> {
   switch (value.kind) {
     case "smi":
       return { text: String(value.value), tag: "Smi", tagged: value.tagged };
@@ -27,7 +27,7 @@ function describe(value: ValueSnapshot, predictFirst: boolean): Omit<FrameRow, "
   }
 }
 
-export function frameRows(frame: FrameSnapshot, opts: { predictFirst: boolean }): FrameRow[] {
+export function frameRows(frame: DeepReadonly<FrameSnapshot>, opts: { predictFirst: boolean }): FrameRow[] {
   return [
     { name: "acc", ...describe(frame.accumulator, opts.predictFirst) },
     ...frame.registers.map((value, n): FrameRow => ({ name: `r${n}`, ...describe(value, opts.predictFirst) })),

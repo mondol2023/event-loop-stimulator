@@ -5,6 +5,7 @@ import type { Language } from "@/core/compile/CompilationManager";
 import type { HardwareStep } from "@/core/hardware/traceHardware";
 import type { TierTrack } from "@/core/interpreter/tiering/tierTimeline";
 import type { Diagnostic } from "@/core/shared/diagnostics";
+import type { FunctionId } from "@/core/shared/ids";
 import type { SimulationStop } from "@/core/shared/simulationHalt";
 import type { TimelineMarker } from "@/core/timeline/boundaries";
 import { TimelineStore } from "@/core/timeline/TimelineStore";
@@ -42,6 +43,8 @@ export type PlaygroundState = {
   };
   playback: { index: number; isPlaying: boolean; speed: PlaybackSpeed; length: number };
   hover: { pane: Pane | null; line: number | null };
+  /** The feedback slot a bytecode operand linked to; the V8 Internals IC table selects its row (PROMPT §8.3). */
+  focusSlot: { functionId: FunctionId; slot: number } | null;
   setSource(source: string): void;
   setLang(lang: Language): void;
   applyPipelineEvent(e: PipelineEvent): void;
@@ -54,6 +57,7 @@ export type PlaygroundState = {
   setSpeed(speed: PlaybackSpeed): void;
   setHover(pane: Pane | null, line: number | null): void;
   clearHover(): void;
+  focusFeedbackSlot(v: { functionId: FunctionId; slot: number }): void;
 };
 
 export type PlaygroundStore = Mutate<StoreApi<PlaygroundState>, [["zustand/subscribeWithSelector", never]]>;
@@ -100,6 +104,7 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
             },
             playback: { ...s.playback, ...EMPTY_PLAYBACK },
             hover: { pane: null, line: null },
+            focusSlot: null,
           }));
           return;
         }
@@ -134,6 +139,8 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
           playback: { ...s.playback, ...EMPTY_PLAYBACK },
           // Line numbers from the old program would highlight unrelated lines in the new one.
           hover: { pane: null, line: null },
+          // A slot of the old program names a different function in the new one.
+          focusSlot: null,
         }));
       }
 
@@ -192,6 +199,7 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
         },
         playback: { ...EMPTY_PLAYBACK, speed: initial.speed ?? 1 },
         hover: { pane: null, line: null },
+        focusSlot: null,
 
         setSource: (source) => set((s) => ({ editor: { ...s.editor, source } })),
         setLang: (lang) => set((s) => ({ editor: { ...s.editor, lang } })),
@@ -255,6 +263,8 @@ export function createPlaygroundStore(initial: { source?: string; lang?: Languag
         setSpeed: (speed) => set((s) => ({ playback: { ...s.playback, speed } })),
         setHover: (pane, line) => set({ hover: { pane, line } }),
         clearHover: () => set({ hover: { pane: null, line: null } }),
+        // A fresh object each time, so choosing the same slot again still tells the shell to reopen the tab.
+        focusFeedbackSlot: (v) => set({ focusSlot: { functionId: v.functionId, slot: v.slot } }),
       };
     }),
   );
