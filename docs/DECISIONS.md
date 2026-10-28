@@ -570,7 +570,7 @@ It allows pure npm packages.
 
 **Consequence.** The icon set differs from `docs/design/playground-shape.md` by design.
 
-## ADR-060: The 375 px "More playback" popover is deferred to Phase 7 (Phase 6, review item F17)
+## ADR-060: The 375 px "More playback" popover is deferred to Phase 7 (Phase 6, review item F17; closed by ADR-074)
 
 **Context.** The brief moves First, Last and speed into a popover at 375 px. `components/ui` has no popover primitive, and adding Radix Popover grows first-load JS (ADR-062).
 
@@ -586,11 +586,11 @@ It allows pure npm packages.
 
 **Consequence.** Withholding is structural and deterministic. Panes and the 2D view stay live, because stepping is how the learner checks the prediction.
 
-## ADR-062: First-load JS is over the 250 KB budget (Phase 6, owner decision needed)
+## ADR-062: First-load JS is over the 250 KB budget (Phase 6; owner answered, see ADR-074)
 
 **Context.** ADR-040 sets a 250 KB gz first-load budget for `/playground`. Measured as gzip -9 over every `<script src>` in the served HTML of `next start`: 247.9 KB at Task 8, 253.3 KB before Task 14's batch, and 252.8 KB at the end of Task 14 (modern browsers 214.2 KB, plus the `noModule` polyfill chunk).
 
-**Decision.** Phase 6 ships 2.8 KB over the budget when the `noModule` chunk is counted, and under it for modern browsers. Whether the budget counts `noModule` is an owner decision. Automated enforcement is Phase 9.
+**Decision.** Phase 6 ships 2.8 KB over the budget when the `noModule` chunk is counted, and under it for modern browsers. Whether the budget counts `noModule` was an owner decision; the owner answered in Phase 7 Task 1 that it does not, so the gate is the modern-browser figure (ADR-074). Automated enforcement is Phase 9.
 
 **Consequence.** New first-load code in later phases must be lazy or offset by savings.
 
@@ -598,23 +598,23 @@ It allows pure npm packages.
 
 **Context.** The tier timeline and hardware trace need a scan of every tick. Scanning on the main thread would block rendering, and storing them on each `Tick` would duplicate data.
 
-**Decision.** `tierTimeline(ticks)` and `traceHardware(ticks, baselines)` are pure `core/` functions. The worker runs them once and the `simulated` response carries `tierTracks` and `hardware` beside `markers`. Per-tick values (frame, Maps, feedback, heap) still come from the Tick. The Illustrative cache, bus and ALU values of ADR-033 are derived, not stored on the Tick.
+**Decision.** `tierTimeline(ticks)` and `traceHardware(ticks, baselines)` are pure `core/` functions. The worker runs them once and the `simulated` response carries `tierTracks` and `hardware` beside `markers`. Per-tick values (frame, Maps, feedback, heap) still come from the Tick. The Illustrative cache, bus and ALU values are derived like ADR-033's machine state, not stored on the Tick.
 
-**Consequence.** The main thread never scans the timeline. Both arrays are capped in the protocol (`TIER_TRACKS_MAX`, and `LIMITS.ticks` for `hardware`; see ADR-071).
+**Consequence.** The whole-timeline tier and hardware data is computed once in the worker, so the main thread does not rebuild it (some panels still read ticks, for example the elements focus tracker walks back on a backward seek). Both arrays are capped in the protocol (`TIER_TRACKS_MAX`, and `LIMITS.ticks` for `hardware`; see ADR-071).
 
 ## ADR-064: The Illustrative hardware model: LRU caches, buses and ALU (Phase 7, D2)
 
 **Context.** Phase 7 draws caches, buses and an ALU that no V8 output exposes.
 
-**Decision.** `classifyInstruction` maps every x64 form the baseline compiler emits to an ALU op and a memory access, exhaustively as in ADR-035. Addresses come from `MachineState` (a stack slot is `rbp` plus an offset; a heap object is its illustrative compressed pointer). The caches are a deterministic LRU with 64-byte lines: L1 has 8 lines and L2 has 32; a miss in both counts as RAM. The board carries the Illustrative badge and never touches the Exact layer.
+**Decision.** `classifyInstruction` maps every x64 mnemonic the baseline compiler emits to an ALU op and a memory access; the switch is exhaustive per mnemonic, as in ADR-035, not per operand form. `call` and `jmp [mem]` model only the code fetch. Addresses come from `MachineState` (a stack slot is `rbp` plus an offset; a heap object is its illustrative compressed pointer). The caches are a deterministic LRU with 64-byte lines: L1 has 8 lines and L2 has 32; a miss in both counts as RAM. The board carries the Illustrative badge and never touches the Exact layer.
 
 **Consequence.** The picture is repeatable and teaches locality, but its hit and miss counts are not Node's.
 
 ## ADR-065: Each example proves its transitions through a natives twin (Phase 7, D3)
 
-**Context.** The Verified model badge on the hidden-class graph and the elements-kind lattice needs a check against real V8, per example.
+**Context.** The Verified model badge on the hidden-class graph and the elements-kind lattice needs a check against real V8; two examples carry one.
 
-**Decision.** `tests/conformance/internals/` holds a twin per example: the example source plus probe lines (`%HaveSameMap(x, y)`, a kind probe), recorded on real Node with `--allow-natives-syntax`. `tests/conformance/example-internals.test.ts` checks that each probe is answered by our timeline as V8 answered it.
+**Decision.** `tests/conformance/internals/` holds natives twins for two of the ten catalog examples (hidden-classes-shapes and elements-kinds-lattice): the example source plus probe lines (`%HaveSameMap(x, y)`, a kind probe), recorded on real Node with `--allow-natives-syntax`. `tests/conformance/example-internals.test.ts` checks that each probe is answered by our timeline as V8 answered it.
 
 **Consequence.** The twin expectations come only from `npm run conformance:record`. A mismatch is a model bug.
 
@@ -622,15 +622,15 @@ It allows pure npm packages.
 
 **Context.** A seek or a play must not re-render React for a board that changes every tick.
 
-**Decision.** Scene objects and SVG attributes are set from the `useHardwareFrame` ref (3D in `useFrame`, SVG through a painter). Labels are `CanvasTexture` sprites drawn once, with no drei `Text` or `Html`. `HardwareView` shows the SVG board when WebGL is missing or lost, under 768 px, or when the learner chose 2D; otherwise 3D, which the owner confirmed as the desktop default (Task 1). The choice persists in `localStorage["sl_hw_view"]`, read and written in `try`/`catch`.
+**Decision.** Scene objects and SVG attributes are set from the `useHardwareFrame` ref (3D in `useFrame`, SVG through a painter). Name and role labels are `CanvasTexture` sprites drawn once; register values and the hit/miss cue are redrawn only when they change. There is no drei `Text` or `Html`. `HardwareView` shows the SVG board when WebGL is missing or lost, when the learner chose 2D, or, with no stored choice, when the viewport is under 768 px (checked at mount only); otherwise 3D, which the owner confirmed as the desktop default (Task 1). A stored `sl_hw_view` choice beats the viewport check (`useHwViewMode.ts`). The choice persists in `localStorage["sl_hw_view"]`, read and written in `try`/`catch`.
 
-**Consequence.** Both boards render zero React commits on a seek or during play. The Hardware tab is visible at every width; under 768 px it shows the SVG board.
+**Consequence.** Both boards render zero React commits on a seek or during play. The Hardware tab is visible at every width; under 768 px it shows the SVG board unless the learner stored a choice.
 
 ## ADR-067: The fps sampler is a rAF counter behind `?perf=1`, not r3f-perf (Phase 7, D6)
 
 **Context.** The plan mounted `r3f-perf` under `?perf=1`. In Task 7, `r3f-perf` 7.2.3 injected an un-nonced `<style>` (stitches): two CSP violations, two page errors, and the canvas did not mount. It was uninstalled.
 
-**Decision.** `features/hardware-3d/perf/PerfOverlay.tsx` starts a `requestAnimationFrame` counter only with `?perf=1` and exposes `window.__slHwFps()`, the average fps since mount. `e2e/hardware-perf.spec.ts` reads that accessor. It runs only with `PERF=1`, on a real GPU.
+**Decision.** `features/hardware-3d/perf/PerfOverlay.tsx` starts a `requestAnimationFrame` counter only with `?perf=1` and exposes `window.__slHwFps()`, the average fps since mount. `e2e/hardware-perf.spec.ts` reads that accessor. It runs only with `PERF=1`, on a real GPU; Task 11 measured an average of 59.4 fps and a minimum of 59.0 (AMD GPU through ANGLE/D3D11).
 
 **Consequence.** The figure is the display rAF rate since mount, not R3F's own frame count, so it can miss demand-loop skips. The CSP is unchanged.
 
@@ -638,21 +638,21 @@ It allows pure npm packages.
 
 **Context.** ADR-061 withholds console and narration, so the frame inspector must not leak the string `console.log` is about to print.
 
-**Decision.** Until Reveal or the last tick in interview mode, string values show `"…"` and object previews `{…}`. Smi, HeapNumber and Oddball values stay visible (the owner confirmed this in Task 1): the current-line highlight leaks no more, and the Smi tagging is what the inspector teaches. `consoleCallArgs` and `consoleCallTick` take a `RecordedRun` (program and ticks), not a bare timeline, because decoding argument registers needs the bytecode.
+**Decision.** Until Reveal or the last tick in interview mode, string values show `"…"` and object previews `{…}`. Smi, HeapNumber and Oddball values stay visible (the owner confirmed this in Task 1), because the current-line highlight leaks no more than they do. The values are Exact. The Smi tag and the tagged word shown beside them are Illustrative (ADR-039: `value << 1`, a 31-bit range, where pinned Node stores `value << 32`).
 
-**Consequence.** The hardware board needs no masking, since it shows hex words and pointers.
+**Consequence.** The hardware board needs no masking, since it shows hex words and pointers. Mismatch: `FrameInspector.tsx` labels the whole panel `verified-model`, which is stricter than this classification; the tag and tagged-word cells should read Illustrative. It is recorded here and not changed in code (docs-only task).
 
 ## ADR-069: Derived-field rulings for the IC table, lattice and heap strip (Phase 7)
 
 **Context.** The panels need fields the core does not store.
 
-**Decision.** IC table truth is per row: `VERIFIED_SLOT_KINDS` (`core/runtime/ic/verifiedSlotKinds.ts`, the kinds in `ic-states.cjs`) gives Verified model, any other kind is Modeled. Its test lives in `tests/conformance/` because `core/` bans `node:fs`; the lattice's recorded-kind test is `tests/conformance/lattice-view.test.tsx`, because `features/` cannot import `tests/` helpers. The lattice counts the current kind as reachable. In the heap strip, `young.to` is the survived share of the last scavenge times the cell count.
+**Decision.** IC table truth is per row: `VERIFIED_SLOT_KINDS` (`core/runtime/ic/verifiedSlotKinds.ts`) holds exactly the three kinds `ic-states.cjs` asserts against `%DebugPrint`, `LoadProperty`, `LoadKeyed` and `SetNamedSloppy`, and gives Verified model; every other kind is Modeled. Its test lives in `tests/conformance/` because `core/` bans `node:fs`; the lattice's recorded-kind test is `tests/conformance/lattice-view.test.tsx`, because `features/` cannot import `tests/` helpers. The lattice counts the current kind as reachable. In the heap strip, `young.to` is the survived share of the last scavenge times the cell count.
 
 **Consequence.** The heap strip stays Illustrative, and no source field was added to the core.
 
 ## ADR-070: The hardware trace shows one representative instruction per bytecode tick (Phase 7)
 
-**Context.** A tick is one bytecode, but a `HardwareStep` holds one ALU op and one bus access, and the first instruction is always a `mov` of an immediate with no bus traffic.
+**Context.** A tick is one bytecode, but a `HardwareStep` holds one ALU op and one bus access, and the first instruction often has no bus traffic (a `mov` of an immediate), although a load such as `Ldar` starts with a memory read.
 
 **Decision.** `traceHardware` picks, per bytecode tick, the first instruction with a bus access, else the first with an ALU op, else the first instruction.
 
@@ -668,11 +668,13 @@ It allows pure npm packages.
 
 ## ADR-072: The short-height and 375 px internals layout is not built (Phase 7, tracked follow-up)
 
-**Context.** The shape brief (`docs/design/internals-hardware-shape.md`) asks for column sub-tabs under 300 px of panel height, a 375 px accordion with a drag hint, and RAM regions side by side. Task 12 was a fix batch, and the layout belongs to Tasks 5, 6 and 10, which did not build it.
+**Context.** The shape brief (`docs/design/internals-hardware-shape.md` §3 and §10) asks for column sub-tabs under 300 px of panel height and a 375 px accordion with a drag hint. Task 12 was a fix batch, and the layout belongs to Tasks 5, 6 and 10, which did not build it.
 
-**Decision.** Panels stack and scroll at short heights and at 375 px, and the RAM regions are not side by side.
+**Decision.** Panels stack and scroll at short heights and at 375 px.
 
-**Consequence.** Tracked follow-up (mandatory): build the sub-tab, accordion and drag-hint layout for short panels, and decide the RAM arrangement. Until then a short panel is a scrolling stack. Also not built: changed-this-tick outlines and Map-chip hover sync with the graph.
+**Consequence.** Tracked follow-up (mandatory): build the sub-tab, accordion and drag-hint layout for short panels. Until then a short panel is a scrolling stack. Also not built: changed-this-tick outlines and Map-chip hover sync with the graph.
+
+**RAM layout (a second deviation).** The brief (§10) stacks the RAM regions top to bottom (code, stack, young from|to, old). `features/hardware-3d/board/layout.ts` instead lays code, stack, young and old out in one row of grids in the wide composition. It stays; reconcile the brief or the layout when the follow-up above is built.
 
 ## ADR-073: SvgBoard lives in `features/hardware-3d/SvgBoard.tsx` (Phase 7)
 
@@ -686,6 +688,6 @@ It allows pure npm packages.
 
 **Context.** ADR-060 deferred the 375 px "More playback" popover. ADR-062 left open whether the budget counts the `noModule` chunk.
 
-**Decision.** Task 10 (commit `98aecbe`) added `MorePlayback.tsx`, a Radix Popover loaded only once a phone-width bar renders, so ADR-060 is closed. The owner answered in Task 1 (2026-10-26): the budget is the modern-browser first load, 214.2 KB gz against 250 KB, and the `noModule` total (252.8 KB) is recorded for information. `three`, R3F, drei and the internals views live in lazy chunks; Task 7 measured 214.0 KB.
+**Decision.** Task 10 (commit `98aecbe`) added `MorePlayback.tsx`, a Radix Popover loaded only once a phone-width bar renders, so ADR-060 is closed. The owner answered in Task 1 (2026-10-26): the budget is the modern-browser first load, 214.2 KB gz against 250 KB, and the `noModule` total (252.8 KB) is recorded for information. `three`, R3F, drei and the internals views live in lazy chunks; Task 7 measured 214.0 KB (before Task 10).
 
-**Consequence.** Phase 7 adds 0 KB to first load. Phase 9 enforces the modern-browser figure. Task 14's build confirms the final number.
+**Consequence.** The claim that Phase 7 adds 0 KB to first load is provisional: 214.0 KB was measured at Task 7, before Task 10 (`98aecbe`) added eager playback code, and Task 14's build is the first measurement of the final number. Phase 9 enforces the modern-browser figure.

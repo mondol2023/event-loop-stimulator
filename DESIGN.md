@@ -48,8 +48,7 @@ Quiet: `text-xs`, `text-muted-foreground`, Lucide icon, focusable, tooltip text 
 | Level | Icon | Where |
 |---|---|---|
 | Exact | `Check` | AST & scopes, Event Loop (2D), Console |
-| Verified model | `FlaskConical` | Bytecode |
-| Verified model | `FlaskConical` | Frame inspector, hidden-class graph, elements-kind lattice, IC table rows of verified slot kinds |
+| Verified model | `FlaskConical` | Bytecode, hidden-class graph, elements-kind lattice, IC table rows of `LoadProperty`, `LoadKeyed` and `SetNamedSloppy` slots; the frame inspector's badge also reads Verified model although only its values are Exact and its Smi tag and tagged word are Illustrative (ADR-039, ADR-068) |
 | Modeled | `Gauge`, dashed outline | Tier timeline, IC table rows of other slot kinds |
 | Illustrative | `PencilLine` | Machine Code assembly, heap strip, Hardware board (3D and SVG) |
 
@@ -76,7 +75,7 @@ Regions mirror the pipeline: editor (what you wrote), code panes AST / Bytecode 
 | 1280 px and up | Editor about 40% (min 360 px) and panes about 60% side by side over the top; bottom region full width below. On the Event Loop tab the 2D view is about 70% and the console about 30% as a right column. |
 | 1024 to 1279 px | Same regions, editor about 45%; the console becomes a strip under the 2D view. |
 | 768 to 1023 px | Stacked; a segmented control Editor / Code / Run shows one region. Playback bar and narration are pinned to the bottom. |
-| 375 to 767 px | Single column; V8 group above Node/libuv group, phase ring becomes a five-step row, compact playback bar. The Hardware tab is visible and shows the SVG board; "More playback" is a popover (ADR-074). Mode control collapses to a menu button that still names the mode. |
+| 375 to 767 px | Single column; V8 group above Node/libuv group, phase ring becomes a five-step row, compact playback bar (below 480 px "More playback" is a popover, ADR-074). The Hardware tab is visible and shows the SVG board unless a 3D choice is stored. Mode control collapses to a menu button that still names the mode. |
 
 Resizing (1024 px and up) uses the in-house `ResizableSplit` (ADR-055) with keyboard-operable separators and double-click reset. No horizontal page scroll at any width.
 
