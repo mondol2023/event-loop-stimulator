@@ -7,7 +7,7 @@ import type { OrthographicCamera } from "three";
 import { usePlaygroundStore } from "../../playground/store/PlaygroundContext";
 import { useHardwareFrame, type HardwareFrame } from "../../playground/hooks/useHardwareFrame";
 import { PerfOverlay } from "../perf/PerfOverlay";
-import { readout } from "../readout";
+import { boardReading } from "../readout";
 import { Alu } from "./Alu";
 import { createBoardTheme } from "./boardColors";
 import { Buses } from "./Buses";
@@ -105,9 +105,7 @@ export default function HardwareCanvas() {
     (f: HardwareFrame | null) => {
       const el = root.current?.gl.domElement;
       if (!el) return;
-      const { compile, asmSyntax } = store.getState();
-      const baseline = f?.tick.pos ? compile.baselines?.[f.tick.pos.functionId] : undefined;
-      el.setAttribute("aria-label", readout(f, baseline, asmSyntax));
+      el.setAttribute("aria-label", boardReading(f, store.getState()));
     },
     [store],
   );

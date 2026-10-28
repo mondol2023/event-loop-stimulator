@@ -1,13 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHardwareFrame, type HardwareFrame } from "../playground/hooks/useHardwareFrame";
 import { usePlaygroundStore } from "../playground/store/PlaygroundContext";
-import { readout } from "./readout";
+import { boardReading } from "./readout";
 import { useHwViewMode, type HardwareViewReason } from "./useHwViewMode";
 
 function BoardSkeleton() {
@@ -24,8 +24,6 @@ function noticeFor(reason: HardwareViewReason): string | null {
   return null;
 }
 
-export const BEFORE_RUN = "Nothing to execute yet. Press Play and the board follows the Machine Code pane, one instruction at a time.";
-
 /** The board's reading as text, legible at any board size; written through a ref, so a tick never re-renders React. */
 function Readout({ hidden }: { hidden: boolean }) {
   const store = usePlaygroundStore();
@@ -33,9 +31,9 @@ function Readout({ hidden }: { hidden: boolean }) {
   const write = useCallback(
     (f: HardwareFrame | null) => {
       if (!el.current) return;
-      const { compile, asmSyntax, playback } = store.getState();
-      const baseline = f?.tick.pos ? compile.baselines?.[f.tick.pos.functionId] : undefined;
-      el.current.textContent = playback.length === 0 ? BEFORE_RUN : readout(f, baseline, asmSyntax);
+      const text = boardReading(f, store.getState());
+      el.current.textContent = text;
+      el.current.title = text;
     },
     [store],
   );
@@ -44,8 +42,15 @@ function Readout({ hidden }: { hidden: boolean }) {
     write(frame.current);
     return store.subscribe((s) => s.asmSyntax, () => write(frame.current));
   }, [store, frame, write]);
-  // In 3D the canvas already carries this text as its accessible name.
-  return <p ref={el} data-testid="hw-readout" aria-hidden={hidden || undefined} className="min-w-0 font-mono text-xs break-words text-foreground tabular-nums" />;
+  // One fixed line above the board, so a tick never resizes it; the side column (no effect on the board's size) may wrap.
+  return (
+    <p
+      ref={el}
+      data-testid="hw-readout"
+      aria-hidden={hidden || undefined}
+      className="h-5 min-w-0 truncate font-mono text-xs leading-5 text-foreground tabular-nums @5xl:h-auto @5xl:overflow-visible @5xl:break-words @5xl:whitespace-normal"
+    />
+  );
 }
 
 export function HardwareView() {
@@ -53,18 +58,18 @@ export function HardwareView() {
   const status = useStore(store, (s) => s.compile.status);
   const message = useStore(store, (s) => s.compile.message);
   const { mode, reason, setMode, reportContextLost } = useHwViewMode();
-  const boardRef = useRef<HTMLDivElement>(null);
+  // A state ref, so the listener follows each board div that mounts (a refused run unmounts it).
+  const [board, setBoard] = useState<HTMLDivElement | null>(null);
 
   // Review Focus 1: `webglcontextlost` does not bubble, so a capture listener on the wrapper sees the canvas's event.
   useEffect(() => {
-    const el = boardRef.current;
-    if (el === null || mode !== "3d") return;
-    el.addEventListener("webglcontextlost", reportContextLost, true);
-    return () => el.removeEventListener("webglcontextlost", reportContextLost, true);
-  }, [mode, reportContextLost]);
+    if (board === null || mode !== "3d") return;
+    board.addEventListener("webglcontextlost", reportContextLost, true);
+    return () => board.removeEventListener("webglcontextlost", reportContextLost, true);
+  }, [board, mode, reportContextLost]);
 
   if (status === "refused") return <p className="p-3 text-sm text-muted-foreground">Nothing to inspect yet: fix the problem in the editor first.</p>;
-  if (status === "failed") return <p className="p-3 text-sm text-muted-foreground">{`The run couldn't finish: ${message ?? "unknown error"}.`}</p>;
+  if (status === "failed") return <p className="p-3 text-sm text-muted-foreground">{`The run couldn't finish: ${(message ?? "unknown error").replace(/\.$/, "")}.`}</p>;
 
   const notice = noticeFor(reason);
 
@@ -90,7 +95,7 @@ export function HardwareView() {
             <Readout hidden={mode === "3d"} />
           </div>
         </div>
-        <div ref={boardRef} className="min-h-0 min-w-0 flex-1">
+        <div ref={setBoard} className="min-h-0 min-w-0 flex-1">
           {mode === "3d" ? <HardwareCanvas /> : <SvgBoard />}
         </div>
       </div>

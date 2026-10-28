@@ -32,7 +32,8 @@ import { PlaygroundStoreContext } from "../playground/store/PlaygroundContext";
 import { createPlaygroundStore } from "../playground/store/playgroundStore";
 import { getTimeline } from "../playground/store/timelineHolder";
 import { fixtureRun } from "../playground/test/fixtureTimeline";
-import { BEFORE_RUN, HardwareView } from "./HardwareView";
+import { HardwareView } from "./HardwareView";
+import { BEFORE_RUN, boardReading } from "./readout";
 import SvgBoard from "./SvgBoard";
 
 type Store = ReturnType<typeof createPlaygroundStore>;
@@ -129,6 +130,38 @@ describe("HardwareView", () => {
     render(withStore(store, <HardwareView />));
     expect(screen.getByText("Nothing to inspect yet: fix the problem in the editor first.")).toBeTruthy();
     expect(screen.queryByRole("group", { name: "Board view" })).toBeNull();
+  });
+
+  it("still falls back to 2D on a context loss after a refused run is fixed", async () => {
+    const store = createPlaygroundStore();
+    store.setState((s) => ({ compile: { ...s.compile, status: "refused" } }));
+    render(withStore(store, <HardwareView />));
+    act(() => store.setState((s) => ({ compile: { ...s.compile, status: "ready" } })));
+    const canvas = await screen.findByTestId("hw-canvas");
+    fireEvent(canvas, new Event("webglcontextlost", { bubbles: false, cancelable: true }));
+    expect(await screen.findByRole("group", { name: "2D hardware board" })).toBeTruthy();
+    expect(screen.getByText("3D unavailable; showing the 2D board")).toBeTruthy();
+  });
+
+  it("does not double the period of a failed run's message", () => {
+    const store = createPlaygroundStore();
+    store.setState((s) => ({ compile: { ...s.compile, status: "failed", message: "Out of memory." } }));
+    render(withStore(store, <HardwareView />));
+    expect(screen.getByText("The run couldn't finish: Out of memory.")).toBeTruthy();
+  });
+
+  it("keeps the readout to one truncated line with the full text in its title", async () => {
+    const store = loadedStore();
+    render(withStore(store, <HardwareView />));
+    await act(async () => store.getState().seek(1));
+    const p = screen.getByTestId("hw-readout");
+    expect(p.className).toContain("truncate");
+    expect(p.className).toContain("h-5");
+    expect(p.title).toBe(p.textContent);
+  });
+
+  it("gives the canvas label and the readout the same text before a run", () => {
+    expect(boardReading(null, createPlaygroundStore().getState())).toBe(BEFORE_RUN);
   });
 
   it("keeps the toggle working for the session when localStorage throws", async () => {
