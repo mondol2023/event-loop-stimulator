@@ -170,7 +170,7 @@ editor → PipelineClient (400 ms, jobId) → pipeline.worker (compile → run)
 ```
 
 - `PipelineClient` debounces edits by 400 ms, tags each job with a `jobId` and terminates the worker when a newer job supersedes one in flight (ADR-042).
-- The worker validates requests with a `.strict()` schema, runs the same `compile` and `simulate` as the tests, and posts `compiled` then `simulated` (ADR-041, ADR-045). The timeline crosses as a serialized string (ADR-040).
+- The worker validates requests with a `.strict()` schema, runs the same `compile` and `simulate` as the tests, and posts `compiled` then `simulated` (ADR-041, ADR-045). The timeline crosses as a serialized string (ADR-040). Since Phase 7 the `simulated` response also carries `tierTracks` (from `tierTimeline`) and `hardware` (from `traceHardware`), computed once in the worker so the main thread never scans the timeline (ADR-063).
 - One Zustand store per `PlaygroundProvider`. The `TimelineStore` sits in a per-store `WeakMap` holder and the state carries only `timelineVersion` (ADR-046). Hooks select DTOs (ADR-043) and read ticks from the holder. The playback clock is presentation only (ADR-044).
 
 ## Phase 6: the IDE

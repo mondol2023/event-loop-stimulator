@@ -29,6 +29,8 @@ Dark is the default (`<html class="dark">`); light is the `:root` base and is th
 | `webapi` | `#22d3ee` | `#0e7490` | Host APIs (libuv) |
 | `destructive` | `#f87171` | `#b91c1c` | Error |
 | `warning` | `#fde047` | `#854d0e` | Fidelity warning (lemon, so it never reads as macrotask) |
+| `bus-read` | `#60a5fa` | `#1d4ed8` | Hardware board: memory-bus read pulse (blue, with arrowheads and a label) |
+| `bus-write` | `#f472b6` | `#be185d` | Hardware board: memory-bus write pulse (pink, with arrowheads and a label) |
 
 `chart-1..5` and `sidebar-*` alias the roles above. The event loop is Node/libuv's and the microtask queue is V8's; the UI says so in its ownership labels.
 
@@ -47,8 +49,9 @@ Quiet: `text-xs`, `text-muted-foreground`, Lucide icon, focusable, tooltip text 
 |---|---|---|
 | Exact | `Check` | AST & scopes, Event Loop (2D), Console |
 | Verified model | `FlaskConical` | Bytecode |
-| Modeled | `Gauge`, dashed outline | Tier data (Phase 7) |
-| Illustrative | `PencilLine` | Machine Code assembly, Hardware placeholder |
+| Verified model | `FlaskConical` | Frame inspector, hidden-class graph, elements-kind lattice, IC table rows of verified slot kinds |
+| Modeled | `Gauge`, dashed outline | Tier timeline, IC table rows of other slot kinds |
+| Illustrative | `PencilLine` | Machine Code assembly, heap strip, Hardware board (3D and SVG) |
 
 The editor shows `VerifiedBadge` instead: "Matches Node v24.19.0 (V8 13.6.233.17-node.51)" only when the source equals a recorded example byte for byte, otherwise "Simulated by spec model". Nondeterministic examples add a `TriangleAlert` chip "Order not guaranteed in real Node".
 
@@ -73,9 +76,16 @@ Regions mirror the pipeline: editor (what you wrote), code panes AST / Bytecode 
 | 1280 px and up | Editor about 40% (min 360 px) and panes about 60% side by side over the top; bottom region full width below. On the Event Loop tab the 2D view is about 70% and the console about 30% as a right column. |
 | 1024 to 1279 px | Same regions, editor about 45%; the console becomes a strip under the 2D view. |
 | 768 to 1023 px | Stacked; a segmented control Editor / Code / Run shows one region. Playback bar and narration are pinned to the bottom. |
-| 375 to 767 px | Single column; V8 group above Node/libuv group, phase ring becomes a five-step row, compact playback bar (two rows; the "More playback" popover is deferred, ADR-053). Hardware tab hidden. Mode control collapses to a menu button that still names the mode. |
+| 375 to 767 px | Single column; V8 group above Node/libuv group, phase ring becomes a five-step row, compact playback bar. The Hardware tab is visible and shows the SVG board; "More playback" is a popover (ADR-074). Mode control collapses to a menu button that still names the mode. |
 
 Resizing (1024 px and up) uses the in-house `ResizableSplit` (ADR-055) with keyboard-operable separators and double-click reset. No horizontal page scroll at any width.
+
+## V8 Internals and Hardware panels (Phase 7)
+
+Two bottom-panel tabs; the shape brief is `docs/design/internals-hardware-shape.md`, the decisions are ADR-063 to ADR-074.
+
+- **V8 Internals:** frame inspector, hidden-class graph (with a table view), IC table, elements-kind lattice (`<li>` with `aria-current`), heap strip and tier timeline. Long lists show 50 rows then "Show all N". In interview mode, strings show `"…"` and object previews `{…}` until Reveal (ADR-068). Not built yet: the short-height layout (ADR-072).
+- **Hardware board:** a fixed-camera 3D board (R3F) and an SVG twin with the same data and a 3D/2D toggle. It shows the CPU die with register bank and ALU, L1 and L2, the buses and a 208-cell RAM (stack, young, old, code strip). Cache hit is green and miss red, always with a text label; bus read is `bus-read` and write `bus-write`, with arrowheads. Board colours are read from the CSS tokens at mount, so both themes work. Reduced motion makes pulses and flashes instant. The canvas is `role="img"` with an `aria-label` naming the current instruction and registers.
 
 ## Usage modes
 
