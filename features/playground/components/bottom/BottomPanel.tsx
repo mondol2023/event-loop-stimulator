@@ -5,6 +5,7 @@ import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventLoopViewLazy, HardwareViewLazy, V8InternalsViewLazy } from "../lazy";
+import { TruthBadge } from "../TruthBadge";
 import { TabPanel, tabTriggerProps } from "../shell/TabPanel";
 
 export type BottomTab = "event-loop" | "v8" | "hardware";
@@ -39,6 +40,8 @@ export function BottomPanel({ tab, onTabChange, collapsed, onCollapsedChange }: 
           </TabsTrigger>
         </TabsList>
         <div className="ml-auto flex items-center gap-2">
+          {/* The board is Illustrative as a whole, so its badge sits here and not on the board (shape brief §11). */}
+          {tab === "hardware" ? <TruthBadge level="illustrative" /> : null}
           <Button
             type="button"
             variant="ghost"

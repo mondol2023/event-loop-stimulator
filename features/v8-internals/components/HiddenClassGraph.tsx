@@ -155,7 +155,8 @@ type View = "graph" | "table";
 export function HiddenClassGraph() {
   const v8 = useV8State();
   const accumulator = useCallStack().at(-1)?.accumulator;
-  const [view, setView] = useState<View>("graph");
+  // Phones open on the Table (shape brief §3); the tab is client-only, so matchMedia is safe here.
+  const [view, setView] = useState<View>(() => (typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767px)").matches ? "table" : "graph"));
   const maps = v8?.maps ?? NO_MAPS;
   // The Map this tick created or changed; else the Map of the object in the accumulator.
   const current = v8?.changedMapId ?? (accumulator?.kind === "object" ? accumulator.mapId : undefined);

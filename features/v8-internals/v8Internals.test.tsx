@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { TierTrack } from "@/core/interpreter/tiering/tierTimeline";
 import { TRUTH_TOOLTIPS } from "@/core/shared/fidelity";
 import { asFunctionId, type FunctionId } from "@/core/shared/ids";
@@ -14,7 +14,7 @@ import { createPlaygroundStore, type PlaygroundStore } from "@/features/playgrou
 import { getTimeline } from "@/features/playground/store/timelineHolder";
 import { fixtureRun, runSource } from "@/features/playground/test/fixtureTimeline";
 import type { GcEvent } from "@/core/timeline/Tick";
-import { ElementsLattice } from "./components/ElementsLattice";
+import { ElementsLattice, shortKind } from "./components/ElementsLattice";
 import { FrameInspector } from "./components/FrameInspector";
 import { HeapStrip, HeapStripView } from "./components/HeapStrip";
 import { HiddenClassGraph } from "./components/HiddenClassGraph";
@@ -255,6 +255,19 @@ describe("ElementsLattice", () => {
     expect(screen.getByText("Dimmed: no way back from the current kind.")).toBeTruthy();
   });
 
+  it("shows short names under Packed and Holey row labels, with the full name as accessible text and tooltip", () => {
+    const store = readyStore("elements-kinds-lattice");
+    seek(store, last(store));
+    render(ui(store, <ElementsLattice />));
+    const items = within(panel("Elements kinds")).getAllByRole("listitem");
+    const first = items[0] as HTMLElement;
+    expect(within(first).getByText("SMI").getAttribute("aria-hidden")).toBe("true");
+    expect(within(first).getByText("PACKED_SMI_ELEMENTS").className).toContain("sr-only");
+    expect(first.querySelector("[title]")?.getAttribute("title")).toBe("PACKED_SMI_ELEMENTS");
+    expect(shortKind("DICTIONARY_ELEMENTS")).toBe("DICTIONARY");
+    expect(shortKind("HOLEY_ELEMENTS")).toBe("ELEMENTS");
+  });
+
   it("badges the panel Verified model with its tooltip sentence", () => {
     const store = readyStore("elements-kinds-lattice");
     seek(store, last(store));
@@ -272,6 +285,18 @@ const mapIdsOf = (root: HTMLElement): number[] =>
   [...root.querySelectorAll("svg text")].flatMap((t) => /^Map#(\d+)$/.exec(t.textContent ?? "")?.[1] ?? []).map(Number);
 
 describe("HiddenClassGraph", () => {
+  it("opens on the Table view on phones", () => {
+    const store = readyStore("hidden-classes-shapes");
+    seek(store, last(store));
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q === "(max-width: 767px)", media: q, addEventListener() {}, removeEventListener() {} }));
+    try {
+      render(ui(store, <HiddenClassGraph />));
+      expect(within(panel("Hidden classes")).getByRole("button", { name: "Table" }).getAttribute("aria-pressed")).toBe("true");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("draws a node for every Map the held tick lists, and the Table view lists the same ids", () => {
     const store = readyStore("hidden-classes-shapes");
     seek(store, last(store));

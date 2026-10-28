@@ -30,6 +30,14 @@ describe("BottomPanel", () => {
     expect(screen.queryByText("v8-internals-view")).toBeNull();
   });
 
+  it("puts the Illustrative badge in the region header on the Hardware tab only", () => {
+    panel("hardware");
+    expect(screen.getByText("Illustrative")).toBeTruthy();
+    cleanup();
+    panel("v8");
+    expect(screen.queryByText("Illustrative")).toBeNull();
+  });
+
   it("keeps the Hardware tab visible at every width (D5 gives phones the 2D board)", () => {
     panel("event-loop");
     const tab = screen.getByRole("tab", { name: "Hardware" });

@@ -32,7 +32,7 @@ import { PlaygroundStoreContext } from "../playground/store/PlaygroundContext";
 import { createPlaygroundStore } from "../playground/store/playgroundStore";
 import { getTimeline } from "../playground/store/timelineHolder";
 import { fixtureRun } from "../playground/test/fixtureTimeline";
-import { HardwareView } from "./HardwareView";
+import { BEFORE_RUN, HardwareView } from "./HardwareView";
 import SvgBoard from "./SvgBoard";
 
 type Store = ReturnType<typeof createPlaygroundStore>;
@@ -108,6 +108,27 @@ describe("HardwareView", () => {
     expect(await screen.findByRole("group", { name: "2D hardware board" })).toBeTruthy();
     act(() => requestHwToggle());
     await waitFor(() => expect(screen.getByTestId("hw-canvas")).toBeTruthy());
+  });
+
+  it("reads the board out as text before a run and after a seek", async () => {
+    const store = loadedStore();
+    const empty = render(withStore(createPlaygroundStore(), <HardwareView />));
+    expect(screen.getByTestId("hw-readout").textContent).toBe(BEFORE_RUN);
+    empty.unmount();
+    render(withStore(store, <HardwareView />));
+    const timeline = getTimeline(store);
+    let n = -1;
+    for (let i = 0; timeline && i < timeline.length && n < 0; i++) if ((raxAt(store, i) ?? 0n) > 0n) n = i;
+    await act(async () => store.getState().seek(n));
+    expect(screen.getByTestId("hw-readout").textContent).toContain(`rax=0x${raxAt(store, n)?.toString(16)}`);
+  });
+
+  it("shows one message in place of the board when the run was refused", () => {
+    const store = createPlaygroundStore();
+    store.setState((s) => ({ compile: { ...s.compile, status: "refused" } }));
+    render(withStore(store, <HardwareView />));
+    expect(screen.getByText("Nothing to inspect yet: fix the problem in the editor first.")).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Board view" })).toBeNull();
   });
 
   it("keeps the toggle working for the session when localStorage throws", async () => {
