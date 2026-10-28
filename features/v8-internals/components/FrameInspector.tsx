@@ -100,7 +100,8 @@ export function FrameInspector() {
       badge={badge}
       caption="Values are exact; the tagging is our verified model."
     >
-      <div className="max-h-56 overflow-auto">
+      {/* Keyboard users scroll the table through its focusable box (axe: scrollable-region-focusable). */}
+      <div role="group" aria-label="Registers" tabIndex={0} className="max-h-56 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         <table className="w-full font-mono text-xs tabular-nums">
           <caption className="sr-only">Accumulator and registers of the top frame</caption>
           <thead className="sticky top-0 bg-panel text-left text-muted-foreground">

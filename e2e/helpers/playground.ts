@@ -65,6 +65,13 @@ export async function loadExample(page: Page, title: string | RegExp): Promise<v
   await waitForRunAfterEdit(page);
 }
 
+/** Selects a tab of the run panel ("Event Loop", "V8 Internals" or "Hardware") and waits for it to be the selected one. */
+export async function openBottomTab(page: Page, name: "Event Loop" | "V8 Internals" | "Hardware"): Promise<void> {
+  const tab = page.getByRole("tablist", { name: "Run views" }).getByRole("tab", { name });
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+}
+
 /** Moves focus to the page body so the global playback shortcuts apply (they leave editors and widgets alone). */
 export async function focusPage(page: Page): Promise<void> {
   await page.evaluate(() => {

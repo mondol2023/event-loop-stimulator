@@ -52,7 +52,7 @@ export function ElementsLattice() {
   const byKind = new Map<ElementsKind, LatticeNode>(nodes.map((n) => [n.kind, n]));
   return (
     <Panel label="Elements kinds" summary={`object #${focus.objectId} (changed last)`} badge={badge}>
-      <div className="overflow-x-auto">
+      <div role="group" aria-label="Elements kinds diagram" tabIndex={0} className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         <div className="relative aspect-[16/3] w-full min-w-[40rem]">
           <svg viewBox={`0 0 ${4 * CELL_W} ${2 * CELL_H}`} aria-hidden="true" focusable="false" className="absolute inset-0 size-full fill-none">
             <defs>

@@ -12,7 +12,15 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     trace: "on-first-retry",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    // The WebGL-less project runs only the fallback spec; the default project must not also run it, because it has WebGL.
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /hardware-fallback.spec.ts/ },
+    {
+      name: "no-webgl",
+      testMatch: /hardware-fallback.spec.ts/,
+      use: { ...devices["Desktop Chrome"], launchOptions: { args: ["--disable-webgl", "--disable-3d-apis"] } },
+    },
+  ],
   webServer: {
     // Production build: e2e exercises what ships, including CSP and headers.
     command: `npm run build && npx next start -p ${PORT}`,

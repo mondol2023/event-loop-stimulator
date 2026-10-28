@@ -84,7 +84,7 @@ function Graph({ nodes, edges, fieldCount, summary }: { nodes: readonly Transiti
   }, [currentId]);
 
   return (
-    <div ref={scroller} className="max-h-72 overflow-auto">
+    <div ref={scroller} role="group" aria-label="Hidden-class graph" tabIndex={0} className="max-h-72 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={summary} className="max-w-none fill-none">
         <defs>
           <marker id={markerId} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
@@ -117,7 +117,7 @@ function Graph({ nodes, edges, fieldCount, summary }: { nodes: readonly Transiti
 function MapTable({ nodes, edges, fieldCount }: { nodes: readonly TransitionNode[]; edges: readonly TransitionEdge[]; fieldCount: ReadonlyMap<MapId, number> }) {
   const parentOf = new Map(edges.map((e) => [e.to, e]));
   return (
-    <div className="max-h-72 overflow-auto">
+    <div role="group" aria-label="Maps" tabIndex={0} className="max-h-72 overflow-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
       <table className="w-full font-mono text-xs">
         <caption className="sr-only">Maps and the transitions between them</caption>
         <thead className="sticky top-0 bg-panel text-left text-muted-foreground">
