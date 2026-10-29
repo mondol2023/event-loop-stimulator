@@ -23,6 +23,15 @@ describe("TruthBadge", () => {
     });
   }
 
+  it('compact="narrow" hides the word only below sm and keeps the accessible name', () => {
+    render(<TruthBadge level="illustrative" compact="narrow" />);
+    const button = screen.getByRole("button");
+    expect(button.getAttribute("aria-label")).toBe(`Illustrative: ${TRUTH_TOOLTIPS.illustrative}`);
+    const word = screen.getByText("Illustrative");
+    expect(word).not.toBe(button);
+    expect(word.className.split(" ")).toEqual(expect.arrayContaining(["hidden", "sm:inline"]));
+  });
+
   it("renders exact-encoding with the FIDELITY.md sentence", () => {
     render(<TruthBadge level="exact-encoding" />);
     const button = screen.getByRole("button");

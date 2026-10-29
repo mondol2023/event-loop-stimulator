@@ -40,8 +40,8 @@ export function BottomPanel({ tab, onTabChange, collapsed, onCollapsedChange }: 
           </TabsTrigger>
         </TabsList>
         <div className="ml-auto flex items-center gap-2">
-          {/* The board is Illustrative as a whole, so its badge sits here and not on the board (shape brief §11). */}
-          {tab === "hardware" ? <TruthBadge level="illustrative" /> : null}
+          {/* The board is Illustrative as a whole, so its badge sits here and not on the board (shape brief §11). At 375 px its word does not fit beside three tabs. */}
+          {tab === "hardware" ? <TruthBadge level="illustrative" compact="narrow" /> : null}
           <Button
             type="button"
             variant="ghost"

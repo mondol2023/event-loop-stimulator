@@ -38,6 +38,12 @@ describe("BottomPanel", () => {
     expect(screen.queryByText("Illustrative")).toBeNull();
   });
 
+  it("drops the badge's word below sm, so three tabs and the badge fit a 375 px strip", () => {
+    panel("hardware");
+    expect(screen.getByText("Illustrative").className.split(" ")).toEqual(expect.arrayContaining(["hidden", "sm:inline"]));
+    expect(screen.getByRole("button", { name: /^Illustrative: / })).toBeTruthy();
+  });
+
   it("keeps the Hardware tab visible at every width (D5 gives phones the 2D board)", () => {
     panel("event-loop");
     const tab = screen.getByRole("tab", { name: "Hardware" });
