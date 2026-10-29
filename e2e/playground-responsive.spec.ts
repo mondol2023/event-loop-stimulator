@@ -46,9 +46,14 @@ for (const width of WIDTHS) {
       await expect(page.getByTestId("region-microtask")).toBeVisible();
       await expectNoHorizontalScroll(page, "run");
 
-      // The 3D view needs room: its tab is for 768 px and up.
-      if (width < 768) await expect(hardware).toBeHidden();
-      else await expect(hardware).toBeVisible();
+      // The Hardware tab is offered at every width (Phase 7, D5 and ADR-066); with no stored choice a phone opens it on the 2D board.
+      await expect(hardware).toBeVisible();
+      if (width < 768) {
+        await hardware.click();
+        await expect(page.getByRole("group", { name: "2D hardware board" })).toBeVisible();
+        await expect(page.locator('[data-slot="hardware-view"] canvas')).toHaveCount(0);
+        await expectNoHorizontalScroll(page, "hardware");
+      }
     } else {
       // The three regions side by side and stacked: editor, compiled views and run, with the playback bar under them.
       await expect(segments).toBeHidden();
