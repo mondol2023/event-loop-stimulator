@@ -632,7 +632,7 @@ It allows pure npm packages.
 
 **Decision.** `features/hardware-3d/perf/PerfOverlay.tsx` starts a `requestAnimationFrame` counter only with `?perf=1` and exposes `window.__slHwFps()`, the average fps since mount. `e2e/hardware-perf.spec.ts` reads that accessor. It runs only with `PERF=1`, on a real GPU; Task 11 measured an average of 59.4 fps and a minimum of 59.0 (AMD GPU through ANGLE/D3D11).
 
-**Consequence.** The figure is the display rAF rate since mount, not R3F's own frame count, so it can miss demand-loop skips. The CSP is unchanged.
+**Consequence.** The figure is the display rAF rate since mount, not R3F's own frame count, so it can miss demand-loop skips. The CSP is unchanged. The headless long-task check in `e2e/playground-internals.spec.ts` pins a viewport where the canvas stays compact, because SwiftShader's synchronous canvas readback dominates frame time there; the full-size board is checked on a real GPU with `PERF=1`.
 
 ## ADR-068: Predict-first masking in the frame inspector (Phase 7, D7)
 
@@ -690,4 +690,4 @@ It allows pure npm packages.
 
 **Decision.** Task 10 (commit `98aecbe`) added `MorePlayback.tsx`, a Radix Popover loaded only once a phone-width bar renders, so ADR-060 is closed. The owner answered in Task 1 (2026-10-26): the budget is the modern-browser first load, 214.2 KB gz against 250 KB, and the `noModule` total (252.8 KB) is recorded for information. `three`, R3F, drei and the internals views live in lazy chunks; Task 7 measured 214.0 KB (before Task 10).
 
-**Consequence.** The claim that Phase 7 adds 0 KB to first load is provisional: 214.0 KB was measured at Task 7, before Task 10 (`98aecbe`) added eager playback code, and Task 14's build is the first measurement of the final number. Phase 9 enforces the modern-browser figure.
+**Consequence.** Phase 7 adds 0.8 KB to the modern-browser first load, not 0 KB: 214.0 KB at Task 7 (`ae70e31`, 219,100 B) and 214.8 KB at the end of Phase 7 (219,959 B), against the 250 KB budget. Most of it, +0.66 KB, is Task 10's lazy "More playback" boundary: the eager phone-width switch, the `React.lazy` loader stub and Turbopack's re-partitioning of the page chunks into four (the Popper and Tooltip modules it shares with the popover chunk), which alone costs about 0.25 KB of gzip efficiency. The rest is the store's `asmSyntax` (+76 B), Task 11 and 12 glue (+65 B) and the narrow badge (+39 B). Popover, `three`, R3F, drei and the internals views stay in lazy chunks. The `noModule` total is 253.4 KB, for information. Phase 9 enforces the modern-browser figure.
