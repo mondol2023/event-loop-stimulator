@@ -152,6 +152,13 @@ test.describe("V8 Internals follow the recorded V8", () => {
 });
 
 test.describe("playing to the end", () => {
+  // Headless Chromium draws WebGL with SwiftShader, and every 3D frame ends in a synchronous canvas readback on the main
+  // thread, which dominates frame time. At 1280x720 the canvas is 1040x176, over HardwareCanvas's COMPACT_HEIGHT_PX (160, not
+  // exported), so the board also draws its register-value row and frames pass 50 ms. This pins 1280x640 (canvas 1040x144,
+  // measured: 720 -> 176, 680 -> 160, 640 -> 144) so the check covers the compact board. The full-size board is checked on a
+  // real GPU by hardware-perf.spec.ts with PERF=1.
+  test.use({ viewport: { width: 1280, height: 640 } });
+
   type LongTaskWindow = { __longTasks: PerformanceObserver; __longest: number };
 
   async function playToTheEndAt8x(page: Page): Promise<number> {
@@ -190,6 +197,11 @@ test.describe("playing to the end", () => {
       await toggle.click();
       await expect(toggle).toHaveAttribute("aria-pressed", "true");
       await expect(page.locator('[data-slot="hardware-view"] canvas')).toHaveCount(mode === "3D" ? 1 : 0);
+      if (mode === "3D") {
+        const box = await page.locator('[data-slot="hardware-view"] canvas').boundingBox();
+        // HardwareCanvas is compact below COMPACT_HEIGHT_PX = 160 (strictly), so the canvas must stay under it.
+        expect(box?.height ?? Infinity, "3D canvas height, px").toBeLessThan(160);
+      }
       const longest = await playToTheEndAt8x(page);
       expect(longest, `longest long task, ms (${mode})`).toBeLessThanOrEqual(50);
     });
